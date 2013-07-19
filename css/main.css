@@ -1,0 +1,176 @@
+@import url("reset.css");
+/* @import url("unset.css");
+@media print {
+  #main-content a[href]:after { " (" attr(href) ") "; }
+}
+*/
+
+/**** GLOBALS ****/
+html {
+  background: #3D3D3D;
+  color: #B9B9B8;
+  font-family: 'Sorts Mill Goudy', serif;   
+  font-weight: 400;
+  font-size: 1.2em;
+}
+body {
+  padding: 20px 40px;
+  line-height: 150%;
+  letter-spacing: 1%;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/**** MAIN CONTAINERS ****/
+body > header {
+  color: #FFFFC2;
+  font-family: 'Sorts Mill Goudy', serif;   
+  font-size: 6em;
+  text-shadow: 0.05em 0.1em 0.05em #333;
+  clear: both;
+  margin: 0.45em;
+}
+body > nav {
+}
+#main {
+}
+body > footer {
+}
+
+/**** HEADER ****/
+body > header span {
+  color: #FFFF8F;
+}
+
+/**** NAVIGATION ****/
+nav { }
+  nav > ul { display: block; padding: 0; margin-bottom: 20px; }
+  nav li { 
+    display: inline;
+    list-style: none;
+    font-size: 1.8em;
+    text-shadow: 0.05em 0.05em 0.05em #333;
+    padding: 0.3em 0.4em;
+    width: 150px;
+  }
+  nav a {
+    color: #E38631;
+    text-decoration: none;
+  }
+  nav a:hover { color: #608ABB; }
+
+/**** MAIN CONTENT ****/
+#main > section {
+  background: #515150;
+  padding: 30px;
+  margin: 10px 0;
+  color: #EDD870;
+  font-family: 'Lato', serif;   
+  border-radius: 1.7em 1em 2.5em / 0.5em 3em;
+  border-width: 10px;
+  box-shadow: rgba(0,0,0,0.4) 0.2em 0.2em;
+  -moz-border-radius: 1.7em 1em 2.5em / 0.5em 3em;
+}
+#main > section:nth-child(odd) {
+  background: #656564;
+}
+#main > section header {
+  font-family: 'Lobster Two', cursive;
+  font-style: italic;
+  font-size: 2em;
+  font-weight: 700;
+  padding-bottom: 0.3em;
+  /*text-shadow: 0.05em 0.05em 0.05em #333;
+   See: http://jsfiddle.net/mbHB4/3/ */
+  color: rgba(237,216,112, 0.8);
+  text-shadow: 1px 4px 6px #515150, 0 0 0 #000, 1px 4px 6px #515150;
+}
+#main > section p {
+}
+#main > section ul, #main > section ol {
+  padding-left: 40px;
+}
+#main > section a {
+  color: #64A8D1;
+  text-decoration: none;
+}
+#main > section a:hover {
+  color: #FF8C00;
+}
+
+/*
+#main > section a[title]:hover:after {
+  content: attr(title);
+  padding: 4px 8px;
+  color: #333;
+  position: absolute;
+  left: 0;
+  top: 100%;
+  white-space: nowrap;
+  z-index: 20px;
+  -moz-border-radius: 5px;
+  -webkit-border-radius: 5px;
+  border-radius: 5px;
+  -moz-box-shadow: 0px 0px 4px #222;
+  -webkit-box-shadow: 0px 0px 4px #222;
+  box-shadow: 0px 0px 4px #222;
+  background-image: -moz-linear-gradient(top, #eeeeee, #cccccc);
+  background-image: -webkit-gradient(linear,left top,left bottom,color-stop(0, #eeeeee),color-stop(1, #cccccc));
+  background-image: -webkit-linear-gradient(top, #eeeeee, #cccccc);
+  background-image: -moz-linear-gradient(top, #eeeeee, #cccccc);
+  background-image: -ms-linear-gradient(top, #eeeeee, #cccccc);
+  background-image: -o-linear-gradient(top, #eeeeee, #cccccc);
+}
+*/
+
+#aboutme:after {
+  content: '';
+  display: block;
+  clear: both;
+}
+  #aboutme img {
+    float: right;
+    width: 300px;
+    height: 300px;
+    padding: 0.4em;
+  }
+
+.workexperience {
+}
+  .workexperience > * {
+    padding-left: 10px;
+  }
+  .workexperience > hgroup {
+    cursor: pointer;
+    font-family: 'Neuton', serif; /* for now */
+    font-size: 1.2em;
+    padding: 0px 0px 5px 7px;
+  }
+  .workexperience > hgroup h4 {
+    display: inline;
+    font-size: 1.2em;
+    font-weight: 700;
+  }
+  .workexperience > hgroup h5 {
+    display: inline;
+    font-size: 0.9em;
+    font-style: italic;
+  }
+  .workexperience > hgroup h6 {
+    display: inline;
+    float: right;
+    font-size: 0.75em;
+  }
+
+#social { }
+  #social header { font-size: 2em; margin-bottom: 13px; }
+  #social ul { padding: 0; }
+  #social li { 
+    display: inline;
+    list-style: none;
+  }
+
+
+/***
+ * FOOTER
+ ***/

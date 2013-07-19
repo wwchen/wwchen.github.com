@@ -1,14 +1,172 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- LOOK AWAY, I'M NAKED! -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <!DOCTYPE html>
+
 <html>
   <head>
-    <title>William Chen</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="css/bootstrap.min.css" rel="stylesheet" media="screen">
-  </head>
-  <body>
-    <h1>Hello, world!</h1>
-    <script src="http://code.jquery.com/jquery.js"></script>
-    <script src="js/bootstrap.min.js"></script>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="description" content="Personal outlet, both good and bad, of William Chen. While it's not spam, it's probably not something you're looking for either" />
+    <meta name="keywords" content="william chen, william, chen, iamchen, iamchen.com, will.iamchen, tamu, a&amp;m, university, texas" />
+    <meta name="author" content="William Chen" />
+    <link href="css/main.css" type="text/css" rel="stylesheet" />
+    <!-- <link href='http://fonts.googleapis.com/css?family=Volkhov:400,400italic,700,700italic' rel='stylesheet' type='text/css'> -->
+    <link href='http://fonts.googleapis.com/css?family=Neuton:400,700,400italic' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Sorts+Mill+Goudy' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Lato:400,700' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Lobster+Two:400italic' rel='stylesheet' type='text/css'>
+    <!--[if lt IE 9]>
+     <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <script>document.documentElement.className = "js"; </script>
     <!-- Google Analytics -->
     <script type="text/javascript">
       var _gaq = _gaq || [];
@@ -20,7 +178,64 @@
         var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
       })();
     </script>
+
+    <title>William Chen</title>
+  </head>
+  <body>
+    <!-- Header container -->
+    <header><h1><span>william</span>chen</h1></header>
+<!--
+    <nav>
+      <ul>
+        <li><a href="#">life</a></li>
+        <li><a href="#">brainfart</a></li>
+        <li><a href="#">projects</a></li>
+      </ul>
+    </nav>
+-->
+    <!-- Main content container -->
+    <div id="main">
+      <section id="social">
+        <header><h3>Catch me if you can!</h3></header>
+        <ul style="padding: 0">
+          <li><a href="http://facebook.com/wheee"><img src="img/icons/facebook.png" alt="Facebook" /></a></li>
+          <li><a href="http://plus.google.com/105556695757912825233"><img src="img/icons/google.png" alt="Google+" /></a></li>
+          <li><a href="http://www.linkedin.com/in/wwchen"><img src="img/icons/linkedin.png" alt="LinkedIn" /></a></li>
+          <li><a href="http://twitter.com/wchen"><img src="img/icons/twitter.png" alt="Twitter" /></a></li>
+          <li><a href="http://github.com/wwchen"><img src="img/icons/github.png" alt="GitHub" /></a></li>
+          <li><a href="http://delicious.com/wchen16"><img src="img/icons/delicious.png" alt="Delicious" /></a></li>
+          <li><a href="http://www.flickr.com/photos/william-chen/"><img src="img/icons/flickr.png" alt="Flickr" /></a></li>
+          <li><a href="http://www.last.fm/user/wchen"><img src="img/icons/lastfm.png" alt="Last.fm" /></a></li>
+          <li><a href="http://www.quora.com/William-Chen-14"><img src="img/icons/quora.png" alt="Quora" /></a></li>
+        </ul>
+      </section>
+    </div>
+
+    <!-- Footer container -->
+<!--
+    <footer>
+      <p>This is my little footer that says everything here is mine. Allll mineeee, muahahaha</p>
+      <p>If you are a spam or hacker bot, please continue to <a href="file:///dev/null">here</a></p>
+    </footer>
+-->
+
+
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.3/jquery.min.js"></script>
+    <script>
+      $('section.workexperience').each( function() {
+        var $section = $(this);
+        var $title = $('hgroup', $section);
+        var $body = $section.children(':not(hgroup)');
+        $body.hide('slow');
+        $title.click( function() {
+          $body.toggle('slow');
+        });
+    
+      });
+    </script>
   </body>
+
 </html>
+
 
 
