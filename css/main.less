@@ -1,0 +1,78 @@
+// =====
+// Less colors
+// =====
+@orange: #FFFFB6;
+@light-orange: (@orange + #111);
+@blue: #96CBFE;
+@yellow: #FFFFB6;
+@purple: #C6C5FE;
+@grey: #7C7C7C;
+@white: #fff;
+@lime: #A8FF60;
+@yellow: #A8FF60;
+
+// =====
+// shared stylings
+// =====
+.wrapper () {
+  display: inline;
+  font-size: 5em;
+  line-height: 1em;
+  margin: 0.3em 0;
+}
+
+.indent (@level: 1) {
+  margin-left: unit((@level+1),em);
+}
+
+// =====
+// debug stylings
+// =====
+.bordered {
+  border: dotted 1px black;
+}
+.border-radius (@radius: 5px) {
+  border-radius: @radius;
+  -moz-border-radius: @radius;
+  -webkit-border-radius: @radius;
+}
+
+body {
+  background: #383838;
+  color: white;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+#name {
+  .wrapper;
+  color: @light-orange;
+  font-weight: normal;
+}
+  #name span {
+    color: @orange;
+    font-weight: bold;
+  }
+
+#openbracket, #closebracket {
+  .wrapper;
+  color: white;
+}
+
+.line { }
+.variable { color: @white; }
+.classname { color: @white; }
+.operator { color: @white; }
+.method   { color: @white; }
+.keyword  { color: @blue; }
+.comment  { color: @grey; }
+.params   { color: @white; }
+.symbol   { color: @purple; }
+.class    { color: @yellow; }
+.string   { color: @lime; }
+.symbol:after   { color: @white; content: " => "; }
+//.variable:after { color: @white; content: " = "; }
+.indent1  { .indent(1); }
+.indent2  { .indent(2); }
+.indent3  { .indent(3); }
+.indent4  { .indent(4); }

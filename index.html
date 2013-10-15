@@ -1,247 +1,129 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<!-- LOOK AWAY, I'M NAKED! -->
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <!DOCTYPE html>
-
-<html>
+<html lang="en">
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <meta name="description" content="Personal outlet, both good and bad, of William Chen. While it's not spam, it's probably not something you're looking for either" />
-    <meta name="keywords" content="william chen, william, chen, iamchen, iamchen.com, will.iamchen, tamu, a&amp;m, university, texas" />
-    <meta name="author" content="William Chen" />
-    <link href="css/main.css" type="text/css" rel="stylesheet" />
-    <!-- <link href='http://fonts.googleapis.com/css?family=Volkhov:400,400italic,700,700italic' rel='stylesheet' type='text/css'> -->
-    <link href='http://fonts.googleapis.com/css?family=Neuton:400,700,400italic' rel='stylesheet' type='text/css'>
-    <link href='http://fonts.googleapis.com/css?family=Sorts+Mill+Goudy' rel='stylesheet' type='text/css'>
-    <link href='http://fonts.googleapis.com/css?family=Lato:400,700' rel='stylesheet' type='text/css'>
-    <link href='http://fonts.googleapis.com/css?family=Lobster+Two:400italic' rel='stylesheet' type='text/css'>
-    <!--[if lt IE 9]>
-     <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-    <script>document.documentElement.className = "js"; </script>
-    <!-- Google Analytics -->
-    <script type="text/javascript">
-      var _gaq = _gaq || [];
-      _gaq.push(['_setAccount', 'UA-251075-12']);
-      _gaq.push(['_trackPageview']);
-      (function() {
-        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-      })();
-    </script>
-
     <title>William Chen</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link href="http://www.w3.org/StyleSheets/Core/Chocolate" rel="stylesheet"      type="text/css">
+    <link href="css/bootstrap.min.css"                        rel="stylesheet"      media="screen">
+    <link href="css/main.less"                                rel="stylesheet/less" type="text/css" />
   </head>
   <body>
-    <!-- Header container -->
-    <header><h1><span>william</span>chen</h1></header>
-<!--
-    <nav>
-      <ul>
-        <li><a href="#">life</a></li>
-        <li><a href="#">brainfart</a></li>
-        <li><a href="#">projects</a></li>
-      </ul>
-    </nav>
--->
-    <!-- Main content container -->
-    <div id="main">
-      <section id="social">
-        <header><h3>Catch me if you can!</h3></header>
-        <ul style="padding: 0">
-          <li><a href="http://facebook.com/wheee"><img src="img/icons/facebook.png" alt="Facebook" /></a></li>
-          <li><a href="http://plus.google.com/105556695757912825233"><img src="img/icons/google.png" alt="Google+" /></a></li>
-          <li><a href="http://www.linkedin.com/in/wwchen"><img src="img/icons/linkedin.png" alt="LinkedIn" /></a></li>
-          <li><a href="http://twitter.com/wchen"><img src="img/icons/twitter.png" alt="Twitter" /></a></li>
-          <li><a href="http://github.com/wwchen"><img src="img/icons/github.png" alt="GitHub" /></a></li>
-          <li><a href="http://delicious.com/wchen16"><img src="img/icons/delicious.png" alt="Delicious" /></a></li>
-          <li><a href="http://www.flickr.com/photos/william-chen/"><img src="img/icons/flickr.png" alt="Flickr" /></a></li>
-          <li><a href="http://www.last.fm/user/wchen"><img src="img/icons/lastfm.png" alt="Last.fm" /></a></li>
-          <li><a href="http://www.quora.com/William-Chen-14"><img src="img/icons/quora.png" alt="Quora" /></a></li>
-        </ul>
-      </section>
+    <!--
+     Basic idea of the site layout - Ruby/Javascript code
+     Javascript:
+     function williamchen() {
+       var photographer = new Flickr();
+       var coder        = new Github();
+       // whatever else I am
+     };
 
-      <section id="contact">
-        <header><h3>Catch me privately</h3></header>
-        Contact me securely by sending an encrypted email with my
-        <a href="http://pgp.mit.edu:11371/pks/lookup?op=vindex&search=0xEB3042590F09209E">GPG key</a>
-      </section>
+     Ruby:
+     def williamchen:
+       photographer = Flickr.new
+       coder        = Github.new
+     end
+
+     williamchen = {
+       :photographer => Flickr.new
+     }
+    -->
+    <div>
+      <span class="variable">williamchen</span>
+      <span>= {</span>
+    </div>
+    <div class="indent1">
+      <span class="symbol">:photographer</span>
+      <span class="class">Flickr</span>.new,
+    </div>
+    <div class="indent1">
+      <span class="symbol">:coder</span>
+      <span class="class">GitHub</span>.new,
+    </div>
+    <div class="indent1">
+      <span class="symbol">:software developer</span>
+      <span class="class">LinkedIn</span>.new,
+    </div>
+    <div class="indent1">
+      <span class="symbol">:blogger</span>
+      <span class="class">will.iamchen.com</span>.new,
+    </div>
+    <div class="indent1">
+      <span class="symbol">:contacts</span>
+      {<span class="variable">email, twitter</span>}
+    </div>
+    <div>
+      <span>}</span>
     </div>
 
-    <!-- Footer container -->
-<!--
-    <footer>
-      <p>This is my little footer that says everything here is mine. Allll mineeee, muahahaha</p>
-      <p>If you are a spam or hacker bot, please continue to <a href="file:///dev/null">here</a></p>
-    </footer>
--->
+    <div>
+      <span class="keyword">class</span>
+      <span class="classname">GitHub</span>
+    </div>
+    <div class="indent1">
+      <!-- Example row of columns -->
+      <div class="row">
+        <div class="span4">
+          <p><img class="img-polaroid" src="http://placehold.it/300x200" /></p>
+        </div>
+        <div class="span4">
+          <p><img class="img-polaroid" src="http://placehold.it/300x200" /></p>
+        </div>
+        <div class="span4">
+          <p><img class="img-polaroid" src="http://placehold.it/300x200" /></p>
+        </div>
+      </div> <!-- end row -->
+    </div>
 
 
-    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.3/jquery.min.js"></script>
-    <script>
-      $('section.workexperience').each( function() {
-        var $section = $(this);
-        var $title = $('hgroup', $section);
-        var $body = $section.children(':not(hgroup)');
-        $body.hide('slow');
-        $title.click( function() {
-          $body.toggle('slow');
-        });
-    
-      });
-    </script>
+    <!--
+    <div>
+      <span class="keyword">class</span>
+      <span class="classname">GitHub</span>
+    </div>
+    <div class="indent1">
+      <!-- Example row of columns -->
+      <div class="row">
+        <div class="span12">
+          <iframe src="//github.com/wwchen/"></iframe>
+        </div>
+      </div> <!-- end row -->
+    </div>
+
+
+    <div>
+      <span class="keyword">end</span>
+    </div>
+
+
+
+
+    <div id="footer">
+      <!-- Example row of columns -->
+      <div class="row">
+        <div class="span4">
+          <h2>Heading</h2>
+          <p>Donec id elit non mi porta gravida at eget metus. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed odio dui. </p>
+          <p><a class="btn" href="#">View details &raquo;</a></p>
+        </div>
+        <div class="span4">
+          <h2>Heading</h2>
+          <p>Donec id elit non mi porta gravida at eget metus. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed odio dui. </p>
+          <p><a class="btn" href="#">View details &raquo;</a></p>
+        </div>
+        <div class="span4">
+          <h2>Heading</h2>
+          <p>Donec sed odio dui. Cras justo odio, dapibus ac facilisis in, egestas eget quam. Vestibulum id ligula porta felis euismod semper. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa.</p>
+          <p><a class="btn" href="#">View details &raquo;</a></p>
+        </div>
+      </div>
+    </div>
+    -->
+
+
+    <script src="http://code.jquery.com/jquery.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/less.min.js"></script>
   </body>
-
 </html>
-
-
-
