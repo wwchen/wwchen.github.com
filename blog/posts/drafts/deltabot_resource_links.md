@@ -15,6 +15,8 @@ BOM (same)              https://docs.google.com/spreadsheet/ccc?key=0AmeEQQ6JExO
 BOM (rostock)           https://groups.google.com/forum/?fromgroups=#!searchin/deltabot/bom/deltabot/99qY-PNRpVA/cA8FcujyXqgJ
 BOM (rostock)           https://docs.google.com/spreadsheet/ccc?key=0AihVdu60WUfgdG9PY3B1Tk1GaVA4TTA1djRDT0xkLXc#gid=0
 
+modified airtripper mount for kossel mini   http://www.thingiverse.com/thing:140653
+                                   source   https://groups.google.com/d/msg/deltabot/FcfgPwJvqkc/vBolV_LePN4J
 
 http://www.sdp-si.com/
 http://www.aliexpress.com/
