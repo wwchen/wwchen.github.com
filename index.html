@@ -1,67 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
     <title>William Chen</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="">
-    <meta name="author" content="William Chen">
-    <!-- <link href="http://www.w3.org/StyleSheets/Core/Chocolate" rel="stylesheet"      type="text/css"> -->
-    <link href="css/bootstrap.min.css"                        rel="stylesheet"      media="screen">
-    <link href="css/main.less"                                rel="stylesheet/less" type="text/css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="css/styles.css">
   </head>
   <body>
-    <!--
-     Basic idea of the site layout - Ruby/Javascript code
-     Javascript:
-     function williamchen() {
-       var photographer = new Flickr();
-       var coder        = new Github();
-       // whatever else I am
-     };
+    <!-- Header -->
+    <header class="masthead">
+    </header>
 
-     Ruby:
-     def williamchen:
-       photographer = Flickr.new
-       coder        = Github.new
-     end
+    <!-- Fixed navbar -->
+    <div class="navbar navbar-custom navbar-inverse navbar-static-top" id="nav">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+        </div>
+        <div class="collapse navbar-collapse">
+          <ul class="nav navbar-nav nav-justified">
+            <li><a href="#" id="title">william<strong>chen</strong></a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#coding">Coding</a></li>
+            <li><a href="#photography">Photography</a></li>
+            <li><a href="#travel">Travel</a></li>
+            <li><a href="#social">Social</a></li>
+            <!-- <li><a href="#landscape">Landscape</a></li>
+            <li><a href="#event">Event</a></li>
+            <li><a href="#portrait">Event</a></li> -->
+            <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown">More <b class="caret"></b></a>
+              <ul class="dropdown-menu">
+                <li><a href="#">Travel</a></li>
+                <li><a href="#">Social</a></li>
+                <li><a href="#">Contact</a></li>
+              </ul>
+            </li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div><!--/.container -->
+    </div><!--/.navbar -->
 
-     williamchen = {
-       :photographer => Flickr.new
-     }
-    -->
-    <div>
-      <span class="variable">william<strong>chen</strong></span>
-      <span>= {</span>
-    </div>
-    <div class="indent1">
-      <span class="symbol">:photographer</span>
-      <a href="http://flickr.com/photos/william-chen"><span class="class">Flickr</span>.new</a>,
-    </div>
-    <div class="indent1">
-      <span class="symbol">:coder</span>
-      <a href="http://github.com/wwchen"><span class="class">GitHub</span>.new</a>,
-    </div>
-    <div class="indent1">
-      <span class="symbol">:software_developer</span>
-      <a href="http://linkedin.com/in/wwchen"><span class="class">LinkedIn</span>.new</a>
-    </div>
-    <!--
-    <div class="indent1">
-      <span class="symbol">:note_jotter</span>
-      <a href="/blog"><span class="class">blog</span>.new</a>,
-    </div>
-    <div class="indent1">
-      <span class="symbol">:contacts</span>
-      {<span class="variable">email, twitter, gpg</span>}
-    </div>
-    -->
-    <div>
-      <span>}</span>
+    <div id="affix-spacer"></div>
+
+    <!-- Begin page content -->
+
+    <!-- SECTION: ABOUT -->
+    <section id="about">
+      <h1>hello</h1>
+      <p>If I still need to introduce my name, I am flabbergasted how you actually landed here. To distinguish myself from the thousands of William Chen's out there, allow me to chronicle my life choices: in my daytime, I attempt to make Android's notification system a better experience at Snowball. On my free time, I am earning my private pilot license, taking pictures, traveling, building a delta 3D printer</p>
+    </section>
+
+    <!-- SECTION: CODING -->
+    <section id="coding">
+      <h1>coding</h1>
+      <p>I have dabbled in many languages and many platforms. Java, Haskell, Objective-C, Python, Ruby, Rails, AngularJS, LaTeX, bash, Javascript</p>
+    </section>
+
+    <!-- SECTION: PHOTOGRAPHY -->
+    <section id="photography">
+      <h1>photography</h1>
+      <p>Ooh, this is going to be fun. Pictures. LOTS OF PICTURES</p>
+      <hr>
+    </section>
+
+    <!-- SECTION: TRAVEL -->
+    <section id="travel">
+      <h1>travels</h1>
+      <div class="row">
+        <!-- <div class="col-sm-offset-2 col-sm-8" id="travelfeed"></div> -->
+        <!-- <div id="travelfeed"></div> -->
+      </div>
+    </section>
+
+    <!-- SECTION: SOCIAL -->
+    <section id="social">
+      <p>I'm not very good at keeping my online presence updated, but if I do, they'll be here</p>
+      <div id="instafeed"></div>
+      <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+    </section>
+
+    <!-- Footer -->
+    <div id="footer">
+      <div class="container">
+        <p class="text-muted">Good job, you've read all the way to the bottom!</p>
+      </div>
     </div>
 
+    <!-- script references -->
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.2/jquery.min.js"></script>
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+    <script src="//rawgit.com/stevenschobert/instafeed.js/master/instafeed.min.js"></script>
+    <script src="js/scripts.js"></script>
+    <script src="js/travel.js"></script>
 
-    <script src="http://code.jquery.com/jquery.js"></script>
-    <script src="js/bootstrap.min.js"></script>
-    <script src="js/less.min.js"></script>
+    <!-- todo insert g-analytics -->
   </body>
 </html>

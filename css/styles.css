@@ -1,0 +1,176 @@
+@import url(//fonts.googleapis.com/css?family=Kreon:400,700);
+@import url(//fonts.googleapis.com/css?family=Cabin+Sketch);
+
+html,
+body {
+  height: 100%;
+  /* The html and body elements cannot have any padding or margin. */
+  -webkit-font-smoothing: antialiased;
+  font: normal 14px arial,sans-serif;
+}
+
+.row {
+  margin-left: 0px;
+  margin-right: 0px;
+}
+
+/* Header
+-------------------------------------------------- */
+#title {
+  font-size: 5em;
+  text-transform: none;
+  font-weight: inherit;
+}
+
+
+/* Custom page CSS
+-------------------------------------------------- */
+
+#footer {
+  background-color: #414141;
+}
+
+#footer a {
+  color: #efefef;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Kreon', serif;
+  vertical-align: middle;
+}
+
+header {
+  background: #f16251;
+  height: 350px;
+  color: #000000;
+}
+
+header h1,header h2,header h3 a,header a,header a:hover {
+  color: #101010;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+header h3 {
+  font-family: 'Kreon', serif;
+  background: #ffcc33;
+  padding:10px;
+  border-radius:3px;
+  font-size:34px;
+  padding:12px 10px 6px 10px;
+}
+
+header .dropdown-menu {
+  top:74px;
+  background: #ffcc33;
+  border-width:0;
+}
+
+h1 {
+  font-size:50px;
+}
+
+#nav {
+  width: 100%;
+  margin: 0;
+}
+
+#nav.affix {
+  top: 0;
+  -webkit-transition: all .6s ease-in-out;
+}
+
+@media (min-width: 767px) {
+  .navbar-nav.nav-justified > li{
+    float:none;
+  }
+}
+.navbar-nav {
+  margin: 1px 1px; 
+}  
+
+/* customize nav style */
+.navbar-custom {
+  background-color: #2e2e2e;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-width: 0;
+}
+.navbar-custom .navbar-nav>li>a {
+  color: #ddd;
+}
+.navbar-custom .navbar-nav li>a:hover, .navbar-nav li .open, .navbar-custom .navbar-nav .active a {
+  background-color: #369;
+}
+.navbar-custom .dropdown-menu {
+  right:0;
+}
+.navbar-custom .navbar-nav>.dropdown>a .caret {
+  border-top-color: #999;
+  border-bottom-color: #999;
+}
+
+.navbar-collapse.in { /*3.0.2 bug workaround*/
+  overflow-y: visible;
+}
+
+.navbar-toggle {
+  outline:0;
+}
+
+.panel {
+  border-width:0;
+}
+
+@media (max-width: 768px) {
+  header {
+    height: 95px;
+  }
+}
+
+
+section {
+  height: auto !important;
+  padding: 20px 50px;
+}
+
+/* custom */
+
+#about {
+  background: #777;
+}
+
+#coding {
+  background: #555;
+}
+
+#photography {
+  background: #666;
+}
+
+#travelfeed {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+#travelfeed > div {
+  flex-grow: 1;
+}
+
+.bg-4 {
+  padding-top:30px;
+  background-image: -webkit-gradient(linear, left top, left bottom, from(rgba(20,20,20,0.2)),to(rgba(255,255,255,0)), color-stop(1,#000));
+}
+
+.navbar-inverse {
+  background: #f16251;
+}
+
+.navbar-inverse .navbar-toggle {
+  background: #666;
+}
+
+
+.navbar-inverse .navbar-toggle:hover {
+  background: #666;
+}

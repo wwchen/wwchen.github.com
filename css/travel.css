@@ -1,0 +1,31 @@
+body {
+  margin: 0 auto;
+}
+
+.photo {
+  height: 350px;
+  position: relative;
+  overflow: hidden;
+}
+
+.title {
+  line-height: 350px;
+  text-align: center;
+  color: white;
+  font-size: 10em;
+  /*font-family: 'Londrina Shadow', cursive;*/
+  font-family: 'Cabin Sketch', cursive;
+  position: absolute;
+  top: 0;
+  width: 100%;
+}
+
+.title:hover {
+  color: orange;
+}
+
+.photo img {
+  width: 100%;
+  position: absolute;
+}
+
