@@ -5,63 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="">
     <meta name="author" content="William Chen">
-    <!-- <link href="http://www.w3.org/StyleSheets/Core/Chocolate" rel="stylesheet"      type="text/css"> -->
-    <link href="css/bootstrap.min.css"                        rel="stylesheet"      media="screen">
-    <link href="css/main.less"                                rel="stylesheet/less" type="text/css" />
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-251075-12"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+    
+      gtag('config', 'UA-251075-12');
+    </script>
   </head>
   <body>
-    <!--
-     Basic idea of the site layout - Ruby/Javascript code
-     Javascript:
-     function williamchen() {
-       var photographer = new Flickr();
-       var coder        = new Github();
-       // whatever else I am
-     };
-
-     Ruby:
-     def williamchen:
-       photographer = Flickr.new
-       coder        = Github.new
-     end
-
-     williamchen = {
-       :photographer => Flickr.new
-     }
-    -->
-    <div>
-      <span class="variable">william<strong>chen</strong></span>
-      <span>= {</span>
-    </div>
-    <div class="indent1">
-      <span class="symbol">:photographer</span>
-      <a href="http://flickr.com/photos/william-chen"><span class="class">Flickr</span>.new</a>,
-    </div>
-    <div class="indent1">
-      <span class="symbol">:coder</span>
-      <a href="http://github.com/wwchen"><span class="class">GitHub</span>.new</a>,
-    </div>
-    <div class="indent1">
-      <span class="symbol">:software_developer</span>
-      <a href="http://linkedin.com/in/wwchen"><span class="class">LinkedIn</span>.new</a>
-    </div>
-    <!--
-    <div class="indent1">
-      <span class="symbol">:note_jotter</span>
-      <a href="/blog"><span class="class">blog</span>.new</a>,
-    </div>
-    <div class="indent1">
-      <span class="symbol">:contacts</span>
-      {<span class="variable">email, twitter, gpg</span>}
-    </div>
-    -->
-    <div>
-      <span>}</span>
-    </div>
-
-
-    <script src="http://code.jquery.com/jquery.js"></script>
-    <script src="js/bootstrap.min.js"></script>
-    <script src="js/less.min.js"></script>
   </body>
 </html>
