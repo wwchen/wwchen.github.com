@@ -152,10 +152,41 @@
 
         const TEMPLATES = {
             checkeredPattern: {
-                name: "Checkered Pattern Template",
+                name: "Checkered Pattern",
                 boards: [
                     { id: 1, thickness: '1.5', width: '7', length: '10', woodType: { name: 'Walnut', color: '#3E2723' } },
                     { id: 2, thickness: '1.5', width: '7', length: '10', woodType: { name: 'Maple', color: '#F5E6D3' } },
+                ],
+                ripWidth: '1',
+                crosscutWidth: '1',
+                grainOrientation: 'end-grain'
+            },
+            stripedPattern: {
+                name: "Face Grain Stripes",
+                boards: [
+                    { id: 1, thickness: '0.75', width: '6', length: '16', woodType: { name: 'Cherry', color: '#C96236' } },
+                    { id: 2, thickness: '0.75', width: '6', length: '16', woodType: { name: 'Maple', color: '#F5E6D3' } },
+                ],
+                ripWidth: '1',
+                crosscutWidth: '14',
+                grainOrientation: 'face-grain'
+            },
+            wideStripes: {
+                name: "Wide Stripes (End Grain)",
+                boards: [
+                    { id: 1, thickness: '1.5', width: '6', length: '14', woodType: { name: 'Walnut', color: '#3E2723' } },
+                    { id: 2, thickness: '1.5', width: '6', length: '14', woodType: { name: 'Oak', color: '#DEB887' } },
+                ],
+                ripWidth: '2',
+                crosscutWidth: '2',
+                grainOrientation: 'end-grain'
+            },
+            threeWoodCheckered: {
+                name: "Three Wood Checkered",
+                boards: [
+                    { id: 1, thickness: '1.5', width: '6', length: '12', woodType: { name: 'Walnut', color: '#3E2723' } },
+                    { id: 2, thickness: '1.5', width: '6', length: '12', woodType: { name: 'Maple', color: '#F5E6D3' } },
+                    { id: 3, thickness: '1.5', width: '6', length: '12', woodType: { name: 'Cherry', color: '#C96236' } },
                 ],
                 ripWidth: '1',
                 crosscutWidth: '1',
@@ -663,12 +694,30 @@
                                         Add your raw wood boards with their dimensions or load a template
                                     </p>
 
-                                    <div className="mb-6 flex gap-3">
+                                    <div className="mb-6 flex flex-wrap gap-3">
                                         <button
                                             onClick={() => loadTemplate('checkeredPattern')}
                                             className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center gap-2"
                                         >
-                                            <Sparkles size={16} /> Load Checkered Pattern Template
+                                            <Sparkles size={16} /> Checkered Pattern
+                                        </button>
+                                        <button
+                                            onClick={() => loadTemplate('stripedPattern')}
+                                            className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2"
+                                        >
+                                            <Sparkles size={16} /> Face Grain Stripes
+                                        </button>
+                                        <button
+                                            onClick={() => loadTemplate('wideStripes')}
+                                            className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 flex items-center gap-2"
+                                        >
+                                            <Sparkles size={16} /> Wide Stripes
+                                        </button>
+                                        <button
+                                            onClick={() => loadTemplate('threeWoodCheckered')}
+                                            className="bg-rose-600 text-white px-4 py-2 rounded-lg hover:bg-rose-700 flex items-center gap-2"
+                                        >
+                                            <Sparkles size={16} /> Three Wood Checkered
                                         </button>
                                     </div>
 
@@ -1233,28 +1282,49 @@
                                             {grainOrientation === 'end-grain' ? 'End-Grain' : 'Face-Grain'} Pattern Preview
                                         </h3>
                                         <div className="flex justify-center">
-                                            <div className="inline-block">
-                                                {finalStrips.map((strip) => {
-                                                    const segments = strip.flipped ? [...strip.segments].reverse() : strip.segments;
+                                            <div className="inline-block border-2 border-gray-400">
+                                                {(() => {
+                                                    // Calculate scale: maintain aspect ratio but ensure visibility
+                                                    const crossW = parseFloat(crosscutWidth);
+                                                    const maxSegWidth = Math.max(...finalStrips.flatMap(s => s.segments.map(seg => seg.width)));
 
-                                                    return (
-                                                        <div key={strip.id} className="flex">
-                                                            {segments.map((seg, segIdx) => (
-                                                                <div
-                                                                    key={segIdx}
-                                                                    style={{
-                                                                        backgroundColor: seg.woodType.color,
-                                                                        width: '40px',
-                                                                        height: '40px',
-                                                                        minWidth: '40px',
-                                                                        minHeight: '40px'
-                                                                    }}
-                                                                    title={`${seg.woodType.name}${strip.flipped ? ' (flipped)' : ''}`}
-                                                                />
-                                                            ))}
-                                                        </div>
-                                                    );
-                                                })}
+                                                    // Use larger scale, aiming for at least 20px per smallest strip
+                                                    const minStripWidth = Math.min(...finalStrips.flatMap(s => s.segments.map(seg => seg.width)));
+                                                    const minPixelsPerStrip = 20;
+                                                    const pixelsPerInch = minPixelsPerStrip / minStripWidth;
+
+                                                    // Cap maximum total width at 600px
+                                                    const totalWidth = maxSegWidth * pixelsPerInch * finalStrips[0].segments.length;
+                                                    const scale = totalWidth > 600 ? 600 / totalWidth : 1;
+                                                    const finalPixelsPerInch = pixelsPerInch * scale;
+
+                                                    return finalStrips.map((strip) => {
+                                                        const segments = strip.flipped ? [...strip.segments].reverse() : strip.segments;
+                                                        const rowHeight = crossW * finalPixelsPerInch;
+
+                                                        return (
+                                                            <div key={strip.id} className="flex">
+                                                                {segments.map((seg, segIdx) => {
+                                                                    const segWidth = seg.width * finalPixelsPerInch;
+                                                                    return (
+                                                                        <div
+                                                                            key={segIdx}
+                                                                            style={{
+                                                                                backgroundColor: seg.woodType.color,
+                                                                                width: `${segWidth}px`,
+                                                                                height: `${rowHeight}px`,
+                                                                                minWidth: '2px',
+                                                                                minHeight: '2px',
+                                                                                border: '0.5px solid rgba(0,0,0,0.1)'
+                                                                            }}
+                                                                            title={`${seg.woodType.name}${strip.flipped ? ' (flipped)' : ''}`}
+                                                                        />
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        );
+                                                    });
+                                                })()}
                                             </div>
                                         </div>
                                     </div>
@@ -1417,24 +1487,46 @@
                                                     <div style={{marginBottom: '12px', pageBreakBefore: 'avoid'}}>
                                                         <h2 style={{fontSize: '14px', fontWeight: 'bold', marginBottom: '6px'}}>Pattern Preview</h2>
                                                         <div style={{border: '2px solid black', padding: '8px', display: 'inline-block'}}>
-                                                            {finalStrips.map((strip, stripIdx) => {
-                                                                const segments = strip.flipped ? [...strip.segments].reverse() : strip.segments;
-                                                                return (
-                                                                    <div key={stripIdx} style={{display: 'flex'}}>
-                                                                        {segments.map((seg, segIdx) => (
-                                                                            <div
-                                                                                key={segIdx}
-                                                                                style={{
-                                                                                    backgroundColor: seg.woodType.color,
-                                                                                    width: '16px',
-                                                                                    height: '16px',
-                                                                                    border: '1px solid #ccc'
-                                                                                }}
-                                                                            />
-                                                                        ))}
-                                                                    </div>
-                                                                );
-                                                            })}
+                                                            {(() => {
+                                                                // Calculate scale for print
+                                                                const crossW = parseFloat(crosscutWidth);
+                                                                const maxSegWidth = Math.max(...finalStrips.flatMap(s => s.segments.map(seg => seg.width)));
+
+                                                                // Use larger scale, aiming for at least 15px per smallest strip (smaller for print)
+                                                                const minStripWidth = Math.min(...finalStrips.flatMap(s => s.segments.map(seg => seg.width)));
+                                                                const minPixelsPerStrip = 15;
+                                                                const pixelsPerInch = minPixelsPerStrip / minStripWidth;
+
+                                                                // Cap maximum total width at 500px for print
+                                                                const totalWidth = maxSegWidth * pixelsPerInch * finalStrips[0].segments.length;
+                                                                const scale = totalWidth > 500 ? 500 / totalWidth : 1;
+                                                                const finalPixelsPerInch = pixelsPerInch * scale;
+
+                                                                return finalStrips.map((strip, stripIdx) => {
+                                                                    const segments = strip.flipped ? [...strip.segments].reverse() : strip.segments;
+                                                                    const rowHeight = crossW * finalPixelsPerInch;
+                                                                    return (
+                                                                        <div key={stripIdx} style={{display: 'flex'}}>
+                                                                            {segments.map((seg, segIdx) => {
+                                                                                const segWidth = seg.width * finalPixelsPerInch;
+                                                                                return (
+                                                                                    <div
+                                                                                        key={segIdx}
+                                                                                        style={{
+                                                                                            backgroundColor: seg.woodType.color,
+                                                                                            width: `${segWidth}px`,
+                                                                                            height: `${rowHeight}px`,
+                                                                                            minWidth: '2px',
+                                                                                            minHeight: '2px',
+                                                                                            border: '0.5px solid rgba(0,0,0,0.1)'
+                                                                                        }}
+                                                                                    />
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    );
+                                                                });
+                                                            })()}
                                                         </div>
                                                     </div>
 
