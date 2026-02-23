@@ -1,0 +1,2395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cabinet Maker Pro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #2c3e50;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 20px;
+        }
+
+        .sidebar {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            height: fit-content;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        .panel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            scroll-margin-top: 80px;
+        }
+
+        .panel h2 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+            font-size: 18px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .input-row-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .input-row .input-group,
+        .input-row-2 .input-group {
+            margin-bottom: 0;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .input-group input[type="number"]::-webkit-inner-spin-button,
+        .input-group input[type="number"]::-webkit-outer-spin-button {
+            opacity: 1;
+            height: 30px;
+            cursor: pointer;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .input-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
+        .input-group label {
+            cursor: pointer;
+        }
+
+        .conditional-input {
+            margin-left: 24px;
+            padding-left: 12px;
+            border-left: 2px solid #e0e0e0;
+        }
+
+        #canvas-container {
+            height: 600px;
+            background: #263238;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .canvas-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 10;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .cut-sheet {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .sheet {
+            border: 2px solid #3498db;
+            padding: 15px;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+
+        .sheet h3 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+
+        .sheet-visual {
+            background: white;
+            border: 1px solid #ddd;
+            margin: 10px 0;
+            position: relative;
+            height: 200px;
+        }
+
+        .cut-piece {
+            position: absolute;
+            border: 1px solid #333;
+            background: rgba(52, 152, 219, 0.3);
+            font-size: 10px;
+            padding: 2px;
+            overflow: hidden;
+        }
+
+        .assembly-step {
+            padding: 15px;
+            margin: 10px 0;
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+            border-radius: 4px;
+        }
+
+        .assembly-step h4 {
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+
+        .button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .button:hover {
+            background: #2980b9;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        .section-divider {
+            margin: 20px 0;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .calculated-dims {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 1400px) {
+            .calculated-dims {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        #variables-values {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .var-item {
+            background: #f8f9fa;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border-left: 3px solid #3498db;
+        }
+
+        .var-item .var-name {
+            color: #666;
+            font-weight: 600;
+        }
+
+        .var-item .var-value {
+            color: #2c3e50;
+            margin-left: 8px;
+        }
+
+        .calc-item {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .calc-item strong {
+            color: #2c3e50;
+            font-size: 13px;
+        }
+
+        .calc-item span {
+            display: block;
+            margin-top: 5px;
+            font-size: 18px;
+            color: #3498db;
+            font-weight: 600;
+        }
+
+        .calc-item small {
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-weight: normal;
+        }
+
+        .plywood-table {
+            width: 100%;
+            margin-top: 10px;
+            border-collapse: collapse;
+        }
+
+        .plywood-table th {
+            background: #f8f9fa;
+            padding: 8px 4px;
+            font-size: 12px;
+            text-align: left;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .plywood-table td {
+            padding: 8px 4px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .plywood-table input[type="number"],
+        .plywood-table select {
+            width: 100%;
+            padding: 4px;
+            font-size: 12px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+
+        .plywood-table input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .component-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            min-height: 30px;
+            padding: 4px;
+            border: 1px dashed #ddd;
+            border-radius: 4px;
+            background: #fafafa;
+        }
+
+        .component-pill {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #3498db;
+            color: white;
+            border-radius: 12px;
+            font-size: 11px;
+            cursor: move;
+            user-select: none;
+        }
+
+        .component-pill:hover {
+            background: #2980b9;
+        }
+
+        .component-pill.dragging {
+            opacity: 0.5;
+        }
+
+        .available-components {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+            padding: 8px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            min-height: 40px;
+            border: 2px dashed #ccc;
+        }
+
+        .component-pill.available {
+            background: #95a5a6;
+            cursor: pointer;
+        }
+
+        .component-pill.available:hover {
+            background: #7f8c8d;
+        }
+
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 11px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .btn-small:hover {
+            background: #c0392b;
+        }
+
+        .btn-add {
+            background: #27ae60;
+            margin-top: 8px;
+        }
+
+        .btn-add:hover {
+            background: #229954;
+        }
+
+        .nav-menu {
+            position: sticky;
+            top: 0;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            z-index: 100;
+        }
+
+        .nav-menu h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #2c3e50;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .nav-link {
+            padding: 6px 12px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #2c3e50;
+            font-size: 13px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .nav-link:hover {
+            background: #3498db;
+            color: white;
+        }
+
+        .nav-link.active {
+            background: #3498db;
+            color: white;
+            font-weight: 600;
+        }
+
+        .debug-section {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .debug-section h3 {
+            margin: 0 0 10px 0;
+            color: #3498db;
+            font-size: 14px;
+        }
+
+        .debug-group {
+            margin-bottom: 15px;
+        }
+
+        .debug-group h4 {
+            margin: 0 0 8px 0;
+            color: #e74c3c;
+            font-size: 13px;
+        }
+
+        .debug-var {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 10px;
+            padding: 3px 0;
+            border-bottom: 1px solid #34495e;
+        }
+
+        .debug-var-name {
+            color: #f39c12;
+        }
+
+        .debug-var-value {
+            color: #2ecc71;
+        }
+
+        .config-json {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            position: relative;
+        }
+
+        .config-json textarea {
+            width: 100%;
+            min-height: 300px;
+            background: #1a1a1a;
+            color: #2ecc71;
+            border: 1px solid #34495e;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            resize: vertical;
+        }
+
+        .config-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .config-btn {
+            padding: 8px 16px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .config-btn:hover {
+            background: #2980b9;
+        }
+
+        .config-btn.secondary {
+            background: #95a5a6;
+        }
+
+        .config-btn.secondary:hover {
+            background: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🪚 Cabinet Maker Pro</h1>
+
+        <div class="layout">
+            <div class="sidebar">
+                <h2>Cabinet Dimensions</h2>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>Width (in)</label>
+                        <input type="number" id="dim_w" value="25.00" step="0.125">
+                    </div>
+                    <div class="input-group">
+                        <label>Height (in)</label>
+                        <input type="number" id="dim_h" value="37.00" step="0.125">
+                    </div>
+                    <div class="input-group">
+                        <label>Depth (in)</label>
+                        <input type="number" id="dim_d" value="21.00" step="0.125">
+                    </div>
+                </div>
+
+                <div class="input-row-2">
+                    <div class="input-group">
+                        <label>Drawer Stretcher (in)</label>
+                        <input type="number" id="dim_drawer_stretcher" value="3.00" step="0.125">
+                    </div>
+                    <div class="input-group" id="back_stretcher_group" style="display: none;">
+                        <label>Back Stretcher (in)</label>
+                        <input type="number" id="dim_back_stretcher" value="3.00" step="0.125">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Drawer Railing Width (in)</label>
+                    <input type="number" id="dim_railing_w" value="1.00" step="0.125">
+                </div>
+
+                <div class="input-row-2">
+                    <div class="input-group">
+                        <label>Drawer Count</label>
+                        <input type="number" id="num_drawers" value="3" min="1" max="10">
+                    </div>
+                    <div class="input-group">
+                        <label>Drawer Clearance (in)</label>
+                        <input type="number" id="drawer_clearance" value="0.125" step="0.0625">
+                    </div>
+                </div>
+
+                <div class="section-divider"></div>
+                <h2>Cabinet Style</h2>
+
+                <div class="input-group">
+                    <label>Carcass Backing</label>
+                    <select id="backing_style">
+                        <option value="none">None</option>
+                        <option value="stretcher" selected>Stretcher Only</option>
+                        <option value="inlay">Routed Inlay</option>
+                        <option value="full">Full Plywood</option>
+                    </select>
+                </div>
+
+                <div class="section-divider"></div>
+                <h2>Plywood Materials</h2>
+
+                <table class="plywood-table" id="plywood-table">
+                    <thead>
+                        <tr>
+                            <th>Thickness</th>
+                            <th>Material</th>
+                            <th>Components</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="plywood-rows">
+                    </tbody>
+                </table>
+                <button class="button btn-small btn-add" onclick="addPlywoodRow()">+ Add Row</button>
+
+                <div class="section-divider"></div>
+                <h2>Cut Settings</h2>
+
+                <div class="input-group">
+                    <label>Sheet Width (in)</label>
+                    <input type="number" id="sheet_w" value="48" step="1">
+                </div>
+
+                <div class="input-group">
+                    <label>Sheet Height (in)</label>
+                    <input type="number" id="sheet_h" value="96" step="1">
+                </div>
+
+                <div class="input-group">
+                    <label>Kerf Width (in)</label>
+                    <input type="number" id="kerf" value="0.125" step="0.0625">
+                </div>
+
+            </div>
+
+            <div class="main-content">
+                <div class="nav-menu">
+                    <h3>Jump to Section</h3>
+                    <div class="nav-links">
+                        <a class="nav-link" href="#section-3d">3D View</a>
+                        <a class="nav-link" href="#section-dimensions">Dimensions</a>
+                        <a class="nav-link" href="#section-bom">BOM</a>
+                        <a class="nav-link" href="#section-optimizer">Optimizer</a>
+                        <a class="nav-link" href="#section-assembly">Assembly</a>
+                        <a class="nav-link" href="#section-debug">Debug</a>
+                    </div>
+                </div>
+
+                <div class="panel" id="section-3d">
+                    <h2>3D Visualization</h2>
+                    <div id="canvas-container">
+                        <div class="canvas-overlay">
+                            🖱️ Drag to rotate | Scroll to zoom | Right-click to pan
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel" id="section-dimensions">
+                    <h2>Calculated Dimensions</h2>
+                    <div id="calculated-dimensions" class="calculated-dims"></div>
+                </div>
+
+                <div class="panel" id="section-bom">
+                    <h2>Bill of Materials (BOM)</h2>
+                    <div id="bom-table"></div>
+                </div>
+
+                <div class="panel" id="section-optimizer">
+                    <h2>Cut Optimizer</h2>
+                    <div class="warning">
+                        <strong>⚠️ Cut Optimization:</strong> Sheets are optimized to minimize waste. Use scraps for smaller pieces when possible.
+                    </div>
+                    <div id="cut-optimizer"></div>
+                </div>
+
+                <div class="panel" id="section-assembly">
+                    <h2>Assembly Instructions</h2>
+                    <div id="assembly-order"></div>
+                </div>
+
+                <div class="panel" id="section-debug">
+                    <h2>Debug Information</h2>
+                    <div id="debug-output"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Three.js scene setup
+        let scene, camera, renderer, controls;
+        let cabinetGroup;
+
+        function initThreeJS() {
+            const container = document.getElementById('canvas-container');
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x263238);
+
+            camera = new THREE.PerspectiveCamera(
+                50,
+                container.clientWidth / container.clientHeight,
+                0.1,
+                1000
+            );
+            camera.position.set(-40, 35, -40);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(12, 18, 10); // Look at center of cabinet
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight1.position.set(10, 10, 10);
+            scene.add(directionalLight1);
+
+            const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.3);
+            directionalLight2.position.set(-10, -10, -10);
+            scene.add(directionalLight2);
+
+            // Grid helper at floor level
+            const gridHelper = new THREE.GridHelper(100, 20, 0x444444, 0x222222);
+            gridHelper.position.y = 0; // At floor level
+            scene.add(gridHelper);
+
+            cabinetGroup = new THREE.Group();
+            scene.add(cabinetGroup);
+
+            animate();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function createPlywoodBox(width, height, depth, thickness, color = 0x8B7355) {
+            const group = new THREE.Group();
+
+            // Main box
+            const geometry = new THREE.BoxGeometry(width, height, depth);
+            const material = new THREE.MeshPhongMaterial({
+                color: color,
+                side: THREE.DoubleSide
+            });
+            const mesh = new THREE.Mesh(geometry, material);
+            group.add(mesh);
+
+            // Edge lines
+            const edges = new THREE.EdgesGeometry(geometry);
+            const lineMaterial = new THREE.LineBasicMaterial({
+                color: 0x000000,
+                linewidth: 2
+            });
+            const lines = new THREE.LineSegments(edges, lineMaterial);
+            group.add(lines);
+
+            // Ply edge indicators (darker strips on exposed edges)
+            const edgeMaterial = new THREE.MeshBasicMaterial({ color: 0x654321 });
+
+            return group;
+        }
+
+
+        function render3DCabinet(config) {
+            // Clear existing cabinet
+            while(cabinetGroup.children.length > 0) {
+                cabinetGroup.remove(cabinetGroup.children[0]);
+            }
+
+            const { dim_w, dim_h, dim_d, num_drawers, dim_railing_w,
+                    backing_style } = config;
+
+            // Get plywood specs from table
+            const carcassSidesPly = getPlywoodForComponent('carcass_sides');
+            const carcassBackPly = getPlywoodForComponent('carcass_back');
+            const backStretcherPly = getPlywoodForComponent('back_stretcher');
+            const carcassTopPly = getPlywoodForComponent('carcass_top');
+            const drawerSidesPly = getPlywoodForComponent('drawer_sides');
+            const drawerBottomPly = getPlywoodForComponent('drawer_bottom');
+            const drawerFacePly = getPlywoodForComponent('drawer_face');
+            const drawerStretcherPly = getPlywoodForComponent('drawer_stretcher');
+
+            const ply_carcass = carcassSidesPly.thickness;
+            const ply_carcass_back = carcassBackPly.thickness;
+            const ply_back_stretcher = backStretcherPly.thickness;
+            const ply_drawer = drawerSidesPly.thickness;
+            const ply_bottom = drawerBottomPly.thickness;
+            const ply_drawer_face = drawerFacePly.thickness;
+            const ply_drawer_stretcher = drawerStretcherPly.thickness;
+
+            const drawer_face_enabled = plywoodData.some(row => row.components.includes('drawer_face'));
+
+            const baseY = 0;
+
+            // Carcass sides - positioned from (0,0,0) at bottom front left corner
+            const carcassSideHeight = dim_h - ply_carcass;
+            const leftSide = createPlywoodBox(ply_carcass, carcassSideHeight, dim_d, ply_carcass, 0xD2B48C);
+            leftSide.position.set(
+                ply_carcass/2,
+                baseY + carcassSideHeight/2,
+                dim_d/2
+            );
+            cabinetGroup.add(leftSide);
+
+            const rightSide = createPlywoodBox(ply_carcass, carcassSideHeight, dim_d, ply_carcass, 0xD2B48C);
+            rightSide.position.set(
+                dim_w - ply_carcass/2,
+                baseY + carcassSideHeight/2,
+                dim_d/2
+            );
+            cabinetGroup.add(rightSide);
+
+            // Carcass top
+            const topBox = createPlywoodBox(dim_w, ply_carcass, dim_d, ply_carcass, 0xC19A6B);
+            topBox.position.set(
+                dim_w/2,
+                baseY + dim_h - ply_carcass/2,
+                dim_d/2
+            );
+            cabinetGroup.add(topBox);
+
+            // Carcass back - handle different backing styles
+            if (backing_style === 'full') {
+                const backWidth = dim_w - 2 * ply_carcass;
+                const backHeight = dim_h - 2 * ply_carcass;
+                const backBox = createPlywoodBox(backWidth, backHeight, ply_carcass_back, ply_carcass_back, 0xA0826D);
+                backBox.position.set(
+                    dim_w/2,
+                    baseY + ply_carcass + backHeight/2,
+                    dim_d - ply_carcass_back/2
+                );
+                cabinetGroup.add(backBox);
+            } else if (backing_style === 'stretcher') {
+                // Top and bottom stretchers only
+                const stretcherWidth = dim_w - 2 * ply_carcass;
+                const backStretcherHeight = config.dim_back_stretcher;
+                const topStretcher = createPlywoodBox(stretcherWidth, backStretcherHeight, ply_back_stretcher, ply_back_stretcher, 0xD2B48C);
+                topStretcher.position.set(
+                    dim_w/2,
+                    baseY + dim_h - ply_carcass - backStretcherHeight/2,
+                    dim_d - ply_back_stretcher/2
+                );
+                cabinetGroup.add(topStretcher);
+
+                const bottomStretcher = createPlywoodBox(stretcherWidth, backStretcherHeight, ply_back_stretcher, ply_back_stretcher, 0xD2B48C);
+                bottomStretcher.position.set(
+                    dim_w/2,
+                    baseY + ply_carcass + backStretcherHeight/2,
+                    dim_d - ply_back_stretcher/2
+                );
+                cabinetGroup.add(bottomStretcher);
+            } else if (backing_style === 'inlay') {
+                // Routed inlay - back panel sits in routed groove (flush with inside)
+                const backWidth = dim_w - 2 * ply_carcass;
+                const backHeight = dim_h - 2 * ply_carcass;
+                const backBox = createPlywoodBox(backWidth, backHeight, ply_carcass_back, ply_carcass_back, 0xA0826D);
+                // Position flush inside the routed groove
+                backBox.position.set(
+                    dim_w/2,
+                    baseY + ply_carcass + backHeight/2,
+                    dim_d - ply_carcass_back/2
+                );
+                cabinetGroup.add(backBox);
+
+                // Visual indicator of routed groove (darker line on sides)
+                const grooveMaterial = new THREE.MeshBasicMaterial({ color: 0x333333 });
+                const grooveDepth = ply_carcass_back / 2;
+                const grooveGeometry = new THREE.BoxGeometry(0.1, backHeight, grooveDepth);
+
+                const leftGroove = new THREE.Mesh(grooveGeometry, grooveMaterial);
+                leftGroove.position.set(
+                    ply_carcass,
+                    baseY + ply_carcass + backHeight/2,
+                    ply_carcass + grooveDepth/2
+                );
+                cabinetGroup.add(leftGroove);
+
+                const rightGroove = new THREE.Mesh(grooveGeometry, grooveMaterial);
+                rightGroove.position.set(
+                    dim_w - ply_carcass,
+                    baseY + ply_carcass + backHeight/2,
+                    ply_carcass + grooveDepth/2
+                );
+                cabinetGroup.add(rightGroove);
+            }
+
+            // Drawers with stretchers below each
+            const drawer_w = dim_w - 2 * (ply_carcass + dim_railing_w);
+            const availableHeight = dim_h - ply_carcass - (num_drawers * ply_drawer_stretcher);
+            const drawer_h = availableHeight / num_drawers;
+            const stretcherWidth = dim_w - 2 * ply_carcass;
+
+            // Calculate drawer depth based on backing style
+            // Start with total depth, subtract drawer face, then subtract backing
+            let drawer_d = dim_d - ply_drawer_face;
+
+            if (backing_style === 'none') {
+                // No backing - no additional subtraction
+            } else if (backing_style === 'inlay') {
+                // Routed inlay - subtract back panel
+                drawer_d -= ply_carcass_back;
+            } else if (backing_style === 'stretcher') {
+                // Stretcher - subtract back stretcher
+                drawer_d -= ply_back_stretcher;
+            } else if (backing_style === 'full') {
+                // Full back - subtract back panel
+                drawer_d -= ply_carcass_back;
+            }
+
+            for (let i = 0; i < num_drawers; i++) {
+                // Stretcher Y position - first one sits on floor (no gap)
+                const stretcherY = baseY + i * (drawer_h + ply_drawer_stretcher);
+
+                // Drawer stretchers - front and back pieces (not full depth)
+                const stretcherDepth = config.dim_drawer_stretcher;
+
+                // Front stretcher - positioned at front, behind drawer face
+                const frontStretcher = createPlywoodBox(stretcherWidth, ply_drawer_stretcher, stretcherDepth, ply_drawer_stretcher, 0xD2B48C);
+                frontStretcher.position.set(
+                    dim_w/2,
+                    stretcherY + ply_drawer_stretcher/2,
+                    ply_drawer_face + stretcherDepth/2
+                );
+                cabinetGroup.add(frontStretcher);
+
+                // Back stretcher - positioned at back wall
+                const backStretcher = createPlywoodBox(stretcherWidth, ply_drawer_stretcher, stretcherDepth, ply_drawer_stretcher, 0xD2B48C);
+                backStretcher.position.set(
+                    dim_w/2,
+                    stretcherY + ply_drawer_stretcher/2,
+                    dim_d - stretcherDepth/2
+                );
+                cabinetGroup.add(backStretcher);
+
+                // Each drawer starts after its stretcher
+                const drawerBaseY = stretcherY + ply_drawer_stretcher;
+                const drawerCenterY = drawerBaseY + drawer_h/2;
+
+                // Drawer sides
+                const drawerSideHeight = drawer_h - ply_bottom;
+                const leftDrawerSide = createPlywoodBox(ply_drawer, drawerSideHeight, drawer_d, ply_drawer, 0xF5DEB3);
+                leftDrawerSide.position.set(
+                    ply_carcass + dim_railing_w + ply_drawer/2,
+                    drawerCenterY,
+                    ply_drawer_face + drawer_d/2
+                );
+                cabinetGroup.add(leftDrawerSide);
+
+                const rightDrawerSide = createPlywoodBox(ply_drawer, drawerSideHeight, drawer_d, ply_drawer, 0xF5DEB3);
+                rightDrawerSide.position.set(
+                    dim_w - ply_carcass - dim_railing_w - ply_drawer/2,
+                    drawerCenterY,
+                    ply_drawer_face + drawer_d/2
+                );
+                cabinetGroup.add(rightDrawerSide);
+
+                // Drawer front/back
+                const drawerFaceWidth = drawer_w - 2 * ply_drawer;
+                const drawerFront = createPlywoodBox(drawerFaceWidth, drawerSideHeight, ply_drawer, ply_drawer, 0xF5E6D3);
+                drawerFront.position.set(
+                    dim_w/2,
+                    drawerCenterY,
+                    ply_drawer_face + ply_drawer/2
+                );
+                cabinetGroup.add(drawerFront);
+
+                const drawerBack = createPlywoodBox(drawerFaceWidth, drawerSideHeight, ply_drawer, ply_drawer, 0xF5E6D3);
+                drawerBack.position.set(
+                    dim_w/2,
+                    drawerCenterY,
+                    ply_drawer_face + drawer_d - ply_drawer/2
+                );
+                cabinetGroup.add(drawerBack);
+
+                // Drawer bottom
+                const drawerBottom = createPlywoodBox(drawer_w, ply_bottom, drawer_d, ply_bottom, 0xE6D7C3);
+                drawerBottom.position.set(
+                    dim_w/2,
+                    drawerBaseY + ply_bottom/2,
+                    ply_drawer_face + drawer_d/2
+                );
+                cabinetGroup.add(drawerBottom);
+
+                // Drawer railings - 2" tall, offset 1" from drawer bottom
+                const railingOffset = 1.0; // 1 inch offset from drawer bottom
+                const railingHeight = 2.0; // 2 inches tall
+                const railingY = drawerBaseY + railingOffset + railingHeight/2;
+
+                // Left railing (silver color)
+                const leftRailing = createPlywoodBox(dim_railing_w, railingHeight, drawer_d, ply_carcass, 0xC0C0C0);
+                leftRailing.position.set(
+                    ply_carcass + dim_railing_w/2,
+                    railingY,
+                    ply_drawer_face + drawer_d/2
+                );
+                cabinetGroup.add(leftRailing);
+
+                // Right railing (silver color)
+                const rightRailing = createPlywoodBox(dim_railing_w, railingHeight, drawer_d, ply_carcass, 0xC0C0C0);
+                rightRailing.position.set(
+                    dim_w - ply_carcass - dim_railing_w/2,
+                    railingY,
+                    ply_drawer_face + drawer_d/2
+                );
+                cabinetGroup.add(rightRailing);
+
+                // Drawer face at the FRONT - only render if thickness > 0
+                if (drawer_face_enabled && ply_drawer_face > 0) {
+                    const drawer_clearance = config.drawer_clearance;
+                    const faceWidth = dim_w - 2 * ply_carcass - 2 * drawer_clearance;
+                    const faceHeight = drawer_h - 2 * drawer_clearance;
+                    const face = createPlywoodBox(faceWidth, faceHeight, ply_drawer_face, ply_drawer_face, 0x8B4513);
+                    face.position.set(
+                        dim_w/2,
+                        drawerBaseY + drawer_clearance + faceHeight/2,
+                        ply_drawer_face/2
+                    );
+                    cabinetGroup.add(face);
+                }
+            }
+
+            // Position cabinet so it rotates around center X/Z at floor level (Y=0)
+            cabinetGroup.position.set(-dim_w/2, 0, -dim_d/2);
+        }
+
+        // Plywood table management
+        let plywoodData = [];
+        let draggedComponent = null;
+
+        function getAvailableComponents(backingStyle) {
+            const base = [
+                { value: 'carcass_sides', label: 'Carcass Sides' },
+                { value: 'carcass_top', label: 'Carcass Top' },
+                { value: 'drawer_sides', label: 'Drawer Sides' },
+                { value: 'drawer_bottom', label: 'Drawer Bottom' },
+                { value: 'drawer_face', label: 'Drawer Face' },
+                { value: 'drawer_stretcher', label: 'Drawer Stretcher' }
+            ];
+
+            // Add backing-specific components
+            if (backingStyle === 'stretcher') {
+                base.push({ value: 'back_stretcher', label: 'Back Stretcher' });
+            } else if (backingStyle === 'inlay' || backingStyle === 'full') {
+                base.push({ value: 'carcass_back', label: 'Carcass Back' });
+            }
+
+            return base;
+        }
+
+        function initPlywoodTable() {
+            const backingStyle = document.getElementById('backing_style').value;
+
+            // Default rows based on backing style
+            if (backingStyle === 'full') {
+                // Full back: carcass back is 1/2"
+                plywoodData = [
+                    {
+                        thickness: 0.75,
+                        material: 'birch',
+                        components: ['carcass_sides', 'carcass_top', 'drawer_stretcher']
+                    },
+                    {
+                        thickness: 0.5,
+                        material: 'birch',
+                        components: ['drawer_sides', 'carcass_back']
+                    },
+                    {
+                        thickness: 0.25,
+                        material: 'birch',
+                        components: ['drawer_bottom']
+                    },
+                    {
+                        thickness: 0,
+                        material: 'birch',
+                        components: ['drawer_face']
+                    }
+                ];
+            } else if (backingStyle === 'inlay') {
+                // Routed inlay: carcass back is 1/4"
+                plywoodData = [
+                    {
+                        thickness: 0.75,
+                        material: 'birch',
+                        components: ['carcass_sides', 'carcass_top', 'drawer_stretcher']
+                    },
+                    {
+                        thickness: 0.5,
+                        material: 'birch',
+                        components: ['drawer_sides']
+                    },
+                    {
+                        thickness: 0.25,
+                        material: 'birch',
+                        components: ['drawer_bottom', 'carcass_back']
+                    },
+                    {
+                        thickness: 0,
+                        material: 'birch',
+                        components: ['drawer_face']
+                    }
+                ];
+            } else if (backingStyle === 'stretcher') {
+                // Stretcher: back stretcher is 3/4"
+                plywoodData = [
+                    {
+                        thickness: 0.75,
+                        material: 'birch',
+                        components: ['carcass_sides', 'carcass_top', 'drawer_stretcher', 'back_stretcher']
+                    },
+                    {
+                        thickness: 0.5,
+                        material: 'birch',
+                        components: ['drawer_sides']
+                    },
+                    {
+                        thickness: 0.25,
+                        material: 'birch',
+                        components: ['drawer_bottom']
+                    },
+                    {
+                        thickness: 0,
+                        material: 'birch',
+                        components: ['drawer_face']
+                    }
+                ];
+            } else {
+                // None: no backing
+                plywoodData = [
+                    {
+                        thickness: 0.75,
+                        material: 'birch',
+                        components: ['carcass_sides', 'carcass_top', 'drawer_stretcher']
+                    },
+                    {
+                        thickness: 0.5,
+                        material: 'birch',
+                        components: ['drawer_sides']
+                    },
+                    {
+                        thickness: 0.25,
+                        material: 'birch',
+                        components: ['drawer_bottom']
+                    },
+                    {
+                        thickness: 0,
+                        material: 'birch',
+                        components: ['drawer_face']
+                    }
+                ];
+            }
+
+            renderPlywoodTable();
+        }
+
+        function addPlywoodRow() {
+            plywoodData.push({
+                thickness: 0.75,
+                material: 'birch',
+                components: []
+            });
+            renderPlywoodTable();
+            calculate();
+        }
+
+        function removePlywoodRow(index) {
+            plywoodData.splice(index, 1);
+            renderPlywoodTable();
+            calculate();
+        }
+
+        function updatePlywoodRow(index, field, value) {
+            if (field === 'components') {
+                const componentIndex = plywoodData[index].components.indexOf(value);
+                if (componentIndex > -1) {
+                    plywoodData[index].components.splice(componentIndex, 1);
+                } else {
+                    plywoodData[index].components.push(value);
+                }
+            } else {
+                plywoodData[index][field] = field === 'thickness' ? parseFloat(value) : value;
+            }
+            calculate();
+        }
+
+        function renderPlywoodTable() {
+            const tbody = document.getElementById('plywood-rows');
+            tbody.innerHTML = '';
+
+            const backingStyle = document.getElementById('backing_style').value;
+            const componentOptions = getAvailableComponents(backingStyle);
+
+            // Get all assigned components
+            const assignedComponents = new Set();
+            plywoodData.forEach(row => {
+                row.components.forEach(comp => assignedComponents.add(comp));
+            });
+
+            plywoodData.forEach((row, index) => {
+                const tr = document.createElement('tr');
+
+                // Thickness
+                const tdThickness = document.createElement('td');
+                const inputThickness = document.createElement('input');
+                inputThickness.type = 'number';
+                inputThickness.value = row.thickness;
+                inputThickness.step = '0.0625';
+                inputThickness.min = '0';
+                inputThickness.onchange = (e) => updatePlywoodRow(index, 'thickness', e.target.value);
+                tdThickness.appendChild(inputThickness);
+                tr.appendChild(tdThickness);
+
+                // Material
+                const tdMaterial = document.createElement('td');
+                const selectMaterial = document.createElement('select');
+                ['birch', 'maple', 'oak', 'plywood'].forEach(mat => {
+                    const option = document.createElement('option');
+                    option.value = mat;
+                    option.textContent = mat.charAt(0).toUpperCase() + mat.slice(1);
+                    option.selected = row.material === mat;
+                    selectMaterial.appendChild(option);
+                });
+                selectMaterial.onchange = (e) => updatePlywoodRow(index, 'material', e.target.value);
+                tdMaterial.appendChild(selectMaterial);
+                tr.appendChild(tdMaterial);
+
+                // Components - drag/drop zone
+                const tdComponents = document.createElement('td');
+                const divComponents = document.createElement('div');
+                divComponents.className = 'component-pills';
+                divComponents.dataset.rowIndex = index;
+
+                // Add drop handlers
+                divComponents.addEventListener('dragover', handleDragOver);
+                divComponents.addEventListener('drop', handleDrop);
+                divComponents.addEventListener('dragleave', handleDragLeave);
+
+                // Render assigned pills
+                row.components.forEach(compValue => {
+                    const compOption = componentOptions.find(c => c.value === compValue);
+                    if (compOption) {
+                        const pill = createComponentPill(compOption.label, compValue, index);
+                        divComponents.appendChild(pill);
+                    }
+                });
+
+                tdComponents.appendChild(divComponents);
+                tr.appendChild(tdComponents);
+
+                // Remove button
+                const tdRemove = document.createElement('td');
+                const btnRemove = document.createElement('button');
+                btnRemove.className = 'btn-small';
+                btnRemove.textContent = '×';
+                btnRemove.onclick = () => removePlywoodRow(index);
+                tdRemove.appendChild(btnRemove);
+                tr.appendChild(tdRemove);
+
+                tbody.appendChild(tr);
+            });
+
+            // Available components area
+            const availableRow = document.createElement('tr');
+            const availableTd = document.createElement('td');
+            availableTd.colSpan = 4;
+            availableTd.style.borderTop = '2px solid #ddd';
+
+            const availableDiv = document.createElement('div');
+            availableDiv.innerHTML = '<strong style="display: block; margin-bottom: 4px;">Available Components (drag here to unassign):</strong>';
+            const pillsContainer = document.createElement('div');
+            pillsContainer.className = 'available-components';
+            pillsContainer.dataset.isAvailable = 'true';
+
+            // Add drop handlers to available components area
+            pillsContainer.addEventListener('dragover', handleDragOver);
+            pillsContainer.addEventListener('drop', handleDropToAvailable);
+            pillsContainer.addEventListener('dragleave', handleDragLeave);
+
+            componentOptions.forEach(comp => {
+                if (!assignedComponents.has(comp.value)) {
+                    const pill = createAvailableComponentPill(comp.label, comp.value);
+                    pillsContainer.appendChild(pill);
+                }
+            });
+
+            if (pillsContainer.children.length === 0) {
+                pillsContainer.innerHTML = '<em style="color: #999;">All components assigned</em>';
+            }
+
+            availableDiv.appendChild(pillsContainer);
+            availableTd.appendChild(availableDiv);
+            availableRow.appendChild(availableTd);
+            tbody.appendChild(availableRow);
+        }
+
+        function createComponentPill(label, value, rowIndex) {
+            const pill = document.createElement('span');
+            pill.className = 'component-pill';
+            pill.textContent = label;
+            pill.draggable = true;
+            pill.dataset.component = value;
+            pill.dataset.rowIndex = rowIndex;
+
+            pill.addEventListener('dragstart', handleDragStart);
+            pill.addEventListener('dragend', handleDragEnd);
+
+            return pill;
+        }
+
+        function createAvailableComponentPill(label, value) {
+            const pill = document.createElement('span');
+            pill.className = 'component-pill available';
+            pill.textContent = label;
+            pill.draggable = true;
+            pill.dataset.component = value;
+
+            pill.addEventListener('dragstart', handleDragStart);
+            pill.addEventListener('dragend', handleDragEnd);
+
+            return pill;
+        }
+
+        function handleDragStart(e) {
+            draggedComponent = {
+                component: e.target.dataset.component,
+                fromRow: e.target.dataset.rowIndex
+            };
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            if (e.currentTarget.dataset.isAvailable) {
+                e.currentTarget.style.background = '#ffebee'; // Light red to show unassign action
+            } else {
+                e.currentTarget.style.background = '#e3f2fd'; // Light blue for assignment
+            }
+        }
+
+        function handleDragLeave(e) {
+            if (e.currentTarget.dataset.isAvailable) {
+                e.currentTarget.style.background = '#f0f0f0';
+            } else {
+                e.currentTarget.style.background = '#fafafa';
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.style.background = '#fafafa';
+
+            const toRow = parseInt(e.currentTarget.dataset.rowIndex);
+            const component = draggedComponent.component;
+            const fromRow = draggedComponent.fromRow;
+
+            // Remove from old row if it had one
+            if (fromRow !== undefined) {
+                const fromIndex = parseInt(fromRow);
+                plywoodData[fromIndex].components = plywoodData[fromIndex].components.filter(c => c !== component);
+            }
+
+            // Add to new row if not already there
+            if (!plywoodData[toRow].components.includes(component)) {
+                plywoodData[toRow].components.push(component);
+            }
+
+            draggedComponent = null;
+            renderPlywoodTable();
+            calculate();
+        }
+
+        function handleDropToAvailable(e) {
+            e.preventDefault();
+            e.currentTarget.style.background = '#f0f0f0';
+
+            const component = draggedComponent.component;
+            const fromRow = draggedComponent.fromRow;
+
+            // Remove from old row if it had one
+            if (fromRow !== undefined) {
+                const fromIndex = parseInt(fromRow);
+                plywoodData[fromIndex].components = plywoodData[fromIndex].components.filter(c => c !== component);
+            }
+
+            // Component is now unassigned (not added to any row)
+
+            draggedComponent = null;
+            renderPlywoodTable();
+            calculate();
+        }
+
+        function getPlywoodForComponent(component) {
+            for (const row of plywoodData) {
+                if (row.components.includes(component)) {
+                    return { thickness: row.thickness, material: row.material };
+                }
+            }
+            // Fallback defaults
+            return { thickness: 0.75, material: 'birch' };
+        }
+
+        function getInputValues() {
+            return {
+                dim_w: parseFloat(document.getElementById('dim_w').value),
+                dim_h: parseFloat(document.getElementById('dim_h').value),
+                dim_d: parseFloat(document.getElementById('dim_d').value),
+                dim_railing_w: parseFloat(document.getElementById('dim_railing_w').value),
+                num_drawers: parseInt(document.getElementById('num_drawers').value),
+                dim_drawer_stretcher: parseFloat(document.getElementById('dim_drawer_stretcher').value),
+                dim_back_stretcher: parseFloat(document.getElementById('dim_back_stretcher').value),
+                sheet_w: parseFloat(document.getElementById('sheet_w').value),
+                sheet_h: parseFloat(document.getElementById('sheet_h').value),
+                kerf: parseFloat(document.getElementById('kerf').value),
+                backing_style: document.getElementById('backing_style').value,
+                drawer_clearance: parseFloat(document.getElementById('drawer_clearance').value),
+                plywoodData: plywoodData
+            };
+        }
+
+        function calculateDimensions(config) {
+            const { dim_w, dim_h, dim_d, num_drawers, dim_railing_w,
+                    drawer_clearance, backing_style } = config;
+
+            // Get plywood specs from table
+            const carcassSidesPly = getPlywoodForComponent('carcass_sides');
+            const carcassBackPly = getPlywoodForComponent('carcass_back');
+            const backStretcherPly = getPlywoodForComponent('back_stretcher');
+            const drawerSidesPly = getPlywoodForComponent('drawer_sides');
+            const drawerBottomPly = getPlywoodForComponent('drawer_bottom');
+            const drawerFacePly = getPlywoodForComponent('drawer_face');
+            const drawerStretcherPly = getPlywoodForComponent('drawer_stretcher');
+
+            const ply_carcass = carcassSidesPly.thickness;
+            const ply_carcass_back = carcassBackPly.thickness;
+            const ply_back_stretcher = backStretcherPly.thickness;
+            const ply_drawer = drawerSidesPly.thickness;
+            const ply_bottom = drawerBottomPly.thickness;
+            const ply_drawer_face = drawerFacePly.thickness;
+            const ply_drawer_stretcher = drawerStretcherPly.thickness;
+
+            // Stretchers below each drawer, sitting flat (only take ply thickness in height)
+            const availableHeight = dim_h - ply_carcass - (num_drawers * ply_drawer_stretcher);
+            const drawerHeight = availableHeight / num_drawers;
+
+            // Calculate drawer depth based on backing style and drawer face
+            // Start with total_d, always subtract drawer face, then subtract backing
+            let drawerDepth = dim_d - ply_drawer_face;
+            let interiorDepth = dim_d - ply_drawer_face;
+
+            // Subtract backing thickness based on style
+            if (backing_style === 'none') {
+                // No backing - no additional subtraction
+            } else if (backing_style === 'routed inlay' || backing_style === 'inlay') {
+                // Routed inlay - back panel takes up space
+                drawerDepth -= ply_carcass_back;
+                interiorDepth -= ply_carcass_back;
+            } else if (backing_style === 'stretcher') {
+                // Stretcher - back stretcher takes up space
+                drawerDepth -= ply_back_stretcher;
+                interiorDepth -= ply_back_stretcher;
+            } else {
+                // Full ply - back panel takes up space
+                drawerDepth -= ply_carcass_back;
+                interiorDepth -= ply_carcass_back;
+            }
+
+            return {
+                drawer_width: dim_w - 2 * (ply_carcass + dim_railing_w),
+                drawer_height: drawerHeight,
+                drawer_depth: drawerDepth,
+                carcass_width: dim_w,
+                carcass_height: dim_h,
+                carcass_depth: dim_d,
+                interior_width: dim_w - 2 * ply_carcass,
+                interior_height: dim_h - ply_carcass,
+                interior_depth: interiorDepth,
+                available_drawer_height: availableHeight,
+                actual_drawer_box_width: dim_w - 2 * (ply_carcass + dim_railing_w),
+                actual_drawer_box_depth: drawerDepth
+            };
+        }
+
+        function generateBOM(config, calc) {
+            const { dim_w, dim_h, dim_d, num_drawers, dim_drawer_stretcher, dim_back_stretcher,
+                    backing_style, dim_railing_w, drawer_clearance } = config;
+
+            // Get plywood specs from table
+            const carcassSidesPly = getPlywoodForComponent('carcass_sides');
+            const carcassBackPly = getPlywoodForComponent('carcass_back');
+            const backStretcherPly = getPlywoodForComponent('back_stretcher');
+            const carcassTopPly = getPlywoodForComponent('carcass_top');
+            const drawerSidesPly = getPlywoodForComponent('drawer_sides');
+            const drawerBottomPly = getPlywoodForComponent('drawer_bottom');
+            const drawerFacePly = getPlywoodForComponent('drawer_face');
+            const drawerStretcherPly = getPlywoodForComponent('drawer_stretcher');
+
+            const ply_carcass = carcassSidesPly.thickness;
+            const ply_carcass_back = carcassBackPly.thickness;
+            const ply_drawer = drawerSidesPly.thickness;
+            const ply_bottom = drawerBottomPly.thickness;
+            const ply_drawer_face = drawerFacePly.thickness;
+
+            const drawer_face_enabled = plywoodData.some(row => row.components.includes('drawer_face'));
+
+            const bom = [];
+            let id = 1;
+
+            // Carcass sides
+            bom.push({
+                id: id++,
+                item: 'Carcass sides',
+                width: dim_d,
+                height: dim_h - ply_carcass,
+                thickness: carcassSidesPly.thickness,
+                material: carcassSidesPly.material,
+                quantity: 2,
+                equation: `W: total_d = ${dim_d}"<br>H: total_h - ply_carcass = ${dim_h} - ${ply_carcass.toFixed(2)} = ${(dim_h - ply_carcass).toFixed(2)}"`
+            });
+
+            // Carcass top
+            bom.push({
+                id: id++,
+                item: 'Carcass top',
+                width: dim_w,
+                height: dim_d,
+                thickness: carcassTopPly.thickness,
+                material: carcassTopPly.material,
+                quantity: 1,
+                equation: `W: total_w = ${dim_w}"<br>H: total_d = ${dim_d}"`
+            });
+
+            // Carcass back - depends on backing style
+            if (backing_style === 'full') {
+                bom.push({
+                    id: id++,
+                    item: 'Carcass back',
+                    width: dim_w - 2 * ply_carcass,
+                    height: dim_h - 2 * ply_carcass,
+                    thickness: carcassBackPly.thickness,
+                    material: carcassBackPly.material,
+                    quantity: 1,
+                    equation: `W: total_w - 2 × ply_carcass = ${dim_w} - 2 × ${ply_carcass.toFixed(2)} = ${(dim_w - 2 * ply_carcass).toFixed(2)}"<br>H: total_h - 2 × ply_carcass = ${dim_h} - 2 × ${ply_carcass.toFixed(2)} = ${(dim_h - 2 * ply_carcass).toFixed(2)}"`
+                });
+            } else if (backing_style === 'stretcher') {
+                bom.push({
+                    id: id++,
+                    item: 'Back stretchers (top & bottom)',
+                    width: dim_w - 2 * ply_carcass,
+                    height: dim_back_stretcher,
+                    thickness: backStretcherPly.thickness,
+                    material: backStretcherPly.material,
+                    quantity: 2,
+                    equation: `W: total_w - 2 × ply_carcass = ${dim_w} - 2 × ${ply_carcass.toFixed(2)} = ${(dim_w - 2 * ply_carcass).toFixed(2)}"<br>H: back_stretcher_h = ${dim_back_stretcher}"`
+                });
+            } else if (backing_style === 'inlay') {
+                bom.push({
+                    id: id++,
+                    item: 'Carcass back (routed inlay)',
+                    width: dim_w - 2 * ply_carcass,
+                    height: dim_h - 2 * ply_carcass,
+                    thickness: carcassBackPly.thickness,
+                    material: carcassBackPly.material,
+                    quantity: 1,
+                    equation: `W: total_w - 2 × ply_carcass = ${dim_w} - 2 × ${ply_carcass.toFixed(2)} = ${(dim_w - 2 * ply_carcass).toFixed(2)}"<br>H: total_h - 2 × ply_carcass = ${dim_h} - 2 × ${ply_carcass.toFixed(2)} = ${(dim_h - 2 * ply_carcass).toFixed(2)}"`
+                });
+            }
+
+            // Drawer stretchers (front and back pieces below each drawer, sitting flat)
+            bom.push({
+                id: id++,
+                item: 'Drawer stretchers (front & back)',
+                width: dim_w - 2 * ply_carcass,
+                height: dim_drawer_stretcher,
+                thickness: drawerStretcherPly.thickness,
+                material: drawerStretcherPly.material,
+                quantity: num_drawers * 2,
+                equation: `W: total_w - 2 × ply_carcass = ${dim_w} - 2 × ${ply_carcass.toFixed(2)} = ${(dim_w - 2 * ply_carcass).toFixed(2)}"<br>H: drawer_stretcher_h = ${dim_drawer_stretcher}"`
+            });
+
+            // Drawer sides
+            const backStretcherPlyThickness = getPlywoodForComponent('back_stretcher').thickness;
+            const drawerDepthEq = `total_d - ply_drawer_face${backing_style === 'stretcher' ? ' - ply_back_stretcher' : backing_style === 'inlay' || backing_style === 'full' ? ' - ply_carcass_back' : ''}`;
+            const drawerDepthCalc = `${dim_d} - ${ply_drawer_face.toFixed(2)}${backing_style === 'stretcher' ? ` - ${backStretcherPlyThickness.toFixed(2)}` : backing_style === 'inlay' || backing_style === 'full' ? ` - ${ply_carcass_back.toFixed(2)}` : ''}`;
+
+            bom.push({
+                id: id++,
+                item: 'Drawer sides',
+                width: calc.drawer_depth,
+                height: calc.drawer_height - ply_bottom,
+                thickness: drawerSidesPly.thickness,
+                material: drawerSidesPly.material,
+                quantity: 2 * num_drawers,
+                equation: `W: ${drawerDepthEq} = ${drawerDepthCalc} = ${calc.drawer_depth.toFixed(2)}"<br>H: drawer_h - ply_bottom = ${calc.drawer_height.toFixed(2)} - ${ply_bottom.toFixed(2)} = ${(calc.drawer_height - ply_bottom).toFixed(2)}"`
+            });
+
+            // Drawer front/back
+            bom.push({
+                id: id++,
+                item: 'Drawer front/back',
+                width: calc.drawer_width - 2 * ply_drawer,
+                height: calc.drawer_height - ply_bottom,
+                thickness: drawerSidesPly.thickness,
+                material: drawerSidesPly.material,
+                quantity: 2 * num_drawers,
+                equation: `W: total_w - 2 × (ply_carcass + railing_w) - 2 × ply_drawer = ${dim_w} - 2 × (${ply_carcass.toFixed(2)} + ${dim_railing_w.toFixed(2)}) - 2 × ${ply_drawer.toFixed(2)} = ${(calc.drawer_width - 2 * ply_drawer).toFixed(2)}"<br>H: drawer_h - ply_bottom = ${calc.drawer_height.toFixed(2)} - ${ply_bottom.toFixed(2)} = ${(calc.drawer_height - ply_bottom).toFixed(2)}"`
+            });
+
+            // Drawer bottom
+            bom.push({
+                id: id++,
+                item: 'Drawer bottom',
+                width: calc.drawer_width,
+                height: calc.drawer_depth,
+                thickness: drawerBottomPly.thickness,
+                material: drawerBottomPly.material,
+                quantity: num_drawers,
+                equation: `W: total_w - 2 × (ply_carcass + railing_w) = ${dim_w} - 2 × (${ply_carcass.toFixed(2)} + ${dim_railing_w.toFixed(2)}) = ${calc.drawer_width.toFixed(2)}"<br>H: ${drawerDepthEq} = ${drawerDepthCalc} = ${calc.drawer_depth.toFixed(2)}"`
+            });
+
+            // Drawer faces
+            if (drawer_face_enabled) {
+                bom.push({
+                    id: id++,
+                    item: 'Drawer faces',
+                    width: dim_w - 2 * ply_carcass - 2 * drawer_clearance,
+                    height: calc.drawer_height - 2 * drawer_clearance,
+                    thickness: drawerFacePly.thickness,
+                    material: drawerFacePly.material,
+                    quantity: num_drawers,
+                    equation: `W: total_w - 2 × ply_carcass - 2 × clearance = ${dim_w} - 2 × ${ply_carcass.toFixed(2)} - 2 × ${drawer_clearance.toFixed(3)} = ${(dim_w - 2 * ply_carcass - 2 * drawer_clearance).toFixed(2)}"<br>H: drawer_h - 2 × clearance = ${calc.drawer_height.toFixed(2)} - 2 × ${drawer_clearance.toFixed(3)} = ${(calc.drawer_height - 2 * drawer_clearance).toFixed(2)}"`
+                });
+            }
+
+            return bom;
+        }
+
+        function optimizeCuts(bom, config) {
+            const { sheet_w, sheet_h, kerf } = config;
+            const sheets = {};
+
+            // Group by thickness and material
+            bom.forEach(item => {
+                const key = `${item.thickness}-${item.material}`;
+                if (!sheets[key]) {
+                    sheets[key] = {
+                        thickness: item.thickness,
+                        material: item.material,
+                        pieces: [],
+                        layouts: []
+                    };
+                }
+
+                for (let i = 0; i < item.quantity; i++) {
+                    sheets[key].pieces.push({
+                        id: `${item.id}-${i+1}`,
+                        name: item.item,
+                        width: item.width,
+                        height: item.height
+                    });
+                }
+            });
+
+            // Simple bin packing for each thickness
+            Object.keys(sheets).forEach(key => {
+                const sheet = sheets[key];
+                const pieces = [...sheet.pieces].sort((a, b) =>
+                    (b.width * b.height) - (a.width * a.height)
+                );
+
+                let currentSheet = {
+                    pieces: [],
+                    waste: sheet_w * sheet_h
+                };
+                sheet.layouts.push(currentSheet);
+
+                let currentX = 0;
+                let currentY = 0;
+                let rowHeight = 0;
+
+                pieces.forEach(piece => {
+                    // Try to fit in current row
+                    if (currentX + piece.width + kerf <= sheet_w &&
+                        currentY + piece.height + kerf <= sheet_h) {
+                        currentSheet.pieces.push({
+                            ...piece,
+                            x: currentX,
+                            y: currentY
+                        });
+                        currentSheet.waste -= piece.width * piece.height;
+                        currentX += piece.width + kerf;
+                        rowHeight = Math.max(rowHeight, piece.height);
+                    } else if (currentY + rowHeight + piece.height + kerf <= sheet_h) {
+                        // Next row
+                        currentY += rowHeight + kerf;
+                        currentX = 0;
+                        rowHeight = piece.height;
+
+                        currentSheet.pieces.push({
+                            ...piece,
+                            x: currentX,
+                            y: currentY
+                        });
+                        currentSheet.waste -= piece.width * piece.height;
+                        currentX += piece.width + kerf;
+                    } else {
+                        // New sheet
+                        currentSheet = {
+                            pieces: [],
+                            waste: sheet_w * sheet_h
+                        };
+                        sheet.layouts.push(currentSheet);
+
+                        currentX = 0;
+                        currentY = 0;
+                        rowHeight = piece.height;
+
+                        currentSheet.pieces.push({
+                            ...piece,
+                            x: currentX,
+                            y: currentY
+                        });
+                        currentSheet.waste -= piece.width * piece.height;
+                        currentX += piece.width + kerf;
+                    }
+                });
+            });
+
+            return sheets;
+        }
+
+        function generateCutOrder(optimizedSheets) {
+            const cutOrder = [];
+
+            Object.keys(optimizedSheets).forEach(key => {
+                const sheet = optimizedSheets[key];
+                sheet.layouts.forEach((layout, sheetNum) => {
+                    // Sort pieces by position for logical cutting order
+                    const sortedPieces = [...layout.pieces].sort((a, b) => {
+                        if (Math.abs(a.y - b.y) < 1) {
+                            return a.x - b.x;
+                        }
+                        return a.y - b.y;
+                    });
+
+                    sortedPieces.forEach((piece, idx) => {
+                        cutOrder.push({
+                            step: cutOrder.length + 1,
+                            sheet: `${sheet.thickness.toFixed(2)}" ${sheet.material.charAt(0).toUpperCase() + sheet.material.slice(1)} - Sheet ${sheetNum + 1}`,
+                            piece: piece.name,
+                            dimensions: `${piece.width.toFixed(2)}" × ${piece.height.toFixed(2)}"`,
+                            position: `X: ${piece.x.toFixed(1)}", Y: ${piece.y.toFixed(1)}"`,
+                            note: idx === 0 ? 'Start of new row' : ''
+                        });
+                    });
+                });
+            });
+
+            return cutOrder;
+        }
+
+        function generateAssemblyOrder(config, bom) {
+            const { backing_style, num_drawers } = config;
+
+            const drawer_face_enabled = plywoodData.some(row => row.components.includes('drawer_face'));
+
+            const steps = [];
+            let stepNum = 1;
+
+            // Step 1: Prepare pieces
+            steps.push({
+                step: stepNum++,
+                title: 'Prepare all pieces',
+                description: `Cut all pieces according to cut order. Sand edges and surfaces.`,
+                pieces: ['All pieces from BOM']
+            });
+
+            // Step 2: Install drawer stretchers
+            steps.push({
+                step: stepNum++,
+                title: 'Install drawer stretchers',
+                description: `Install ${num_drawers * 2} drawer stretchers (front and back pairs) to carcass sides. Each pair sits flat (horizontal) below each drawer position. The first pair should sit directly on the bottom carcass (no gap). Space them evenly to divide the interior height into ${num_drawers} equal drawer spaces.`,
+                pieces: ['Carcass sides', 'Drawer stretchers (front & back)']
+            });
+
+            // Step 4: Attach carcass top
+            steps.push({
+                step: stepNum++,
+                title: 'Attach carcass top',
+                description: `Position top piece and secure to sides from inside. Check for square.`,
+                pieces: ['Carcass top']
+            });
+
+            // Step 5: Install backing
+            if (backing_style === 'full') {
+                steps.push({
+                    step: stepNum++,
+                    title: 'Install carcass back',
+                    description: `Slide back panel into place. Secure to top, sides, and bottom stretcher. This will square the carcass.`,
+                    pieces: ['Carcass back']
+                });
+            } else if (backing_style === 'stretcher') {
+                steps.push({
+                    step: stepNum++,
+                    title: 'Install back stretchers',
+                    description: `Attach back stretchers at top and bottom. This provides backing support.`,
+                    pieces: ['Back stretchers']
+                });
+            }
+
+            // Step 6: Assemble drawer boxes
+            steps.push({
+                step: stepNum++,
+                title: 'Assemble drawer boxes',
+                description: `Assemble all ${num_drawers} drawer boxes. Connect sides to front/back. Attach bottoms with glue and brad nails.`,
+                pieces: ['Drawer sides', 'Drawer front/back', 'Drawer bottom']
+            });
+
+            // Step 7: Install drawer slides
+            steps.push({
+                step: stepNum++,
+                title: 'Install drawer slides',
+                description: 'Mount drawer slides on carcass sides and drawer boxes according to manufacturer specifications. Test fit drawers.',
+                pieces: ['Drawer slides (not in BOM)']
+            });
+
+            // Step 8: Drawer faces (if enabled)
+            if (drawer_face_enabled) {
+                steps.push({
+                    step: stepNum++,
+                    title: 'Attach drawer faces',
+                    description: `Attach drawer faces to drawer fronts using screws from inside. Ensure proper spacing and alignment between faces.`,
+                    pieces: ['Drawer faces']
+                });
+            }
+
+            // Final step
+            steps.push({
+                step: stepNum++,
+                title: 'Final assembly',
+                description: 'Install drawers into slides. Check all drawers operate smoothly. Apply finish as desired.',
+                pieces: ['Complete cabinet']
+            });
+
+            return steps;
+        }
+
+        function calculate() {
+            const config = getInputValues();
+            const calc = calculateDimensions(config);
+            const bom = generateBOM(config, calc);
+            const optimizedSheets = optimizeCuts(bom, config);
+            const assemblyOrder = generateAssemblyOrder(config, bom);
+
+            // Update 3D view
+            render3DCabinet(config);
+
+            // Update calculated dimensions with equations
+            const calcDiv = document.getElementById('calculated-dimensions');
+
+            // Get plywood specs for equation display
+            const carcassSidesPly = getPlywoodForComponent('carcass_sides');
+            const carcassBackPly = getPlywoodForComponent('carcass_back');
+            const backStretcherPly = getPlywoodForComponent('back_stretcher');
+            const drawerSidesPly = getPlywoodForComponent('drawer_sides');
+            const drawerFacePly = getPlywoodForComponent('drawer_face');
+            const drawerStretcherPly = getPlywoodForComponent('drawer_stretcher');
+            const ply_carcass = carcassSidesPly.thickness;
+            const ply_carcass_back = carcassBackPly.thickness;
+            const ply_back_stretcher = backStretcherPly.thickness;
+            const ply_drawer = drawerSidesPly.thickness;
+            const ply_drawer_face = drawerFacePly.thickness;
+            const ply_drawer_stretcher = drawerStretcherPly.thickness;
+
+            // Build depth equations - always include drawer face
+            let depthEquationWords = 'total_d - ply_drawer_face';
+            let depthEquationNumbers = `${config.dim_d} - ${ply_drawer_face.toFixed(2)}`;
+
+            // Add backing subtraction based on style
+            if (config.backing_style === 'inlay') {
+                depthEquationWords += ' - ply_carcass_back';
+                depthEquationNumbers += ` - ${ply_carcass_back.toFixed(2)}`;
+            } else if (config.backing_style === 'stretcher') {
+                depthEquationWords += ' - ply_back_stretcher';
+                depthEquationNumbers += ` - ${ply_back_stretcher.toFixed(2)}`;
+            } else if (config.backing_style === 'full') {
+                depthEquationWords += ' - ply_carcass_back';
+                depthEquationNumbers += ` - ${ply_carcass_back.toFixed(2)}`;
+            }
+            // If 'none', no additional subtraction
+
+            // Calculate volumes
+            const drawerVolume = calc.actual_drawer_box_width * calc.drawer_height * calc.actual_drawer_box_depth;
+            const interiorVolume = calc.interior_width * calc.interior_height * calc.interior_depth;
+
+            calcDiv.innerHTML = `
+                <div class="calc-item">
+                    <strong>Carcass Total (W×H×D)</strong>
+                    <span>${calc.carcass_width.toFixed(2)}" × ${calc.carcass_height.toFixed(2)}" × ${calc.carcass_depth.toFixed(2)}"</span>
+                    <small style="display: block; margin-top: 4px; color: #666; font-size: 10px; line-height: 1.5;">
+                        total_w × total_h × total_d<br>
+                        = ${config.dim_w} × ${config.dim_h} × ${config.dim_d}
+                    </small>
+                </div>
+                <div class="calc-item">
+                    <strong>Interior (W×H×D)</strong>
+                    <span>${calc.interior_width.toFixed(2)}" × ${calc.interior_height.toFixed(2)}" × ${calc.interior_depth.toFixed(2)}"</span>
+                    <small style="display: block; margin-top: 4px; color: #666; font-size: 10px; line-height: 1.5;">
+                        <strong>Width:</strong> total_w - 2 × ply_carcass<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= ${config.dim_w} - 2 × ${ply_carcass.toFixed(2)}<br>
+                        <strong>Height:</strong> total_h - ply_carcass<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= ${config.dim_h} - ${ply_carcass.toFixed(2)}<br>
+                        <strong>Depth:</strong> ${depthEquationWords}<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= ${depthEquationNumbers}
+                    </small>
+                </div>
+                <div class="calc-item">
+                    <strong>Interior Volume</strong>
+                    <span>${interiorVolume.toFixed(2)} cu in</span>
+                    <small style="display: block; margin-top: 4px; color: #666; font-size: 10px; line-height: 1.5;">
+                        interior_w × interior_h × interior_d<br>
+                        = ${calc.interior_width.toFixed(2)} × ${calc.interior_height.toFixed(2)} × ${calc.interior_depth.toFixed(2)}<br>
+                        <em style="color: #999;">(${(interiorVolume / 1728).toFixed(2)} cu ft total)</em>
+                    </small>
+                </div>
+                <div class="calc-item">
+                    <strong>Available for Drawers</strong>
+                    <span>${calc.available_drawer_height.toFixed(2)}"</span>
+                    <small style="display: block; margin-top: 4px; color: #666; font-size: 10px; line-height: 1.5;">
+                        total_h - ply_carcass - drawers × ply_drawer_stretcher<br>
+                        = ${config.dim_h} - ${ply_carcass.toFixed(2)} - ${config.num_drawers} × ${ply_drawer_stretcher.toFixed(2)}
+                    </small>
+                </div>
+                <div class="calc-item">
+                    <strong>Drawer Box (W×H×D)</strong>
+                    <span>${calc.actual_drawer_box_width.toFixed(2)}" × ${calc.drawer_height.toFixed(2)}" × ${calc.actual_drawer_box_depth.toFixed(2)}"</span>
+                    <small style="display: block; margin-top: 4px; color: #666; font-size: 10px; line-height: 1.5;">
+                        <strong>Width:</strong> total_w - 2 × (ply_carcass + railing_w)<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= ${config.dim_w} - 2 × (${ply_carcass.toFixed(2)} + ${config.dim_railing_w})<br>
+                        <strong>Height:</strong> (total_h - ply_carcass - drawers × ply_drawer_stretcher) / drawers<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= (${config.dim_h} - ${ply_carcass.toFixed(2)} - ${config.num_drawers} × ${ply_drawer_stretcher.toFixed(2)}) / ${config.num_drawers}<br>
+                        <strong>Depth:</strong> ${depthEquationWords}<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= ${depthEquationNumbers}
+                    </small>
+                </div>
+                <div class="calc-item">
+                    <strong>Drawer Volume</strong>
+                    <span>${drawerVolume.toFixed(2)} cu in</span>
+                    <small style="display: block; margin-top: 4px; color: #666; font-size: 10px; line-height: 1.5;">
+                        drawer_w × drawer_h × drawer_d<br>
+                        = ${calc.actual_drawer_box_width.toFixed(2)} × ${calc.drawer_height.toFixed(2)} × ${calc.actual_drawer_box_depth.toFixed(2)}<br>
+                        <em style="color: #999;">(${(drawerVolume / 1728).toFixed(2)} cu ft per drawer)</em>
+                    </small>
+                </div>
+            `;
+
+            // Update BOM table
+            const bomDiv = document.getElementById('bom-table');
+            let bomHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Item</th>
+                            <th>Width</th>
+                            <th>Height</th>
+                            <th>Thickness</th>
+                            <th>Material</th>
+                            <th>Qty</th>
+                            <th>Equation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            bom.forEach(item => {
+                bomHTML += `
+                    <tr>
+                        <td>${item.id}</td>
+                        <td>${item.item}</td>
+                        <td>${item.width.toFixed(2)}"</td>
+                        <td>${item.height.toFixed(2)}"</td>
+                        <td>${item.thickness.toFixed(2)}"</td>
+                        <td style="text-transform: capitalize;">${item.material}</td>
+                        <td>${item.quantity}</td>
+                        <td style="font-size: 11px; color: #666;">${item.equation || ''}</td>
+                    </tr>
+                `;
+            });
+
+            bomHTML += '</tbody></table>';
+
+            // Calculate material area summary
+            const materialSummary = {};
+            bom.forEach(item => {
+                const key = `${item.thickness.toFixed(2)}" ${item.material}`;
+                const area = item.width * item.height * item.quantity;
+
+                if (!materialSummary[key]) {
+                    materialSummary[key] = {
+                        thickness: item.thickness,
+                        material: item.material,
+                        area: 0
+                    };
+                }
+                materialSummary[key].area += area;
+            });
+
+            // Add material summary table
+            bomHTML += `
+                <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 2px solid #3498db;">
+                    <h3 style="margin-bottom: 10px; color: #2c3e50; font-size: 16px;">📊 Material Area Summary</h3>
+                    <table style="background: white;">
+                        <thead>
+                            <tr style="background: #e3f2fd;">
+                                <th>Thickness</th>
+                                <th>Material</th>
+                                <th>Total Area</th>
+                                <th>Sheets Needed (${config.sheet_w/12}'×${config.sheet_h/12}')</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            const sheetArea = config.sheet_w * config.sheet_h; // Standard sheet area
+            Object.keys(materialSummary).sort().forEach(key => {
+                const summary = materialSummary[key];
+                const sheetsNeeded = Math.ceil(summary.area / sheetArea);
+                const efficiency = ((summary.area / (sheetsNeeded * sheetArea)) * 100).toFixed(1);
+                bomHTML += `
+                    <tr style="background: white;">
+                        <td><strong>${summary.thickness.toFixed(2)}"</strong></td>
+                        <td style="text-transform: capitalize;"><strong>${summary.material}</strong></td>
+                        <td>${summary.area.toFixed(2)} sq in <span style="color: #666;">(${(summary.area / 144).toFixed(2)} sq ft)</span></td>
+                        <td><strong style="color: #3498db;">${sheetsNeeded}</strong> <span style="color: #666; font-size: 12px;">(${efficiency}% utilization)</span></td>
+                    </tr>
+                `;
+            });
+
+            bomHTML += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            bomDiv.innerHTML = bomHTML;
+
+            // Update cut optimizer
+            const cutDiv = document.getElementById('cut-optimizer');
+            let cutHTML = '<div class="cut-sheet">';
+
+            Object.keys(optimizedSheets).forEach(key => {
+                const sheet = optimizedSheets[key];
+                sheet.layouts.forEach((layout, idx) => {
+                    const efficiency = ((1 - layout.waste / (config.sheet_w * config.sheet_h)) * 100).toFixed(1);
+                    cutHTML += `
+                        <div class="sheet">
+                            <h3>${sheet.thickness.toFixed(2)}" ${sheet.material.charAt(0).toUpperCase() + sheet.material.slice(1)} - Sheet ${idx + 1}</h3>
+                            <p><strong>Efficiency:</strong> ${efficiency}%</p>
+                            <p><strong>Waste:</strong> ${layout.waste.toFixed(1)} sq in</p>
+                            <div class="sheet-visual">
+                    `;
+
+                    const scale = 200 / Math.max(config.sheet_w, config.sheet_h);
+                    layout.pieces.forEach(piece => {
+                        cutHTML += `
+                            <div class="cut-piece" style="
+                                left: ${piece.x * scale}px;
+                                top: ${piece.y * scale}px;
+                                width: ${piece.width * scale}px;
+                                height: ${piece.height * scale}px;
+                            ">${piece.name}</div>
+                        `;
+                    });
+
+                    cutHTML += `
+                            </div>
+                            <p><strong>Pieces:</strong> ${layout.pieces.length}</p>
+                        </div>
+                    `;
+                });
+            });
+
+            cutHTML += '</div>';
+            cutDiv.innerHTML = cutHTML;
+
+            // Update assembly order
+            const assemblyDiv = document.getElementById('assembly-order');
+            let assemblyHTML = '';
+
+            assemblyOrder.forEach(step => {
+                assemblyHTML += `
+                    <div class="assembly-step">
+                        <h4>Step ${step.step}: ${step.title}</h4>
+                        <p>${step.description}</p>
+                        <p><strong>Required pieces:</strong> ${step.pieces.join(', ')}</p>
+                    </div>
+                `;
+            });
+
+            assemblyDiv.innerHTML = assemblyHTML;
+
+            // Update debug output
+            generateDebugOutput();
+        }
+
+        // Toggle back stretcher input based on backing style
+        function setupBackingStyleHandler() {
+            const backingSelect = document.getElementById('backing_style');
+            const backStretcherGroup = document.getElementById('back_stretcher_group');
+
+            function updateBackStretcherVisibility() {
+                if (backingSelect.value === 'stretcher') {
+                    backStretcherGroup.style.display = 'block';
+                } else {
+                    backStretcherGroup.style.display = 'none';
+                }
+            }
+
+            function updateBackingComponents(newStyle) {
+                // Remove all backing-related components from all rows
+                plywoodData.forEach(row => {
+                    row.components = row.components.filter(c =>
+                        c !== 'carcass_back' && c !== 'back_stretcher'
+                    );
+                });
+
+                // Add appropriate backing component based on style
+                if (newStyle === 'stretcher') {
+                    // Add back_stretcher to 3/4" birch row
+                    const row34 = plywoodData.find(r => r.thickness === 0.75 && r.material === 'birch');
+                    if (row34 && !row34.components.includes('back_stretcher')) {
+                        row34.components.push('back_stretcher');
+                    }
+                } else if (newStyle === 'full') {
+                    // Add carcass_back to 1/2" birch row
+                    const row12 = plywoodData.find(r => r.thickness === 0.5 && r.material === 'birch');
+                    if (row12 && !row12.components.includes('carcass_back')) {
+                        row12.components.push('carcass_back');
+                    }
+                } else if (newStyle === 'inlay') {
+                    // Add carcass_back to 1/4" birch row
+                    const row14 = plywoodData.find(r => r.thickness === 0.25 && r.material === 'birch');
+                    if (row14 && !row14.components.includes('carcass_back')) {
+                        row14.components.push('carcass_back');
+                    }
+                }
+            }
+
+            backingSelect.addEventListener('change', () => {
+                updateBackStretcherVisibility();
+                updateBackingComponents(backingSelect.value);
+                renderPlywoodTable(); // Re-render to update available components
+                calculate();
+            });
+
+            updateBackStretcherVisibility();
+            updateBackingComponents(backingSelect.value); // Initialize on load
+        }
+
+        // Export config to JSON
+        function exportConfig() {
+            const config = getInputValues();
+            const configJson = JSON.stringify(config, null, 2);
+            document.getElementById('config-json-textarea').value = configJson;
+        }
+
+        // Import config from JSON
+        function importConfig() {
+            try {
+                const jsonStr = document.getElementById('config-json-textarea').value;
+                const config = JSON.parse(jsonStr);
+
+                // Apply config to UI
+                document.getElementById('dim_w').value = config.dim_w || 25;
+                document.getElementById('dim_h').value = config.dim_h || 37;
+                document.getElementById('dim_d').value = config.dim_d || 21;
+                document.getElementById('dim_railing_w').value = config.dim_railing_w || 1;
+                document.getElementById('num_drawers').value = config.num_drawers || 3;
+                document.getElementById('dim_drawer_stretcher').value = config.dim_drawer_stretcher || 3;
+                document.getElementById('dim_back_stretcher').value = config.dim_back_stretcher || 3;
+                document.getElementById('backing_style').value = config.backing_style || 'stretcher';
+                document.getElementById('drawer_clearance').value = config.drawer_clearance || 0.125;
+                document.getElementById('sheet_w').value = config.sheet_w || 48;
+                document.getElementById('sheet_h').value = config.sheet_h || 96;
+                document.getElementById('kerf').value = config.kerf || 0.125;
+
+                // Apply plywood data
+                if (config.plywoodData) {
+                    plywoodData = config.plywoodData;
+                    renderPlywoodTable();
+                }
+
+                // Recalculate
+                calculate();
+                alert('Configuration imported successfully!');
+            } catch (e) {
+                alert('Error importing configuration: ' + e.message);
+            }
+        }
+
+        // Copy config JSON to clipboard
+        function copyConfigToClipboard() {
+            const textarea = document.getElementById('config-json-textarea');
+            textarea.select();
+            document.execCommand('copy');
+            alert('Configuration copied to clipboard!');
+        }
+
+        // Debug mode handler
+        function generateDebugOutput() {
+            const config = getInputValues();
+            const calc = calculateDimensions(config);
+            const debugDiv = document.getElementById('debug-output');
+
+            // Get all plywood variables
+            const plywoodVars = {};
+            const components = ['carcass_sides', 'carcass_back', 'back_stretcher', 'carcass_top',
+                              'drawer_sides', 'drawer_bottom', 'drawer_face', 'drawer_stretcher'];
+            components.forEach(comp => {
+                const ply = getPlywoodForComponent(comp);
+                plywoodVars[`ply_${comp}`] = `${ply.thickness}" ${ply.material}`;
+            });
+
+            // Collect all variables
+            const allVars = {
+                // Config variables
+                ...config,
+                // Calculated variables
+                ...calc,
+                // Plywood variables
+                ...plywoodVars
+            };
+
+            // Sort keys alphabetically
+            const sortedKeys = Object.keys(allVars).sort();
+
+            let html = '<div class="debug-section">';
+
+            // JSON Config Export/Import
+            html += '<h3>JSON Configuration</h3>';
+            html += '<div class="config-json">';
+            html += '<textarea id="config-json-textarea" placeholder="Paste JSON configuration here..."></textarea>';
+            html += '<div class="config-actions">';
+            html += '<button class="config-btn" onclick="exportConfig()">Export Config</button>';
+            html += '<button class="config-btn" onclick="importConfig()">Import Config</button>';
+            html += '<button class="config-btn secondary" onclick="copyConfigToClipboard()">Copy to Clipboard</button>';
+            html += '</div>';
+            html += '</div>';
+
+            html += '<h3>Configuration & Calculated Variables</h3>';
+            html += '<div class="debug-group">';
+
+            sortedKeys.forEach(key => {
+                const value = allVars[key];
+                const displayValue = typeof value === 'number' ? value.toFixed(3) : value;
+                html += `<div class="debug-var">
+                    <span class="debug-var-name">${key}:</span>
+                    <span class="debug-var-value">${displayValue}</span>
+                </div>`;
+            });
+
+            html += '</div>';
+
+            // Add plywood data structure
+            html += '<h3>Plywood Data Structure</h3>';
+            html += '<div class="debug-group">';
+            plywoodData.forEach((row, idx) => {
+                html += `<h4>Row ${idx + 1}</h4>`;
+                html += `<div class="debug-var">
+                    <span class="debug-var-name">thickness:</span>
+                    <span class="debug-var-value">${row.thickness}"</span>
+                </div>`;
+                html += `<div class="debug-var">
+                    <span class="debug-var-name">material:</span>
+                    <span class="debug-var-value">${row.material}</span>
+                </div>`;
+                html += `<div class="debug-var">
+                    <span class="debug-var-name">components:</span>
+                    <span class="debug-var-value">[${row.components.join(', ')}]</span>
+                </div>`;
+            });
+            html += '</div>';
+
+            html += '</div>';
+            debugDiv.innerHTML = html;
+        }
+
+        // Setup section observers for navigation highlighting
+        function setupSectionObserver() {
+            const sections = document.querySelectorAll('.main-content .panel[id^="section-"]');
+            const navLinks = document.querySelectorAll('.nav-link');
+
+            const observerOptions = {
+                root: document.querySelector('.main-content'),
+                rootMargin: '-150px 0px -50% 0px',
+                threshold: 0
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const sectionId = entry.target.id;
+                        const activeLink = document.querySelector(`.nav-link[href="#${sectionId}"]`);
+
+                        // Remove active class from all links
+                        navLinks.forEach(link => link.classList.remove('active'));
+
+                        // Add active class to current link
+                        if (activeLink) {
+                            activeLink.classList.add('active');
+                        }
+                    }
+                });
+            }, observerOptions);
+
+            sections.forEach(section => observer.observe(section));
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            initThreeJS();
+            initPlywoodTable();
+            setupBackingStyleHandler();
+            calculate();
+
+            // Add input listeners for auto-update (excluding plywood table inputs which have their own handlers)
+            document.querySelectorAll('.sidebar .input-group input, .sidebar .input-group select').forEach(input => {
+                input.addEventListener('input', calculate);
+                input.addEventListener('change', calculate);
+            });
+
+            // Setup section observer for nav highlighting
+            setupSectionObserver();
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const container = document.getElementById('canvas-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+    </script>
+</body>
+</html>
