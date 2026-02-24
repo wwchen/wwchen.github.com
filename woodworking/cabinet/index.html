@@ -1091,7 +1091,9 @@
             console.log(`  ${panelKey} at (${x.toFixed(1)}, ${y.toFixed(1)}, ${z.toFixed(1)}) → box: ${boxWidth.toFixed(1)}×${boxHeight.toFixed(1)}×${boxDepth.toFixed(1)} ${orientLabel}`);
 
             const box = createPlywoodBox(boxWidth, boxHeight, boxDepth, depth, color);
-            box.position.set(x, y, z);
+            // Position box: (x,y,z) from equations.json is front-left-bottom corner
+            // Three.js positions by center, so add half-dimensions
+            box.position.set(x + boxWidth/2, y + boxHeight/2, z + boxDepth/2);
             cabinetGroup.add(box);
         }
 
@@ -1150,8 +1152,8 @@
                 renderPanel3D(panelKey, panel, user_inputs);
             }
 
-            // Position cabinet so it rotates around center X/Z at floor level (Y=0)
-            cabinetGroup.position.set(-user_inputs.dim_w/2, 0, -user_inputs.dim_d/2);
+            // Cabinet positioned with (0,0,0) at front-left-bottom corner
+            cabinetGroup.position.set(0, 0, 0);
         }
 
         // Plywood table management

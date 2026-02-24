@@ -80,6 +80,13 @@ Defines all panel dimensions, BOM data, and 3D visualization properties:
 }
 ```
 
+**3D Coordinate System:**
+- **(0, 0, 0)** = front-left-bottom corner of the cabinet
+- **X axis** = Width (left → right)
+- **Y axis** = Height (floor → up)
+- **Z axis** = Depth (front → back)
+- All `(x, y, z)` in `instances` represent the **front-left-bottom corner** of each panel
+
 **3D Orientations:**
 - `horizontal`: Components lying flat (carcass_top, drawer_bottom, drawer_stretchers)
 - `vertical`: Components standing upright (back_stretchers, drawer_front_back, carcass_back)
@@ -138,8 +145,8 @@ Edit `equations.json` to add a new panel:
         "orientation": "vertical",
         "instances": [
           {
-            "x": "dim_w / 2",
-            "y": "dim_h / 2",
+            "x": "ply_carcass",
+            "y": "0",
             "z": "0"
           }
         ]

@@ -65,8 +65,19 @@ Used by:
 - `getAvailableComponents()` - For plywood table UI
 - `generateBOM()` - For looking up plywood thickness/material
 
-### 2. 3D Orientation System
+### 2. 3D Coordinate System and Orientation
 
+**Coordinate System:**
+- **(0, 0, 0)** = **front-left-bottom corner** of the cabinet
+- **X axis** = Width (0 = left edge, increases → right)
+- **Y axis** = Height (0 = floor, increases → up)
+- **Z axis** = Depth (0 = front face, increases → back)
+
+**Panel Positioning:**
+- All `(x, y, z)` coordinates in `equations.json` represent the **front-left-bottom corner** of each panel
+- `renderInstance()` in `index.html` automatically adds half-dimensions to position the Three.js box (which uses center-based positioning)
+
+**Orientations:**
 Three orientations defined in `equations.json` under `viz3d.orientation`:
 
 - **`horizontal`**: Lies flat - BOM(W,H,T) → 3D(X=W, Y=T, Z=H)
@@ -277,13 +288,18 @@ evaluateCalculatedValues(equations.calculated, user_inputs);
 
 ### 4. Three.js Cabinet Positioning
 
-Cabinet group is positioned so it rotates around center X/Z at floor level (Y=0):
+Cabinet group is positioned at the origin with (0,0,0) at the front-left-bottom corner:
 
 ```javascript
-cabinetGroup.position.set(-user_inputs.dim_w/2, 0, -user_inputs.dim_d/2);
+cabinetGroup.position.set(0, 0, 0);
 ```
 
-Individual panels positioned relative to origin (0,0,0) = front-left-bottom corner.
+**Panel positioning:**
+- Panel `(x, y, z)` in `equations.json` = **front-left-bottom corner** position
+- Three.js boxes are positioned by their center, so `renderInstance()` adds half-dimensions:
+  ```javascript
+  box.position.set(x + boxWidth/2, y + boxHeight/2, z + boxDepth/2);
+  ```
 
 ### 5. Fetch Requires HTTP
 
