@@ -678,6 +678,7 @@
                         <a class="nav-link" href="#section-optimizer">Optimizer</a>
                         <a class="nav-link" href="#section-assembly">Assembly</a>
                         <a class="nav-link" href="#section-debug">Debug</a>
+                        <a class="nav-link" href="#section-tests">Tests</a>
                     </div>
                 </div>
 
@@ -717,6 +718,12 @@
                     <h2>Debug Information</h2>
                     <div id="debug-output"></div>
                 </div>
+
+                <div class="panel" id="section-tests">
+                    <h2>Test Suite</h2>
+                    <button onclick="runAllTests()" style="margin-bottom: 10px; padding: 8px 16px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">Run All Tests</button>
+                    <div id="test-output" style="font-family: monospace; font-size: 12px;"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -725,6 +732,517 @@
         // Three.js scene setup
         let scene, camera, renderer, controls;
         let cabinetGroup;
+
+        // Equations structure - single source of truth for all calculations
+        const equations = {
+            panels: {
+                // Carcass components
+                carcass_sides: {
+                    dimensions: {
+                        width: 'dim_d',
+                        height: 'dim_h - ply_carcass',
+                        thickness: 'ply_carcass'
+                    },
+                    bom: {
+                        item: 'Carcass sides',
+                        quantity: 2
+                    },
+                    viz3d: {
+                        color: 0xD2B48C,
+                        instances: [
+                            { // left
+                                x: 'ply_carcass / 2',
+                                y: '(dim_h - ply_carcass) / 2',
+                                z: 'dim_d / 2'
+                            },
+                            { // right
+                                x: 'dim_w - ply_carcass / 2',
+                                y: '(dim_h - ply_carcass) / 2',
+                                z: 'dim_d / 2'
+                            }
+                        ]
+                    }
+                },
+
+                carcass_top: {
+                    dimensions: {
+                        width: 'dim_w',
+                        height: 'dim_d',
+                        thickness: 'ply_carcass'
+                    },
+                    bom: {
+                        item: 'Carcass top',
+                        quantity: 1
+                    },
+                    viz3d: {
+                        color: 0xC19A6B,
+                        instances: [{
+                            x: 'dim_w / 2',
+                            y: 'dim_h - ply_carcass / 2',
+                            z: 'dim_d / 2'
+                        }]
+                    }
+                },
+
+                carcass_back_full: {
+                    dimensions: {
+                        width: 'dim_w - 2 * ply_carcass',
+                        height: 'dim_h - 2 * ply_carcass',
+                        thickness: 'ply_carcass_back'
+                    },
+                    bom: {
+                        item: 'Carcass back',
+                        quantity: 1,
+                        condition: 'backing_style === "full"'
+                    },
+                    viz3d: {
+                        color: 0xA0826D,
+                        condition: 'backing_style === "full"',
+                        instances: [{
+                            x: 'dim_w / 2',
+                            y: 'ply_carcass + (dim_h - 2 * ply_carcass) / 2',
+                            z: 'dim_d - ply_carcass_back / 2'
+                        }]
+                    }
+                },
+
+                carcass_back_inlay: {
+                    dimensions: {
+                        width: 'dim_w - 2 * ply_carcass',
+                        height: 'dim_h - 2 * ply_carcass',
+                        thickness: 'ply_carcass_back'
+                    },
+                    bom: {
+                        item: 'Carcass back (routed inlay)',
+                        quantity: 1,
+                        condition: 'backing_style === "inlay"'
+                    },
+                    viz3d: {
+                        color: 0xA0826D,
+                        condition: 'backing_style === "inlay"',
+                        instances: [{
+                            x: 'dim_w / 2',
+                            y: 'ply_carcass + (dim_h - 2 * ply_carcass) / 2',
+                            z: 'dim_d - ply_carcass_back / 2'
+                        }]
+                    }
+                },
+
+                back_stretchers: {
+                    dimensions: {
+                        width: 'dim_w - 2 * ply_carcass',
+                        height: 'dim_back_stretcher',
+                        thickness: 'ply_back_stretcher'
+                    },
+                    bom: {
+                        item: 'Back stretchers (top & bottom)',
+                        quantity: 2,
+                        condition: 'backing_style === "stretcher"'
+                    },
+                    viz3d: {
+                        color: 0xD2B48C,
+                        condition: 'backing_style === "stretcher"',
+                        instances: [
+                            { // top
+                                x: 'dim_w / 2',
+                                y: 'dim_h - ply_carcass - dim_back_stretcher / 2',
+                                z: 'dim_d - ply_back_stretcher / 2'
+                            },
+                            { // bottom
+                                x: 'dim_w / 2',
+                                y: 'ply_carcass + dim_back_stretcher / 2',
+                                z: 'dim_d - ply_back_stretcher / 2'
+                            }
+                        ]
+                    }
+                },
+
+                drawer_stretchers: {
+                    dimensions: {
+                        width: 'dim_w - 2 * ply_carcass',
+                        height: 'dim_drawer_stretcher',
+                        thickness: 'ply_drawer_stretcher'
+                    },
+                    bom: {
+                        item: 'Drawer stretchers (front & back)',
+                        quantity: 'num_drawers * 2'
+                    },
+                    viz3d: {
+                        color: 0xD2B48C,
+                        loop: 'num_drawers',
+                        stretcherDepth: 'dim_drawer_stretcher',
+                        instances: [
+                            { // front stretcher
+                                x: 'dim_w / 2',
+                                y: 'i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher / 2',
+                                z: 'ply_drawer_face + dim_drawer_stretcher / 2'
+                            },
+                            { // back stretcher
+                                x: 'dim_w / 2',
+                                y: 'i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher / 2',
+                                z: 'dim_d - dim_drawer_stretcher / 2'
+                            }
+                        ]
+                    }
+                },
+
+                drawer_sides: {
+                    dimensions: {
+                        width: 'drawer_depth',
+                        height: 'drawer_height - ply_bottom',
+                        thickness: 'ply_drawer'
+                    },
+                    bom: {
+                        item: 'Drawer sides',
+                        quantity: '2 * num_drawers'
+                    },
+                    viz3d: {
+                        color: 0xF5DEB3,
+                        loop: 'num_drawers',
+                        instances: [
+                            { // left
+                                x: 'ply_carcass + dim_railing_w + ply_drawer / 2',
+                                y: 'i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + (drawer_height - ply_bottom) / 2',
+                                z: 'ply_drawer_face + drawer_depth / 2'
+                            },
+                            { // right
+                                x: 'dim_w - ply_carcass - dim_railing_w - ply_drawer / 2',
+                                y: 'i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + (drawer_height - ply_bottom) / 2',
+                                z: 'ply_drawer_face + drawer_depth / 2'
+                            }
+                        ]
+                    }
+                },
+
+                drawer_front_back: {
+                    dimensions: {
+                        width: 'drawer_width - 2 * ply_drawer',
+                        height: 'drawer_height - ply_bottom',
+                        thickness: 'ply_drawer'
+                    },
+                    bom: {
+                        item: 'Drawer front/back',
+                        quantity: '2 * num_drawers'
+                    },
+                    viz3d: {
+                        color: 0xF5E6D3,
+                        loop: 'num_drawers',
+                        instances: [
+                            { // back
+                                x: 'dim_w / 2',
+                                y: 'i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + (drawer_height - ply_bottom) / 2',
+                                z: 'ply_drawer_face + ply_drawer / 2'
+                            },
+                            { // front
+                                x: 'dim_w / 2',
+                                y: 'i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + (drawer_height - ply_bottom) / 2',
+                                z: 'ply_drawer_face + drawer_depth - ply_drawer / 2'
+                            }
+                        ]
+                    }
+                },
+
+                drawer_bottom: {
+                    dimensions: {
+                        width: 'drawer_width',
+                        height: 'drawer_depth',
+                        thickness: 'ply_bottom'
+                    },
+                    bom: {
+                        item: 'Drawer bottom',
+                        quantity: 'num_drawers'
+                    },
+                    viz3d: {
+                        color: 0xE6D7C3,
+                        loop: 'num_drawers',
+                        instances: [{
+                            x: 'dim_w / 2',
+                            y: 'i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + ply_bottom / 2',
+                            z: 'ply_drawer_face + drawer_depth / 2'
+                        }]
+                    }
+                },
+
+                drawer_faces: {
+                    dimensions: {
+                        width: 'dim_w - 2 * ply_carcass - 2 * drawer_clearance',
+                        height: 'drawer_height - 2 * drawer_clearance',
+                        thickness: 'ply_drawer_face'
+                    },
+                    bom: {
+                        item: 'Drawer faces',
+                        quantity: 'num_drawers',
+                        condition: 'drawer_face_enabled && ply_drawer_face > 0'
+                    },
+                    viz3d: {
+                        color: 0x8B4513,
+                        condition: 'drawer_face_enabled && ply_drawer_face > 0',
+                        loop: 'num_drawers',
+                        instances: [{
+                            x: 'dim_w / 2',
+                            y: 'i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + drawer_clearance + (drawer_height - 2 * drawer_clearance) / 2',
+                            z: 'ply_drawer_face / 2'
+                        }]
+                    }
+                },
+
+                drawer_railings: {
+                    dimensions: {
+                        width: 'dim_railing_w',
+                        height: '2.0',
+                        thickness: 'ply_carcass'
+                    },
+                    viz3d: {
+                        color: 0xC0C0C0,
+                        loop: 'num_drawers',
+                        instances: [
+                            { // left railing
+                                x: 'ply_carcass + dim_railing_w / 2',
+                                y: 'i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + 1.0 + 1.0',
+                                z: 'ply_drawer_face + drawer_depth / 2'
+                            },
+                            { // right railing
+                                x: 'dim_w - ply_carcass - dim_railing_w / 2',
+                                y: 'i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + 1.0 + 1.0',
+                                z: 'ply_drawer_face + drawer_depth / 2'
+                            }
+                        ]
+                    }
+                }
+            },
+
+            // Calculated helper values
+            calculated: {
+                interior_height: 'dim_h - ply_carcass',
+                interior_width: 'dim_w - 2 * ply_carcass',
+                interior_depth: 'dim_d - ply_drawer_face - ply_back_thickness',
+                available_drawer_height: 'dim_h - ply_carcass - num_drawers * ply_drawer_stretcher',
+                drawer_height: '(dim_h - ply_carcass - num_drawers * ply_drawer_stretcher) / num_drawers',
+                drawer_width: 'dim_w - 2 * (ply_carcass + dim_railing_w)',
+                drawer_depth: 'dim_d - ply_drawer_face - ply_back_thickness',
+                interior_volume: 'interior_width * interior_height * interior_depth',
+                drawer_volume: 'drawer_width * drawer_height * drawer_depth'
+            },
+
+            // Display configuration for dimensions panel
+            display: {
+                dimensions: [
+                    {
+                        label: 'Carcass Total (W×H×D)',
+                        value: 'dim_w + " × " + dim_h + " × " + dim_d',
+                        equations: {
+                            formula: 'total_w × total_h × total_d',
+                            substituted: 'dim_w + " × " + dim_h + " × " + dim_d'
+                        }
+                    },
+                    {
+                        label: 'Interior (W×H×D)',
+                        value: 'interior_width.toFixed(2) + " × " + interior_height.toFixed(2) + " × " + interior_depth.toFixed(2)',
+                        equations: [
+                            { label: 'Width', expr: 'dim_w - 2 * ply_carcass' },
+                            { label: 'Height', expr: 'dim_h - ply_carcass' },
+                            { label: 'Depth', expr: 'dim_d - ply_drawer_face - ply_back_thickness' }
+                        ]
+                    },
+                    {
+                        label: 'Interior Volume',
+                        value: 'interior_volume.toFixed(2) + " cu in"',
+                        equations: {
+                            expr: 'interior_width * interior_height * interior_depth',
+                            note: '(interior_volume / 1728).toFixed(2) + " cu ft total"'
+                        }
+                    },
+                    {
+                        label: 'Available for Drawers',
+                        value: 'available_drawer_height.toFixed(2) + "\""',
+                        equations: {
+                            expr: 'dim_h - ply_carcass - num_drawers * ply_drawer_stretcher'
+                        }
+                    },
+                    {
+                        label: 'Drawer Box (W×H×D)',
+                        value: 'drawer_width.toFixed(2) + " × " + drawer_height.toFixed(2) + " × " + drawer_depth.toFixed(2)',
+                        equations: [
+                            { label: 'Width', expr: 'dim_w - 2 * (ply_carcass + dim_railing_w)' },
+                            { label: 'Height', expr: '(dim_h - ply_carcass - num_drawers * ply_drawer_stretcher) / num_drawers' },
+                            { label: 'Depth', expr: 'dim_d - ply_drawer_face - ply_back_thickness' }
+                        ]
+                    },
+                    {
+                        label: 'Drawer Volume',
+                        value: 'drawer_volume.toFixed(2) + " cu in"',
+                        equations: {
+                            expr: 'drawer_width * drawer_height * drawer_depth',
+                            note: '(drawer_volume / 1728).toFixed(2) + " cu ft per drawer"'
+                        }
+                    }
+                ]
+            }
+        };
+
+        // Render debug output showing all variables
+        function renderDebugOutput(user_inputs, config) {
+            const sortedKeys = Object.keys(user_inputs).sort();
+
+            let html = '<div class="debug-section">';
+
+            // JSON Config Export/Import
+            html += '<h3>JSON Configuration</h3>';
+            html += '<div class="config-json">';
+            html += '<textarea id="config-json-textarea" placeholder="Paste JSON configuration here..."></textarea>';
+            html += '<div class="config-actions">';
+            html += '<button class="config-btn" onclick="exportConfig()">Export Config</button>';
+            html += '<button class="config-btn" onclick="importConfig()">Import Config</button>';
+            html += '<button class="config-btn secondary" onclick="copyConfigToClipboard()">Copy to Clipboard</button>';
+            html += '</div>';
+            html += '</div>';
+
+            html += '<h3>Configuration & Calculated Variables</h3>';
+            html += '<div class="debug-group">';
+
+            sortedKeys.forEach(key => {
+                const value = user_inputs[key];
+                // Skip objects and plywoodData
+                if (typeof value === 'object' || key === 'plywoodData') return;
+
+                const displayValue = typeof value === 'number' ? value.toFixed(3) :
+                                   typeof value === 'boolean' ? value.toString() :
+                                   value;
+                html += `<div class="debug-var">
+                    <span class="debug-var-name">${key}:</span>
+                    <span class="debug-var-value">${displayValue}</span>
+                </div>`;
+            });
+
+            html += '</div>';
+
+            // Add plywood data structure
+            html += '<h3>Plywood Data Structure</h3>';
+            html += '<div class="debug-group">';
+            plywoodData.forEach((row, idx) => {
+                html += `<h4>Row ${idx + 1}</h4>`;
+                html += `<div class="debug-var">
+                    <span class="debug-var-name">thickness:</span>
+                    <span class="debug-var-value">${row.thickness}"</span>
+                </div>`;
+                html += `<div class="debug-var">
+                    <span class="debug-var-name">material:</span>
+                    <span class="debug-var-value">${row.material}</span>
+                </div>`;
+                html += `<div class="debug-var">
+                    <span class="debug-var-name">components:</span>
+                    <span class="debug-var-value">[${row.components.join(', ')}]</span>
+                </div>`;
+            });
+            html += '</div>';
+
+            html += '</div>';
+
+            return html;
+        }
+
+        // Render dimensions display using equations.display configuration
+        function renderDimensionsDisplay(user_inputs) {
+            let html = '';
+
+            for (const dimConfig of equations.display.dimensions) {
+                // Evaluate the display value - substitute variables first
+                const valueExpr = dimConfig.value;
+                let displayValue;
+                try {
+                    let evalStr = valueExpr;
+                    for (const [varName, value] of Object.entries(user_inputs)) {
+                        evalStr = evalStr.replace(new RegExp(`\\b${varName}\\b`, 'g'),
+                            typeof value === 'number' ? value : `"${value}"`);
+                    }
+                    displayValue = eval(evalStr);
+                } catch (e) {
+                    console.error('Error evaluating display value:', valueExpr, e);
+                    displayValue = '?';
+                }
+
+                html += `<div class="calc-item">`;
+                html += `<strong>${dimConfig.label}</strong>`;
+                html += `<span>${displayValue}"</span>`;
+
+                // Render equations
+                if (dimConfig.equations) {
+                    html += `<small style="display: block; margin-top: 4px; color: #666; font-size: 10px; line-height: 1.5;">`;
+
+                    if (Array.isArray(dimConfig.equations)) {
+                        // Multiple equations with labels
+                        for (const eq of dimConfig.equations) {
+                            const eqStr = buildEquationString(eq.expr, user_inputs);
+                            html += `<strong>${eq.label}:</strong> ${eqStr}<br>`;
+                        }
+                    } else if (dimConfig.equations.expr) {
+                        // Single equation
+                        const eqStr = buildEquationString(dimConfig.equations.expr, user_inputs);
+                        html += `${eqStr}`;
+                        if (dimConfig.equations.note) {
+                            // Evaluate note with user_inputs context
+                            let noteStr = dimConfig.equations.note;
+                            for (const [varName, value] of Object.entries(user_inputs)) {
+                                noteStr = noteStr.replace(new RegExp(`\\b${varName}\\b`, 'g'),
+                                    typeof value === 'number' ? value : `"${value}"`);
+                            }
+                            const noteValue = eval(noteStr);
+                            html += `<br><em style="color: #999;">${noteValue}</em>`;
+                        }
+                    } else {
+                        // Simple formula display
+                        html += `${dimConfig.equations.formula}<br>`;
+                        let substStr = dimConfig.equations.substituted;
+                        for (const [varName, value] of Object.entries(user_inputs)) {
+                            substStr = substStr.replace(new RegExp(`\\b${varName}\\b`, 'g'),
+                                typeof value === 'number' ? value : `"${value}"`);
+                        }
+                        html += `= ${eval(substStr)}`;
+                    }
+
+                    html += `</small>`;
+                }
+
+                html += `</div>`;
+            }
+
+            return html;
+        }
+
+        // Evaluate expression with user_inputs context
+        function evaluateExpr(expr, user_inputs) {
+            let evalStr = expr;
+            for (const [varName, value] of Object.entries(user_inputs)) {
+                evalStr = evalStr.replace(new RegExp(`\\b${varName}\\b`, 'g'),
+                    typeof value === 'number' ? value : `"${value}"`);
+            }
+            try {
+                return eval(evalStr);
+            } catch (e) {
+                console.error(`Failed to evaluate: ${expr}`, e);
+                return 0;
+            }
+        }
+
+        // Generic equation string builder - evaluates expressions with variable substitution
+        function buildEquationString(expr, user_inputs) {
+            if (!expr) return '';
+
+            // Evaluate to get result
+            const result = evaluateExpr(expr, user_inputs);
+            const formattedResult = typeof result === 'number' ? result.toFixed(2) : result;
+
+            // Build display string with formatted values
+            let displayExpr = expr;
+            for (const [varName, value] of Object.entries(user_inputs)) {
+                if (typeof value === 'number') {
+                    const formatted = varName.includes('clearance') ? value.toFixed(3) : value.toFixed(2);
+                    displayExpr = displayExpr.replace(new RegExp(`\\b${varName}\\b`, 'g'), formatted);
+                }
+            }
+
+            return `${expr} = ${displayExpr} = ${formattedResult}`;
+        }
 
         function initThreeJS() {
             const container = document.getElementById('canvas-container');
@@ -1531,157 +2049,125 @@
         }
 
         function generateBOM(config, calc) {
+            // Build user_inputs object with all variables
+            const user_inputs = buildUserInputs(config, calc);
+
+            const bom = [];
+            let id = 1;
+
+            // Iterate through panels and generate BOM entries
+            for (const [panelKey, panel] of Object.entries(equations.panels)) {
+                if (!panel.bom) continue;
+
+                // Check condition if present
+                if (panel.bom.condition) {
+                    if (!evaluateExpr(panel.bom.condition, user_inputs)) continue;
+                }
+
+                // Map panel key to component name for plywood lookup
+                const componentMap = {
+                    'carcass_sides': 'carcass_sides',
+                    'carcass_top': 'carcass_top',
+                    'carcass_back_full': 'carcass_back',
+                    'carcass_back_inlay': 'carcass_back',
+                    'back_stretchers': 'back_stretcher',
+                    'drawer_stretchers': 'drawer_stretcher',
+                    'drawer_sides': 'drawer_sides',
+                    'drawer_front_back': 'drawer_sides',
+                    'drawer_bottom': 'drawer_bottom',
+                    'drawer_faces': 'drawer_face'
+                };
+                const componentName = componentMap[panelKey] || panelKey;
+                const plyData = getPlywoodForComponent(componentName);
+
+                // Evaluate dimensions
+                const width = evaluateExpr(panel.dimensions.width, user_inputs);
+                const height = evaluateExpr(panel.dimensions.height, user_inputs);
+                const thickness = evaluateExpr(panel.dimensions.thickness, user_inputs);
+
+                // Evaluate quantity
+                const quantity = typeof panel.bom.quantity === 'number' ?
+                    panel.bom.quantity :
+                    evaluateExpr(panel.bom.quantity, user_inputs);
+
+                // Build equations
+                const widthEq = buildEquationString(panel.dimensions.width, user_inputs);
+                const heightEq = buildEquationString(panel.dimensions.height, user_inputs);
+                const equation = `W: ${widthEq}"<br>H: ${heightEq}"`;
+
+                bom.push({
+                    id: id++,
+                    item: panel.bom.item,
+                    width,
+                    height,
+                    thickness,
+                    material: plyData.material,
+                    quantity,
+                    equation
+                });
+            }
+
+            return bom;
+        }
+
+        // Build user_inputs object from config and calc
+        function buildUserInputs(config, calc) {
             const { dim_w, dim_h, dim_d, num_drawers, dim_drawer_stretcher, dim_back_stretcher,
                     backing_style, dim_railing_w, drawer_clearance } = config;
 
-            // Get plywood specs from table
+            // Get plywood specs
             const carcassSidesPly = getPlywoodForComponent('carcass_sides');
             const carcassBackPly = getPlywoodForComponent('carcass_back');
             const backStretcherPly = getPlywoodForComponent('back_stretcher');
-            const carcassTopPly = getPlywoodForComponent('carcass_top');
             const drawerSidesPly = getPlywoodForComponent('drawer_sides');
             const drawerBottomPly = getPlywoodForComponent('drawer_bottom');
             const drawerFacePly = getPlywoodForComponent('drawer_face');
             const drawerStretcherPly = getPlywoodForComponent('drawer_stretcher');
 
-            const ply_carcass = carcassSidesPly.thickness;
-            const ply_carcass_back = carcassBackPly.thickness;
-            const ply_drawer = drawerSidesPly.thickness;
-            const ply_bottom = drawerBottomPly.thickness;
-            const ply_drawer_face = drawerFacePly.thickness;
+            // Calculate backing thickness
+            let ply_back_thickness = 0;
+            if (backing_style === 'stretcher') {
+                ply_back_thickness = backStretcherPly.thickness;
+            } else if (backing_style === 'inlay' || backing_style === 'full') {
+                ply_back_thickness = carcassBackPly.thickness;
+            }
 
             const drawer_face_enabled = plywoodData.some(row => row.components.includes('drawer_face'));
 
-            const bom = [];
-            let id = 1;
+            return {
+                // Config values
+                dim_w,
+                dim_h,
+                dim_d,
+                num_drawers,
+                dim_drawer_stretcher,
+                dim_back_stretcher,
+                dim_railing_w,
+                drawer_clearance,
+                backing_style,
 
-            // Carcass sides
-            bom.push({
-                id: id++,
-                item: 'Carcass sides',
-                width: dim_d,
-                height: dim_h - ply_carcass,
-                thickness: carcassSidesPly.thickness,
-                material: carcassSidesPly.material,
-                quantity: 2,
-                equation: `W: total_d = ${dim_d}"<br>H: total_h - ply_carcass = ${dim_h} - ${ply_carcass.toFixed(2)} = ${(dim_h - ply_carcass).toFixed(2)}"`
-            });
+                // Plywood thicknesses
+                ply_carcass: carcassSidesPly.thickness,
+                ply_carcass_back: carcassBackPly.thickness,
+                ply_back_stretcher: backStretcherPly.thickness,
+                ply_drawer: drawerSidesPly.thickness,
+                ply_bottom: drawerBottomPly.thickness,
+                ply_drawer_face: drawerFacePly.thickness,
+                ply_drawer_stretcher: drawerStretcherPly.thickness,
+                ply_back_thickness,
 
-            // Carcass top
-            bom.push({
-                id: id++,
-                item: 'Carcass top',
-                width: dim_w,
-                height: dim_d,
-                thickness: carcassTopPly.thickness,
-                material: carcassTopPly.material,
-                quantity: 1,
-                equation: `W: total_w = ${dim_w}"<br>H: total_d = ${dim_d}"`
-            });
+                // Calculated values
+                drawer_width: calc.drawer_width,
+                drawer_height: calc.drawer_height,
+                drawer_depth: calc.drawer_depth,
+                interior_width: calc.interior_width,
+                interior_height: calc.interior_height,
+                interior_depth: calc.interior_depth,
+                available_drawer_height: calc.available_drawer_height,
 
-            // Carcass back - depends on backing style
-            if (backing_style === 'full') {
-                bom.push({
-                    id: id++,
-                    item: 'Carcass back',
-                    width: dim_w - 2 * ply_carcass,
-                    height: dim_h - 2 * ply_carcass,
-                    thickness: carcassBackPly.thickness,
-                    material: carcassBackPly.material,
-                    quantity: 1,
-                    equation: `W: total_w - 2 × ply_carcass = ${dim_w} - 2 × ${ply_carcass.toFixed(2)} = ${(dim_w - 2 * ply_carcass).toFixed(2)}"<br>H: total_h - 2 × ply_carcass = ${dim_h} - 2 × ${ply_carcass.toFixed(2)} = ${(dim_h - 2 * ply_carcass).toFixed(2)}"`
-                });
-            } else if (backing_style === 'stretcher') {
-                bom.push({
-                    id: id++,
-                    item: 'Back stretchers (top & bottom)',
-                    width: dim_w - 2 * ply_carcass,
-                    height: dim_back_stretcher,
-                    thickness: backStretcherPly.thickness,
-                    material: backStretcherPly.material,
-                    quantity: 2,
-                    equation: `W: total_w - 2 × ply_carcass = ${dim_w} - 2 × ${ply_carcass.toFixed(2)} = ${(dim_w - 2 * ply_carcass).toFixed(2)}"<br>H: back_stretcher_h = ${dim_back_stretcher}"`
-                });
-            } else if (backing_style === 'inlay') {
-                bom.push({
-                    id: id++,
-                    item: 'Carcass back (routed inlay)',
-                    width: dim_w - 2 * ply_carcass,
-                    height: dim_h - 2 * ply_carcass,
-                    thickness: carcassBackPly.thickness,
-                    material: carcassBackPly.material,
-                    quantity: 1,
-                    equation: `W: total_w - 2 × ply_carcass = ${dim_w} - 2 × ${ply_carcass.toFixed(2)} = ${(dim_w - 2 * ply_carcass).toFixed(2)}"<br>H: total_h - 2 × ply_carcass = ${dim_h} - 2 × ${ply_carcass.toFixed(2)} = ${(dim_h - 2 * ply_carcass).toFixed(2)}"`
-                });
-            }
-
-            // Drawer stretchers (front and back pieces below each drawer, sitting flat)
-            bom.push({
-                id: id++,
-                item: 'Drawer stretchers (front & back)',
-                width: dim_w - 2 * ply_carcass,
-                height: dim_drawer_stretcher,
-                thickness: drawerStretcherPly.thickness,
-                material: drawerStretcherPly.material,
-                quantity: num_drawers * 2,
-                equation: `W: total_w - 2 × ply_carcass = ${dim_w} - 2 × ${ply_carcass.toFixed(2)} = ${(dim_w - 2 * ply_carcass).toFixed(2)}"<br>H: drawer_stretcher_h = ${dim_drawer_stretcher}"`
-            });
-
-            // Drawer sides
-            const backStretcherPlyThickness = getPlywoodForComponent('back_stretcher').thickness;
-            const drawerDepthEq = `total_d - ply_drawer_face${backing_style === 'stretcher' ? ' - ply_back_stretcher' : backing_style === 'inlay' || backing_style === 'full' ? ' - ply_carcass_back' : ''}`;
-            const drawerDepthCalc = `${dim_d} - ${ply_drawer_face.toFixed(2)}${backing_style === 'stretcher' ? ` - ${backStretcherPlyThickness.toFixed(2)}` : backing_style === 'inlay' || backing_style === 'full' ? ` - ${ply_carcass_back.toFixed(2)}` : ''}`;
-
-            bom.push({
-                id: id++,
-                item: 'Drawer sides',
-                width: calc.drawer_depth,
-                height: calc.drawer_height - ply_bottom,
-                thickness: drawerSidesPly.thickness,
-                material: drawerSidesPly.material,
-                quantity: 2 * num_drawers,
-                equation: `W: ${drawerDepthEq} = ${drawerDepthCalc} = ${calc.drawer_depth.toFixed(2)}"<br>H: drawer_h - ply_bottom = ${calc.drawer_height.toFixed(2)} - ${ply_bottom.toFixed(2)} = ${(calc.drawer_height - ply_bottom).toFixed(2)}"`
-            });
-
-            // Drawer front/back
-            bom.push({
-                id: id++,
-                item: 'Drawer front/back',
-                width: calc.drawer_width - 2 * ply_drawer,
-                height: calc.drawer_height - ply_bottom,
-                thickness: drawerSidesPly.thickness,
-                material: drawerSidesPly.material,
-                quantity: 2 * num_drawers,
-                equation: `W: total_w - 2 × (ply_carcass + railing_w) - 2 × ply_drawer = ${dim_w} - 2 × (${ply_carcass.toFixed(2)} + ${dim_railing_w.toFixed(2)}) - 2 × ${ply_drawer.toFixed(2)} = ${(calc.drawer_width - 2 * ply_drawer).toFixed(2)}"<br>H: drawer_h - ply_bottom = ${calc.drawer_height.toFixed(2)} - ${ply_bottom.toFixed(2)} = ${(calc.drawer_height - ply_bottom).toFixed(2)}"`
-            });
-
-            // Drawer bottom
-            bom.push({
-                id: id++,
-                item: 'Drawer bottom',
-                width: calc.drawer_width,
-                height: calc.drawer_depth,
-                thickness: drawerBottomPly.thickness,
-                material: drawerBottomPly.material,
-                quantity: num_drawers,
-                equation: `W: total_w - 2 × (ply_carcass + railing_w) = ${dim_w} - 2 × (${ply_carcass.toFixed(2)} + ${dim_railing_w.toFixed(2)}) = ${calc.drawer_width.toFixed(2)}"<br>H: ${drawerDepthEq} = ${drawerDepthCalc} = ${calc.drawer_depth.toFixed(2)}"`
-            });
-
-            // Drawer faces
-            if (drawer_face_enabled) {
-                bom.push({
-                    id: id++,
-                    item: 'Drawer faces',
-                    width: dim_w - 2 * ply_carcass - 2 * drawer_clearance,
-                    height: calc.drawer_height - 2 * drawer_clearance,
-                    thickness: drawerFacePly.thickness,
-                    material: drawerFacePly.material,
-                    quantity: num_drawers,
-                    equation: `W: total_w - 2 × ply_carcass - 2 × clearance = ${dim_w} - 2 × ${ply_carcass.toFixed(2)} - 2 × ${drawer_clearance.toFixed(3)} = ${(dim_w - 2 * ply_carcass - 2 * drawer_clearance).toFixed(2)}"<br>H: drawer_h - 2 × clearance = ${calc.drawer_height.toFixed(2)} - 2 × ${drawer_clearance.toFixed(3)} = ${(calc.drawer_height - 2 * drawer_clearance).toFixed(2)}"`
-                });
-            }
-
-            return bom;
+                // Flags
+                drawer_face_enabled
+            };
         }
 
         function optimizeCuts(bom, config) {
@@ -1906,102 +2392,14 @@
 
             // Update calculated dimensions with equations
             const calcDiv = document.getElementById('calculated-dimensions');
+            const user_inputs = buildUserInputs(config, calc);
 
-            // Get plywood specs for equation display
-            const carcassSidesPly = getPlywoodForComponent('carcass_sides');
-            const carcassBackPly = getPlywoodForComponent('carcass_back');
-            const backStretcherPly = getPlywoodForComponent('back_stretcher');
-            const drawerSidesPly = getPlywoodForComponent('drawer_sides');
-            const drawerFacePly = getPlywoodForComponent('drawer_face');
-            const drawerStretcherPly = getPlywoodForComponent('drawer_stretcher');
-            const ply_carcass = carcassSidesPly.thickness;
-            const ply_carcass_back = carcassBackPly.thickness;
-            const ply_back_stretcher = backStretcherPly.thickness;
-            const ply_drawer = drawerSidesPly.thickness;
-            const ply_drawer_face = drawerFacePly.thickness;
-            const ply_drawer_stretcher = drawerStretcherPly.thickness;
-
-            // Build depth equations - always include drawer face
-            let depthEquationWords = 'total_d - ply_drawer_face';
-            let depthEquationNumbers = `${config.dim_d} - ${ply_drawer_face.toFixed(2)}`;
-
-            // Add backing subtraction based on style
-            if (config.backing_style === 'inlay') {
-                depthEquationWords += ' - ply_carcass_back';
-                depthEquationNumbers += ` - ${ply_carcass_back.toFixed(2)}`;
-            } else if (config.backing_style === 'stretcher') {
-                depthEquationWords += ' - ply_back_stretcher';
-                depthEquationNumbers += ` - ${ply_back_stretcher.toFixed(2)}`;
-            } else if (config.backing_style === 'full') {
-                depthEquationWords += ' - ply_carcass_back';
-                depthEquationNumbers += ` - ${ply_carcass_back.toFixed(2)}`;
+            // Evaluate calculated values and add to user_inputs for display
+            for (const [key, expr] of Object.entries(equations.calculated)) {
+                user_inputs[key] = evaluateExpr(expr, user_inputs);
             }
-            // If 'none', no additional subtraction
 
-            // Calculate volumes
-            const drawerVolume = calc.actual_drawer_box_width * calc.drawer_height * calc.actual_drawer_box_depth;
-            const interiorVolume = calc.interior_width * calc.interior_height * calc.interior_depth;
-
-            calcDiv.innerHTML = `
-                <div class="calc-item">
-                    <strong>Carcass Total (W×H×D)</strong>
-                    <span>${calc.carcass_width.toFixed(2)}" × ${calc.carcass_height.toFixed(2)}" × ${calc.carcass_depth.toFixed(2)}"</span>
-                    <small style="display: block; margin-top: 4px; color: #666; font-size: 10px; line-height: 1.5;">
-                        total_w × total_h × total_d<br>
-                        = ${config.dim_w} × ${config.dim_h} × ${config.dim_d}
-                    </small>
-                </div>
-                <div class="calc-item">
-                    <strong>Interior (W×H×D)</strong>
-                    <span>${calc.interior_width.toFixed(2)}" × ${calc.interior_height.toFixed(2)}" × ${calc.interior_depth.toFixed(2)}"</span>
-                    <small style="display: block; margin-top: 4px; color: #666; font-size: 10px; line-height: 1.5;">
-                        <strong>Width:</strong> total_w - 2 × ply_carcass<br>
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= ${config.dim_w} - 2 × ${ply_carcass.toFixed(2)}<br>
-                        <strong>Height:</strong> total_h - ply_carcass<br>
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= ${config.dim_h} - ${ply_carcass.toFixed(2)}<br>
-                        <strong>Depth:</strong> ${depthEquationWords}<br>
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= ${depthEquationNumbers}
-                    </small>
-                </div>
-                <div class="calc-item">
-                    <strong>Interior Volume</strong>
-                    <span>${interiorVolume.toFixed(2)} cu in</span>
-                    <small style="display: block; margin-top: 4px; color: #666; font-size: 10px; line-height: 1.5;">
-                        interior_w × interior_h × interior_d<br>
-                        = ${calc.interior_width.toFixed(2)} × ${calc.interior_height.toFixed(2)} × ${calc.interior_depth.toFixed(2)}<br>
-                        <em style="color: #999;">(${(interiorVolume / 1728).toFixed(2)} cu ft total)</em>
-                    </small>
-                </div>
-                <div class="calc-item">
-                    <strong>Available for Drawers</strong>
-                    <span>${calc.available_drawer_height.toFixed(2)}"</span>
-                    <small style="display: block; margin-top: 4px; color: #666; font-size: 10px; line-height: 1.5;">
-                        total_h - ply_carcass - drawers × ply_drawer_stretcher<br>
-                        = ${config.dim_h} - ${ply_carcass.toFixed(2)} - ${config.num_drawers} × ${ply_drawer_stretcher.toFixed(2)}
-                    </small>
-                </div>
-                <div class="calc-item">
-                    <strong>Drawer Box (W×H×D)</strong>
-                    <span>${calc.actual_drawer_box_width.toFixed(2)}" × ${calc.drawer_height.toFixed(2)}" × ${calc.actual_drawer_box_depth.toFixed(2)}"</span>
-                    <small style="display: block; margin-top: 4px; color: #666; font-size: 10px; line-height: 1.5;">
-                        <strong>Width:</strong> total_w - 2 × (ply_carcass + railing_w)<br>
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= ${config.dim_w} - 2 × (${ply_carcass.toFixed(2)} + ${config.dim_railing_w})<br>
-                        <strong>Height:</strong> (total_h - ply_carcass - drawers × ply_drawer_stretcher) / drawers<br>
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= (${config.dim_h} - ${ply_carcass.toFixed(2)} - ${config.num_drawers} × ${ply_drawer_stretcher.toFixed(2)}) / ${config.num_drawers}<br>
-                        <strong>Depth:</strong> ${depthEquationWords}<br>
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= ${depthEquationNumbers}
-                    </small>
-                </div>
-                <div class="calc-item">
-                    <strong>Drawer Volume</strong>
-                    <span>${drawerVolume.toFixed(2)} cu in</span>
-                    <small style="display: block; margin-top: 4px; color: #666; font-size: 10px; line-height: 1.5;">
-                        drawer_w × drawer_h × drawer_d<br>
-                        = ${calc.actual_drawer_box_width.toFixed(2)} × ${calc.drawer_height.toFixed(2)} × ${calc.actual_drawer_box_depth.toFixed(2)}<br>
-                        <em style="color: #999;">(${(drawerVolume / 1728).toFixed(2)} cu ft per drawer)</em>
-                    </small>
-                </div>
-            `;
+            calcDiv.innerHTML = renderDimensionsDisplay(user_inputs);
 
             // Update BOM table
             const bomDiv = document.getElementById('bom-table');
@@ -2261,78 +2659,7 @@
             const config = getInputValues();
             const calc = calculateDimensions(config);
             const debugDiv = document.getElementById('debug-output');
-
-            // Get all plywood variables
-            const plywoodVars = {};
-            const components = ['carcass_sides', 'carcass_back', 'back_stretcher', 'carcass_top',
-                              'drawer_sides', 'drawer_bottom', 'drawer_face', 'drawer_stretcher'];
-            components.forEach(comp => {
-                const ply = getPlywoodForComponent(comp);
-                plywoodVars[`ply_${comp}`] = `${ply.thickness}" ${ply.material}`;
-            });
-
-            // Collect all variables
-            const allVars = {
-                // Config variables
-                ...config,
-                // Calculated variables
-                ...calc,
-                // Plywood variables
-                ...plywoodVars
-            };
-
-            // Sort keys alphabetically
-            const sortedKeys = Object.keys(allVars).sort();
-
-            let html = '<div class="debug-section">';
-
-            // JSON Config Export/Import
-            html += '<h3>JSON Configuration</h3>';
-            html += '<div class="config-json">';
-            html += '<textarea id="config-json-textarea" placeholder="Paste JSON configuration here..."></textarea>';
-            html += '<div class="config-actions">';
-            html += '<button class="config-btn" onclick="exportConfig()">Export Config</button>';
-            html += '<button class="config-btn" onclick="importConfig()">Import Config</button>';
-            html += '<button class="config-btn secondary" onclick="copyConfigToClipboard()">Copy to Clipboard</button>';
-            html += '</div>';
-            html += '</div>';
-
-            html += '<h3>Configuration & Calculated Variables</h3>';
-            html += '<div class="debug-group">';
-
-            sortedKeys.forEach(key => {
-                const value = allVars[key];
-                const displayValue = typeof value === 'number' ? value.toFixed(3) : value;
-                html += `<div class="debug-var">
-                    <span class="debug-var-name">${key}:</span>
-                    <span class="debug-var-value">${displayValue}</span>
-                </div>`;
-            });
-
-            html += '</div>';
-
-            // Add plywood data structure
-            html += '<h3>Plywood Data Structure</h3>';
-            html += '<div class="debug-group">';
-            plywoodData.forEach((row, idx) => {
-                html += `<h4>Row ${idx + 1}</h4>`;
-                html += `<div class="debug-var">
-                    <span class="debug-var-name">thickness:</span>
-                    <span class="debug-var-value">${row.thickness}"</span>
-                </div>`;
-                html += `<div class="debug-var">
-                    <span class="debug-var-name">material:</span>
-                    <span class="debug-var-value">${row.material}</span>
-                </div>`;
-                html += `<div class="debug-var">
-                    <span class="debug-var-name">components:</span>
-                    <span class="debug-var-value">[${row.components.join(', ')}]</span>
-                </div>`;
-            });
-            html += '</div>';
-
-            html += '</div>';
-            debugDiv.innerHTML = html;
+            debugDiv.innerHTML = renderDebugOutput(user_inputs, config);
         }
 
         // Setup section observers for navigation highlighting
@@ -2390,6 +2717,295 @@
             camera.updateProjectionMatrix();
             renderer.setSize(container.clientWidth, container.clientHeight);
         });
+
+        // ============= TEST SUITE =============
+
+        // Helper function to get config for tests (without requiring DOM)
+        function getConfig() {
+            return {
+                dim_w: 25.0,
+                dim_h: 37.0,
+                dim_d: 21.0,
+                dim_railing_w: 1.0,
+                num_drawers: 3,
+                dim_drawer_stretcher: 2.0,
+                dim_back_stretcher: 4.0,
+                sheet_w: 48.0,
+                sheet_h: 96.0,
+                kerf: 0.125,
+                backing_style: 'stretcher',
+                drawer_clearance: 0.0625,
+                plywoodData: plywoodData
+            };
+        }
+
+        class TestRunner {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+            }
+
+            test(name, fn) {
+                this.tests.push({ name, fn });
+            }
+
+            assertEqual(actual, expected, message = '') {
+                const passed = Math.abs(actual - expected) < 0.01;
+                if (!passed) {
+                    throw new Error(`Expected ${expected}, got ${actual}. ${message}`);
+                }
+            }
+
+            assertDeepEqual(actual, expected, message = '') {
+                const actualStr = JSON.stringify(actual);
+                const expectedStr = JSON.stringify(expected);
+                if (actualStr !== expectedStr) {
+                    throw new Error(`Expected ${expectedStr}, got ${actualStr}. ${message}`);
+                }
+            }
+
+            assertTrue(condition, message = '') {
+                if (!condition) {
+                    throw new Error(`Assertion failed: ${message}`);
+                }
+            }
+
+            run() {
+                this.results = [];
+                let passed = 0;
+                let failed = 0;
+
+                for (const test of this.tests) {
+                    try {
+                        test.fn(this);
+                        this.results.push({ name: test.name, status: 'PASS', error: null });
+                        passed++;
+                    } catch (e) {
+                        this.results.push({ name: test.name, status: 'FAIL', error: e.message });
+                        failed++;
+                    }
+                }
+
+                return { passed, failed, results: this.results };
+            }
+
+            displayResults() {
+                const output = document.getElementById('test-output');
+                const { passed, failed, results } = this.run();
+
+                let html = `<div style="margin-bottom: 10px; padding: 10px; background: ${failed === 0 ? '#e8f5e9' : '#ffebee'}; border-radius: 4px;">`;
+                html += `<strong>Results: ${passed} passed, ${failed} failed</strong>`;
+                html += `</div>`;
+
+                for (const result of results) {
+                    const color = result.status === 'PASS' ? '#4CAF50' : '#f44336';
+                    html += `<div style="padding: 8px; margin: 4px 0; background: #f5f5f5; border-left: 4px solid ${color};">`;
+                    html += `<span style="color: ${color}; font-weight: bold;">[${result.status}]</span> ${result.name}`;
+                    if (result.error) {
+                        html += `<div style="color: #c62828; margin-top: 4px; font-size: 11px;">${result.error}</div>`;
+                    }
+                    html += `</div>`;
+                }
+
+                output.innerHTML = html;
+            }
+        }
+
+        function runAllTests() {
+            const runner = new TestRunner();
+
+            // Test 1: evaluateExpr basic math
+            runner.test('evaluateExpr - basic math', (t) => {
+                const inputs = { a: 10, b: 5 };
+                t.assertEqual(evaluateExpr('a + b', inputs), 15, 'Addition');
+                t.assertEqual(evaluateExpr('a - b', inputs), 5, 'Subtraction');
+                t.assertEqual(evaluateExpr('a * b', inputs), 50, 'Multiplication');
+                t.assertEqual(evaluateExpr('a / b', inputs), 2, 'Division');
+            });
+
+            // Test 2: evaluateExpr complex expressions
+            runner.test('evaluateExpr - complex expressions', (t) => {
+                const inputs = { dim_w: 25, ply_carcass: 0.75, dim_railing_w: 1.0 };
+                const result = evaluateExpr('dim_w - 2 * (ply_carcass + dim_railing_w)', inputs);
+                t.assertEqual(result, 21.5, 'Complex nested expression');
+            });
+
+            // Test 3: buildEquationString formatting
+            runner.test('buildEquationString - format output', (t) => {
+                const inputs = { dim_h: 37, ply_carcass: 0.75 };
+                const output = buildEquationString('dim_h - ply_carcass', inputs);
+                t.assertTrue(output.includes('dim_h - ply_carcass'), 'Contains original expression');
+                t.assertTrue(output.includes('37'), 'Contains dim_h value');
+                t.assertTrue(output.includes('0.75'), 'Contains ply_carcass value');
+                t.assertTrue(output.includes('36.25'), 'Contains result');
+            });
+
+            // Test 4: buildUserInputs creates all required fields
+            runner.test('buildUserInputs - all fields present', (t) => {
+                const config = getConfig();
+                const calc = calculateDimensions(config);
+                const inputs = buildUserInputs(config, calc);
+
+                t.assertTrue(inputs.hasOwnProperty('dim_w'), 'Has dim_w');
+                t.assertTrue(inputs.hasOwnProperty('dim_h'), 'Has dim_h');
+                t.assertTrue(inputs.hasOwnProperty('dim_d'), 'Has dim_d');
+                t.assertTrue(inputs.hasOwnProperty('ply_carcass'), 'Has ply_carcass');
+                t.assertTrue(inputs.hasOwnProperty('drawer_width'), 'Has drawer_width');
+                t.assertTrue(inputs.hasOwnProperty('drawer_height'), 'Has drawer_height');
+                t.assertTrue(inputs.hasOwnProperty('drawer_depth'), 'Has drawer_depth');
+            });
+
+            // Test 5: calculateDimensions - drawer height
+            runner.test('calculateDimensions - drawer height', (t) => {
+                const config = {
+                    dim_w: 25, dim_h: 37, dim_d: 21,
+                    num_drawers: 3,
+                    dim_railing_w: 1.0,
+                    drawer_clearance: 0.0625,
+                    backing_style: 'stretcher'
+                };
+                const calc = calculateDimensions(config);
+                t.assertTrue(calc.drawer_height > 0, 'Drawer height is positive');
+            });
+
+            // Test 6: calculateDimensions - drawer width
+            runner.test('calculateDimensions - drawer width', (t) => {
+                const config = {
+                    dim_w: 25, dim_h: 37, dim_d: 21,
+                    num_drawers: 3,
+                    dim_railing_w: 1.0,
+                    drawer_clearance: 0.0625,
+                    backing_style: 'stretcher'
+                };
+                const calc = calculateDimensions(config);
+                // drawer_width = 25 - 2 * (0.75 + 1.0) = 21.5
+                t.assertEqual(calc.drawer_width, 21.5, 'Drawer width calculation');
+            });
+
+            // Test 7: calculateDimensions - drawer depth with backing
+            runner.test('calculateDimensions - drawer depth with backing', (t) => {
+                const config = {
+                    dim_w: 25, dim_h: 37, dim_d: 21,
+                    num_drawers: 3,
+                    dim_railing_w: 1.0,
+                    drawer_clearance: 0.0625,
+                    backing_style: 'stretcher'
+                };
+                const calc = calculateDimensions(config);
+                t.assertTrue(calc.drawer_depth < 21, 'Drawer depth less than total depth');
+                t.assertTrue(calc.drawer_depth > 0, 'Drawer depth positive');
+            });
+
+            // Test 8: BOM generation - correct number of items
+            runner.test('BOM generation - item count', (t) => {
+                const config = getConfig();
+                const calc = calculateDimensions(config);
+                const bom = generateBOM(config, calc);
+
+                t.assertTrue(bom.length > 0, 'BOM has items');
+                t.assertTrue(bom.every(item => item.id > 0), 'All items have IDs');
+                t.assertTrue(bom.every(item => item.item), 'All items have names');
+                t.assertTrue(bom.every(item => item.width > 0), 'All items have width');
+                t.assertTrue(bom.every(item => item.height > 0), 'All items have height');
+            });
+
+            // Test 9: BOM generation - equations present
+            runner.test('BOM generation - equations present', (t) => {
+                const config = getConfig();
+                const calc = calculateDimensions(config);
+                const bom = generateBOM(config, calc);
+
+                t.assertTrue(bom.every(item => item.equation), 'All items have equations');
+                t.assertTrue(bom.every(item => item.equation.includes('W:')), 'Equations have width');
+                t.assertTrue(bom.every(item => item.equation.includes('H:')), 'Equations have height');
+            });
+
+            // Test 10: BOM generation - backing style conditions
+            runner.test('BOM generation - backing style full', (t) => {
+                const config = { ...getConfig(), backing_style: 'full' };
+                const calc = calculateDimensions(config);
+                const bom = generateBOM(config, calc);
+
+                const hasFullBack = bom.some(item => item.item === 'Carcass back');
+                const hasStretchers = bom.some(item => item.item === 'Back stretchers (top & bottom)');
+                t.assertTrue(hasFullBack, 'Has full back panel');
+                t.assertTrue(!hasStretchers, 'No back stretchers with full back');
+            });
+
+            // Test 11: BOM generation - backing style stretcher
+            runner.test('BOM generation - backing style stretcher', (t) => {
+                const config = { ...getConfig(), backing_style: 'stretcher' };
+                const calc = calculateDimensions(config);
+                const bom = generateBOM(config, calc);
+
+                const hasFullBack = bom.some(item => item.item === 'Carcass back');
+                const hasStretchers = bom.some(item => item.item === 'Back stretchers (top & bottom)');
+                t.assertTrue(!hasFullBack, 'No full back panel');
+                t.assertTrue(hasStretchers, 'Has back stretchers');
+            });
+
+            // Test 12: BOM generation - drawer quantities
+            runner.test('BOM generation - drawer quantities', (t) => {
+                const config = { ...getConfig(), num_drawers: 3 };
+                const calc = calculateDimensions(config);
+                const bom = generateBOM(config, calc);
+
+                const drawerSides = bom.find(item => item.item === 'Drawer sides');
+                const drawerBottom = bom.find(item => item.item === 'Drawer bottom');
+
+                t.assertEqual(drawerSides.quantity, 6, 'Drawer sides: 2 per drawer * 3 drawers');
+                t.assertEqual(drawerBottom.quantity, 3, 'Drawer bottoms: 1 per drawer');
+            });
+
+            // Test 13: Equations structure - all panels have required fields
+            runner.test('Equations structure - panel definitions', (t) => {
+                for (const [key, panel] of Object.entries(equations.panels)) {
+                    t.assertTrue(panel.dimensions, `${key} has dimensions`);
+                    t.assertTrue(panel.dimensions.width, `${key} has width`);
+                    t.assertTrue(panel.dimensions.height, `${key} has height`);
+                    t.assertTrue(panel.dimensions.thickness, `${key} has thickness`);
+
+                    if (panel.bom) {
+                        t.assertTrue(panel.bom.item, `${key} BOM has item name`);
+                        t.assertTrue(panel.bom.quantity !== undefined, `${key} BOM has quantity`);
+                    }
+                }
+            });
+
+            // Test 14: Interior dimensions calculation
+            runner.test('Interior dimensions - correct calculations', (t) => {
+                const config = {
+                    dim_w: 25, dim_h: 37, dim_d: 21,
+                    num_drawers: 3,
+                    dim_railing_w: 1.0,
+                    drawer_clearance: 0.0625,
+                    backing_style: 'none'
+                };
+                const calc = calculateDimensions(config);
+
+                t.assertTrue(calc.interior_width < config.dim_w, 'Interior width less than total');
+                t.assertTrue(calc.interior_height < config.dim_h, 'Interior height less than total');
+                t.assertTrue(calc.interior_height > config.dim_h - 2, 'Interior height only subtracts top');
+            });
+
+            // Test 15: Drawer clearance not in drawer width
+            runner.test('Drawer clearance - not in drawer_width', (t) => {
+                const config = {
+                    dim_w: 25, dim_h: 37, dim_d: 21,
+                    num_drawers: 3,
+                    dim_railing_w: 1.0,
+                    drawer_clearance: 0.125,
+                    backing_style: 'stretcher'
+                };
+                const calc = calculateDimensions(config);
+                const inputs = buildUserInputs(config, calc);
+
+                const expected = config.dim_w - 2 * (inputs.ply_carcass + config.dim_railing_w);
+                t.assertEqual(calc.drawer_width, expected, 'Drawer width does not include clearance');
+            });
+
+            runner.displayResults();
+        }
     </script>
 </body>
 </html>
