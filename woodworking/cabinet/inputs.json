@@ -4,44 +4,44 @@
       "title": "Cabinet Dimensions",
       "inputs": [
         {
-          "id": "dim_w",
+          "variable_id": "dim_w",
           "step": 0.125,
           "layout": "row3"
         },
         {
-          "id": "dim_h",
+          "variable_id": "dim_h",
           "step": 0.125,
           "layout": "row3"
         },
         {
-          "id": "dim_d",
+          "variable_id": "dim_d",
           "step": 0.125,
           "layout": "row3"
         },
         {
-          "id": "dim_drawer_stretcher",
+          "variable_id": "dim_drawer_stretcher",
           "step": 0.125,
           "layout": "row2"
         },
         {
-          "id": "dim_back_stretcher",
+          "variable_id": "dim_back_stretcher",
           "step": 0.125,
           "layout": "row2",
           "condition": "backing_style === 'stretcher'"
         },
         {
-          "id": "dim_railing_w",
+          "variable_id": "dim_railing_w",
           "step": 0.125
         },
         {
-          "id": "num_drawers",
+          "variable_id": "num_drawers",
           "min": 1,
           "max": 10,
           "step": 1,
           "layout": "row2"
         },
         {
-          "id": "drawer_clearance",
+          "variable_id": "drawer_clearance",
           "step": 0.0625,
           "layout": "row2"
         }
@@ -51,7 +51,7 @@
       "title": "Cabinet Style",
       "inputs": [
         {
-          "id": "backing_style",
+          "variable_id": "backing_style",
           "type": "select",
           "options": [
             { "value": "none", "label": "None" },
@@ -65,7 +65,7 @@
     {
       "title": "Plywood Materials",
       "type": "plywood_table",
-      "defaultData": {
+      "initial_state": {
         "full": [
           {"thickness": 0.75, "components": ["carcass_sides", "carcass_top", "drawer_stretcher"]},
           {"thickness": 0.5, "components": ["drawer_sides", "carcass_back"]},
@@ -96,15 +96,15 @@
       "title": "Cut Settings",
       "inputs": [
         {
-          "id": "sheet_w",
+          "variable_id": "sheet_w",
           "step": 1
         },
         {
-          "id": "sheet_h",
+          "variable_id": "sheet_h",
           "step": 1
         },
         {
-          "id": "kerf",
+          "variable_id": "kerf",
           "step": 0.0625
         }
       ]

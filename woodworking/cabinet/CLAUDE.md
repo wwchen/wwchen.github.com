@@ -41,7 +41,7 @@ Updates: BOM → Cut Optimizer → 3D Viz → Calculated Dimensions → Debug
 
 **Utilities:**
 - `serve.sh` - HTTP server startup
-- `validate_config.sh` - Validates JSON files
+- `validate_config.py` - Validates JSON files and checks circular dependencies
 - `test_3d_positions.py` - Python 3D visualization testing
 - `Makefile` - Test automation
 
@@ -206,8 +206,13 @@ Conditional visibility:
 
 **Validate configs:**
 ```bash
-./validate_config.sh
+make test
 ```
+
+**Always run after editing JSON files** to check for:
+- JSON syntax errors
+- Missing required fields
+- Circular dependencies in variables
 
 ## Recent Refactoring History
 
@@ -348,12 +353,14 @@ getPlywoodForComponent('drawer_stretcher')
 
 ### Validate Configs
 ```bash
-./validate_config.sh
+make test
 ```
 
-### Python 3D Tests
+Checks for JSON syntax errors, missing required fields, and circular dependencies.
+
+### Python 3D Visualization Tests
 ```bash
-make test
+make test-viz
 ```
 
 ### Manual Testing Checklist
@@ -381,7 +388,7 @@ When resuming work on this project:
 3. **Call calculate()** after any data changes
 4. **Remember the orientation system** when debugging 3D issues
 5. **Check browser console** - defensive checks log helpful errors
-6. **Run validate_config.sh** after editing JSON files
+6. **Run `make test`** after editing JSON files (checks syntax + circular deps)
 7. **Test plywood drag/drop** - it's the most complex interaction
 
 ## Questions to Ask User

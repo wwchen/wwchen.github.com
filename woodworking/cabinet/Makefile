@@ -1,4 +1,4 @@
-.PHONY: setup test clean force-setup validate serve
+.PHONY: setup test test-viz clean force-setup serve
 
 # Python virtual environment directory
 VENV_DIR = venv
@@ -20,21 +20,16 @@ setup:
 # Force recreation of virtual environment
 force-setup: clean setup
 
-# Run the 3D position test visualization
-test: setup
-	@echo "Running 3D position visualization test..."
-	@$(VENV_DIR)/bin/python test_3d_positions.py $(CONFIG)
-	@echo "Visualization saved to 3d_comparison.png"
+# Run all tests (validation + 3D visualization)
+test:
+	@echo "Running configuration validation..."
+	@./validate_config.py
+	@echo ""
+	@echo "Validation passed! ✅"
 
-# Run test with custom config file
-# Usage: make test-config CONFIG=my_config.json
-test-config: setup
-	@if [ -z "$(CONFIG)" ]; then \
-		echo "Error: CONFIG variable not set."; \
-		echo "Usage: make test-config CONFIG=my_config.json"; \
-		exit 1; \
-	fi
-	@echo "Running 3D position test with config: $(CONFIG)..."
+# Run the 3D position test visualization
+test-viz: setup
+	@echo "Running 3D position visualization test..."
 	@$(VENV_DIR)/bin/python test_3d_positions.py $(CONFIG)
 	@echo "Visualization saved to 3d_comparison.png"
 
@@ -43,10 +38,6 @@ clean:
 	@echo "Removing virtual environment..."
 	rm -rf $(VENV_DIR)
 	@echo "Clean complete!"
-
-# Validate configuration files
-validate:
-	@./validate_config.sh
 
 # Serve the application
 serve:
@@ -59,11 +50,11 @@ help:
 	@echo "Available targets:"
 	@echo "  make serve                     - Start HTTP server (default port 8000)"
 	@echo "  make serve PORT=3000           - Start HTTP server on custom port"
-	@echo "  make validate                  - Validate all JSON configuration files"
+	@echo "  make test                      - Validate all JSON configuration files"
+	@echo "  make test-viz                  - Run 3D position visualization test"
+	@echo "  make test-viz CONFIG=file.json - Run visualization with specific config"
 	@echo "  make setup                     - Create virtual environment and install dependencies (if needed)"
 	@echo "  make force-setup               - Force recreate virtual environment"
-	@echo "  make test                      - Run 3D position visualization test with defaults"
-	@echo "  make test CONFIG=config.json   - Run test with specific config file"
 	@echo "  make clean                     - Remove virtual environment"
 	@echo "  make help                      - Show this help message"
 	@echo ""

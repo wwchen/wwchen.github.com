@@ -168,11 +168,11 @@ The UI will automatically:
 ### Python 3D Visualization Tests
 
 ```bash
-# Run test with defaults (auto-setup)
-make test
+# Run visualization test with defaults (auto-setup)
+make test-viz
 
 # Run with specific test scenario
-make test CONFIG=test_configs.json
+make test-viz CONFIG=test_configs.json
 
 # Clean up
 make clean
@@ -196,10 +196,15 @@ open 3d_comparison.png
 ### Configuration Validation
 
 ```bash
-./validate_config.sh
+make test
 ```
 
-Validates all JSON files and checks for required structures.
+Validates all JSON files and checks for:
+- JSON syntax errors
+- Required structures and fields
+- Circular dependencies in variables
+
+**Run this after editing any JSON configuration files.**
 
 ## File Structure
 
@@ -214,7 +219,7 @@ Validates all JSON files and checks for required structures.
 
 ### Build & Utilities
 - `serve.sh` - HTTP server startup script
-- `validate_config.sh` - JSON configuration validator
+- `validate_config.py` - JSON configuration validator with circular dependency check
 - `Makefile` - Test automation
 
 ## Troubleshooting

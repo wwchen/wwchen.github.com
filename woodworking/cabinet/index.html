@@ -701,13 +701,6 @@
             return variable ? variable.value : undefined;
         }
 
-        function setVariableValue(id, value) {
-            const variable = getVariable(id);
-            if (variable) {
-                variable.value = value;
-            }
-        }
-
         function getVariablesByType(type) {
             if (!variablesConfig || !variablesConfig.variables) {
                 console.error('Variables not loaded yet');
@@ -716,59 +709,235 @@
             return variablesConfig.variables.filter(v => v.type === type);
         }
 
-        // Sync plywood variables from plywoodData table
-        function syncPlywoodVariables() {
-            // Get all plywood-type variables
-            const plywoodVars = getVariablesByType('plywood');
+        // ============================================
+        // MODEL - Static utility functions (Pure/Immutable)
+        // ============================================
 
-            // For each plywood variable, find its thickness from plywoodData
-            plywoodVars.forEach(variable => {
-                const component = variable.component;
-                const row = plywoodData.find(r => r.components.includes(component));
+        /**
+         * STATIC: Recursive value lookup with tree search
+         * No caching - re-evaluates each time for correctness
+         */
+        function getValue(variableName, variablesList, context, visited = new Set()) {
+            // Circular dependency check
+            if (visited.has(variableName)) {
+                const cycle = Array.from(visited).concat(variableName).join(' → ');
+                throw new Error(`Circular dependency: ${cycle}`);
+            }
 
-                if (row) {
-                    setVariableValue(variable.id, row.thickness);
-                } else {
-                    // Not assigned - use fallback value 0.75 (matches getPlywoodForComponent fallback)
-                    setVariableValue(variable.id, 0.75);
+            // Already in base context (input/plywood)
+            if (variableName in context) {
+                return context[variableName];
+            }
+
+            // Find variable definition
+            const variable = variablesList.find(v => v.id === variableName);
+            if (!variable) {
+                throw new Error(`Variable not found: ${variableName}`);
+            }
+
+            // Mark as visiting
+            visited.add(variableName);
+
+            // Recursive evaluation for calculated variables
+            if (variable.type === 'calculated') {
+                const value = evaluateExprRecursive(variable.value, variablesList, context, visited);
+                visited.delete(variableName);
+                return value;
+            }
+
+            visited.delete(variableName);
+            return context[variableName];
+        }
+
+        /**
+         * STATIC: Evaluate expression with recursive dependency resolution
+         */
+        function evaluateExprRecursive(expr, variablesList, context, visited) {
+            let evalStr = String(expr);
+
+            // Get all known variable IDs
+            const allVarIds = variablesList.map(v => v.id);
+
+            // Extract variable names from expression
+            const varPattern = /\b[a-zA-Z_][a-zA-Z0-9_]*\b/g;
+            const varNames = expr.match(varPattern) || [];
+
+            // Resolve each dependency recursively
+            for (const varName of varNames) {
+                // Skip JavaScript keywords
+                if (['true', 'false', 'null', 'undefined'].includes(varName)) continue;
+
+                // Check if variable exists in context (for loop vars like 'i') or in variablesList
+                if (varName in context) {
+                    // Direct context value (e.g., loop variable 'i')
+                    const value = context[varName];
+                    const replacement = typeof value === 'number' ? value : `"${value}"`;
+                    evalStr = evalStr.replace(new RegExp(`\\b${varName}\\b`, 'g'), replacement);
+                } else if (allVarIds.includes(varName)) {
+                    // Known variable - recursively resolve
+                    const value = getValue(varName, variablesList, context, visited);
+                    const replacement = typeof value === 'number' ? value : `"${value}"`;
+                    evalStr = evalStr.replace(new RegExp(`\\b${varName}\\b`, 'g'), replacement);
                 }
+                // Otherwise skip (string literals like 'full', 'stretcher', etc.)
+            }
+
+            return eval(evalStr);
+        }
+
+        /**
+         * STATIC: Test for circular dependencies (DFS)
+         * Run at initialization
+         */
+        function testCircularDependencies(variablesConfig) {
+            const calcVars = variablesConfig.variables.filter(v => v.type === 'calculated');
+
+            console.log('🔍 Testing for circular dependencies...');
+
+            for (const variable of calcVars) {
+                try {
+                    buildDependencyGraph(variable.id, variablesConfig.variables, new Set(), []);
+                    console.log(`  ✓ ${variable.id}: OK`);
+                } catch (e) {
+                    console.error(`  ✗ ${variable.id}: ${e.message}`);
+                    throw e;
+                }
+            }
+
+            console.log('✓ No circular dependencies detected');
+        }
+
+        /**
+         * STATIC: Build dependency graph using DFS
+         */
+        function buildDependencyGraph(variableName, variablesList, visited, path) {
+            if (visited.has(variableName)) {
+                const cycle = path.concat(variableName).join(' → ');
+                throw new Error(`Circular dependency: ${cycle}`);
+            }
+
+            const variable = variablesList.find(v => v.id === variableName);
+            if (!variable || variable.type !== 'calculated') return visited;
+
+            visited.add(variableName);
+            const newPath = path.concat(variableName);
+
+            // Extract dependencies
+            const varPattern = /\b[a-zA-Z_][a-zA-Z0-9_]*\b/g;
+            const deps = variable.value.match(varPattern) || [];
+
+            for (const dep of deps) {
+                if (['true', 'false', 'null', 'undefined'].includes(dep)) continue;
+                buildDependencyGraph(dep, variablesList, new Set(visited), newPath);
+            }
+
+            return visited;
+        }
+
+        /**
+         * STATIC: Get plywood thickness for component
+         */
+        function getPlywoodThickness(component, plywoodData) {
+            const row = plywoodData.find(r => r.components.includes(component));
+            return row ? row.thickness : 0.75; // Default fallback
+        }
+
+        /**
+         * STATIC: Update plywood assignment (immutable)
+         */
+        function updatePlywoodAssignment(plywoodData, fromRow, toRow, component) {
+            return plywoodData.map((row, idx) => {
+                if (fromRow !== undefined && idx === parseInt(fromRow)) {
+                    return {
+                        ...row,
+                        components: row.components.filter(c => c !== component)
+                    };
+                }
+                if (idx === toRow) {
+                    if (!row.components.includes(component)) {
+                        return {
+                            ...row,
+                            components: [...row.components, component]
+                        };
+                    }
+                }
+                return row;
             });
         }
 
-        // Build evaluation context with all current variable values
-        function buildEvaluationContext() {
+        /**
+         * STATIC: Remove component from plywood (immutable)
+         */
+        function removeComponentFromPlywood(plywoodData, component) {
+            return plywoodData.map(row => ({
+                ...row,
+                components: row.components.filter(c => c !== component)
+            }));
+        }
+
+        // ============================================
+        // VIEW - DOM interaction functions
+        // ============================================
+
+        /**
+         * VIEW: Read value from DOM element
+         */
+        function getDOMValue(variable_id) {
+            const element = document.getElementById(variable_id);
+            if (!element) return undefined;
+
+            if (element.type === 'select-one') {
+                return element.value;
+            } else if (element.type === 'number') {
+                return parseFloat(element.value);
+            } else if (element.type === 'checkbox') {
+                return element.checked;
+            }
+
+            return element.value;
+        }
+
+        /**
+         * VIEW: Write value to DOM element
+         */
+        function setDOMValue(variable_id, value) {
+            const element = document.getElementById(variable_id);
+            if (!element) return;
+
+            if (element.type === 'checkbox') {
+                element.checked = value;
+            } else {
+                element.value = value;
+            }
+        }
+
+        // VIEW: Section rendering functions (defined in page order below):
+        //   1. render3DCabinet() - 3D visualization
+        //   2. renderDimensionsSection() - Calculated dimensions
+        //   3. renderBOMSection() - Bill of materials table
+        //   4. renderCutOptimizerSection() - Cut layout optimizer
+        //   5. renderDebugSection() - Debug output
+
+        // ============================================
+        // CONTROLLER - Orchestration functions
+        // ============================================
+
+        /**
+         * CONTROLLER: Build evaluation context from inputs
+         * Merges DOM inputs with plywood assignments
+         */
+        function mergeInputsWithVariables(variablesConfig, plywoodData) {
             const context = {};
 
-            // Add all input variables
-            getVariablesByType('input').forEach(v => {
-                context[v.id] = v.value;
-            });
-
-            // Add all plywood variables (already synced from plywood table)
-            getVariablesByType('plywood').forEach(v => {
-                context[v.id] = v.value;
-            });
-
-            // Evaluate calculated variables (they may depend on each other)
-            const calculated = getVariablesByType('calculated');
-            calculated.forEach(v => {
-                // Evaluate the expression using current context
-                const value = evaluateExpr(v.value, context);
-                context[v.id] = value;
-            });
-
-            return context;
-        }
-
-        // Evaluate all calculated variables and update their values
-        function evaluateAllVariables() {
-            const context = buildEvaluationContext();
-
-            // Update calculated variable values
-            const calculated = getVariablesByType('calculated');
-            calculated.forEach(v => {
-                const value = evaluateExpr(v.value, context);
-                setVariableValue(v.id, value);
+            // Only add input and plywood variables to base context
+            // Calculated variables are evaluated on-demand via recursive getValue()
+            variablesConfig.variables.forEach(v => {
+                if (v.type === 'input') {
+                    context[v.id] = getDOMValue(v.id);  // VIEW layer
+                } else if (v.type === 'plywood') {
+                    context[v.id] = getPlywoodThickness(v.component, plywoodData);  // MODEL layer
+                }
+                // Skip calculated - evaluated on-demand
             });
 
             return context;
@@ -848,13 +1017,14 @@
 
         // Generate HTML for a single input
         function generateInputHTML(input) {
-            const groupId = input.condition ? `${input.id}_group` : '';
+            const variable_id = input.variable_id;
+            const groupId = input.condition ? `${variable_id}_group` : '';
             const groupStyle = input.condition ? ' style="display: none;"' : '';
 
             // Get label and value from variables.json
-            const variable = getVariable(input.id);
+            const variable = getVariable(variable_id);
             if (!variable && !input.type) {
-                console.error(`Variable not found for input ${input.id}`);
+                console.error(`Variable not found for input ${variable_id}`);
                 return '';
             }
 
@@ -866,7 +1036,7 @@
             html += `    <label>${label}</label>\n`;
 
             if (inputType === 'select') {
-                html += `    <select id="${input.id}">\n`;
+                html += `    <select id="${variable_id}">\n`;
                 for (const option of input.options) {
                     const selected = option.value === value ? ' selected' : '';
                     html += `        <option value="${option.value}"${selected}>${option.label}</option>\n`;
@@ -875,7 +1045,7 @@
             } else {
                 const attrs = [];
                 attrs.push(`type="number"`);
-                attrs.push(`id="${input.id}"`);
+                attrs.push(`id="${variable_id}"`);
                 attrs.push(`value="${value}"`);
                 if (input.step) attrs.push(`step="${input.step}"`);
                 if (input.min !== undefined) attrs.push(`min="${input.min}"`);
@@ -907,7 +1077,7 @@
                 const match = input.condition.match(/^(\w+)\s*===\s*['"]([^'"]+)['"]$/);
                 if (match) {
                     const [, variable, expectedValue] = match;
-                    const groupId = `${input.id}_group`;
+                    const groupId = `${input.variable_id}_group`;
                     const group = document.getElementById(groupId);
 
                     if (group) {
@@ -927,8 +1097,23 @@
         }
 
                 // Render debug output showing all variables
-        function renderDebugOutput(user_inputs, config) {
-            const sortedKeys = Object.keys(user_inputs).sort();
+        /**
+         * VIEW: Render debug section (Updates DOM)
+         */
+        function renderDebugSection(context) {
+            if (!equations || !equations.calculated) {
+                console.error('equations not loaded yet');
+                return;
+            }
+
+            const debugDiv = document.getElementById('debug-output');
+            if (!debugDiv) {
+                console.error('debug-output div not found');
+                return;
+            }
+
+            // Build debug HTML
+            const sortedKeys = Object.keys(context).sort();
 
             let html = '<div class="debug-section">';
 
@@ -943,13 +1128,13 @@
             html += '</div>';
             html += '</div>';
 
-            html += '<h4 style="margin-top: 20px; margin-bottom: 10px;">All Variables</h4>';
+            html += '<h4 style="margin-top: 20px; margin-bottom: 10px;">All Variables (Base Context)</h4>';
             html += '<div class="debug-group">';
 
             sortedKeys.forEach(key => {
-                const value = user_inputs[key];
-                // Skip objects and plywoodData
-                if (typeof value === 'object' || key === 'plywoodData') return;
+                const value = context[key];
+                // Skip objects
+                if (typeof value === 'object') return;
 
                 const displayValue = typeof value === 'number' ? value.toFixed(3) :
                                    typeof value === 'boolean' ? value.toString() :
@@ -980,11 +1165,12 @@
 
             html += '</div>';
 
-            return html;
+            debugDiv.innerHTML = html;
         }
-
-        // Render dimensions display using equations.display configuration
-        function renderDimensionsDisplay(user_inputs) {
+        /**
+         * VIEW: Render dimensions display (Uses context + recursive getValue)
+         */
+        function renderDimensionsDisplay(context) {
             if (!equations || !equations.calculated) {
                 console.error('equations.calculated not loaded yet');
                 return '';
@@ -993,18 +1179,13 @@
             let html = '';
 
             for (const calc of equations.calculated) {
-                // Get dimension values from the group object
-                const group = user_inputs[calc.key];
-                if (!group) {
-                    console.error(`Group not found: ${calc.key}`);
-                    continue;
-                }
+                // Evaluate dimensions using recursive getValue
+                const width = evaluateExprRecursive(calc.width, variablesConfig.variables, context, new Set());
+                const height = evaluateExprRecursive(calc.height, variablesConfig.variables, context, new Set());
+                const depth = evaluateExprRecursive(calc.depth, variablesConfig.variables, context, new Set());
 
-                // Format display value: [width, height, depth].join(' × ')
-                const values = [group.width, group.height, group.depth];
-                const displayValue = values.map(v =>
-                    typeof v === 'number' ? v.toFixed(2) : v
-                ).join('" × ') + '"';
+                // Format display value
+                const displayValue = `${width.toFixed(2)}" × ${height.toFixed(2)}" × ${depth.toFixed(2)}"`;
 
                 html += `<div class="calc-item">`;
                 html += `<strong>${calc.label}</strong>`;
@@ -1017,7 +1198,7 @@
                 const keys = ['width', 'height', 'depth'];
                 keys.forEach((key, i) => {
                     const expr = calc[key];
-                    const eqStr = buildEquationString(expr, user_inputs);
+                    const eqStr = buildEquationString(expr, context);
                     html += `<strong>${labels[i]}:</strong> ${eqStr}<br>`;
                 });
 
@@ -1028,51 +1209,197 @@
             return html;
         }
 
-        // Evaluate expression with user_inputs context
-        function evaluateExpr(expr, user_inputs) {
-            let evalStr = String(expr);
-            for (const [varName, value] of Object.entries(user_inputs)) {
-                evalStr = evalStr.replace(new RegExp(`\\b${varName}\\b`, 'g'),
-                    typeof value === 'number' ? value : `"${value}"`);
+        /**
+         * VIEW: Render dimensions section (Updates DOM)
+         */
+        function renderDimensionsSection(context) {
+            const calcDiv = document.getElementById('calculated-dimensions');
+            if (!calcDiv) {
+                console.error('calculated-dimensions div not found');
+                return;
             }
-            try {
-                return eval(evalStr);
-            } catch (e) {
-                console.error(`Failed to evaluate: ${expr}`, e);
-                return 0;
-            }
+
+            calcDiv.innerHTML = renderDimensionsDisplay(context);
         }
 
-        // Evaluate calculated values from array structure
-        function evaluateCalculatedValues(calculated, user_inputs) {
-            for (const group of calculated) {
-                const { key, width, height, depth } = group;
-
-                // Create nested object for the group
-                user_inputs[key] = {
-                    width: evaluateExpr(width, user_inputs),
-                    height: evaluateExpr(height, user_inputs),
-                    depth: evaluateExpr(depth, user_inputs)
-                };
-
-                // Also add flat aliases for backward compatibility (e.g., drawer_width)
-                user_inputs[`${key}_width`] = user_inputs[key].width;
-                user_inputs[`${key}_height`] = user_inputs[key].height;
-                user_inputs[`${key}_depth`] = user_inputs[key].depth;
+        /**
+         * VIEW: Render BOM section (Updates DOM)
+         */
+        function renderBOMSection(bom, context) {
+            const bomDiv = document.getElementById('bom-table');
+            if (!bomDiv) {
+                console.error('bom-table div not found');
+                return;
             }
+
+            let bomHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Item</th>
+                            <th>Width</th>
+                            <th>Height</th>
+                            <th>Thickness</th>
+                            <th>Qty</th>
+                            <th>Equation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            bom.forEach(item => {
+                bomHTML += `
+                    <tr>
+                        <td>${item.id}</td>
+                        <td>${item.item}</td>
+                        <td>${item.width.toFixed(2)}"</td>
+                        <td>${item.height.toFixed(2)}"</td>
+                        <td>${item.thickness.toFixed(2)}"</td>
+                        <td>${item.quantity}</td>
+                        <td style="font-size: 11px; color: #666;">${item.equation || ''}</td>
+                    </tr>
+                `;
+            });
+
+            bomHTML += '</tbody></table>';
+
+            // Calculate thickness area summary
+            const materialSummary = {};
+            bom.forEach(item => {
+                const key = `${item.thickness.toFixed(2)}"`;
+                const area = item.width * item.height * item.quantity;
+
+                if (!materialSummary[key]) {
+                    materialSummary[key] = {
+                        thickness: item.thickness,
+                        area: 0
+                    };
+                }
+                materialSummary[key].area += area;
+            });
+
+            // Add thickness summary table
+            bomHTML += `
+                <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 2px solid #3498db;">
+                    <h3 style="margin-bottom: 10px; color: #2c3e50; font-size: 16px;">📊 Plywood Area Summary</h3>
+                    <table style="background: white;">
+                        <thead>
+                            <tr style="background: #e3f2fd;">
+                                <th>Thickness</th>
+                                <th>Total Area</th>
+                                <th>Sheets Needed (${context.sheet_w/12}'×${context.sheet_h/12}')</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            const sheetArea = context.sheet_w * context.sheet_h;
+            Object.keys(materialSummary).sort().forEach(key => {
+                const summary = materialSummary[key];
+                const sheetsNeeded = Math.ceil(summary.area / sheetArea);
+                const efficiency = ((summary.area / (sheetsNeeded * sheetArea)) * 100).toFixed(1);
+                bomHTML += `
+                    <tr style="background: white;">
+                        <td><strong>${summary.thickness.toFixed(2)}"</strong></td>
+                        <td>${summary.area.toFixed(2)} sq in <span style="color: #666;">(${(summary.area / 144).toFixed(2)} sq ft)</span></td>
+                        <td><strong style="color: #3498db;">${sheetsNeeded}</strong> <span style="color: #666; font-size: 12px;">(${efficiency}% utilization)</span></td>
+                    </tr>
+                `;
+            });
+
+            bomHTML += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            bomDiv.innerHTML = bomHTML;
         }
 
-        // Generic equation string builder - evaluates expressions with variable substitution
-        function buildEquationString(expr, user_inputs) {
+        /**
+         * VIEW: Render cut optimizer section (Updates DOM)
+         */
+        function renderCutOptimizerSection(optimizedSheets, context) {
+            const cutDiv = document.getElementById('cut-optimizer');
+            if (!cutDiv) {
+                console.error('cut-optimizer div not found');
+                return;
+            }
+
+            let cutHTML = '<div class="cut-sheet">';
+
+            Object.keys(optimizedSheets).forEach(key => {
+                const sheet = optimizedSheets[key];
+                sheet.layouts.forEach((layout, idx) => {
+                    const efficiency = ((1 - layout.waste / (context.sheet_w * context.sheet_h)) * 100).toFixed(1);
+                    cutHTML += `
+                        <div class="sheet">
+                            <h3>${sheet.thickness.toFixed(2)}" Plywood - Sheet ${idx + 1}</h3>
+                            <p><strong>Efficiency:</strong> ${efficiency}%</p>
+                            <p><strong>Waste:</strong> ${layout.waste.toFixed(1)} sq in</p>
+                            <div class="sheet-visual">
+                    `;
+
+                    const scale = 200 / Math.max(context.sheet_w, context.sheet_h);
+                    layout.pieces.forEach(piece => {
+                        cutHTML += `
+                            <div class="cut-piece" style="
+                                left: ${piece.x * scale}px;
+                                top: ${piece.y * scale}px;
+                                width: ${piece.width * scale}px;
+                                height: ${piece.height * scale}px;
+                            ">${piece.name}</div>
+                        `;
+                    });
+
+                    cutHTML += `
+                            </div>
+                            <p><strong>Pieces:</strong> ${layout.pieces.length}</p>
+                        </div>
+                    `;
+                });
+            });
+
+            cutHTML += '</div>';
+            cutDiv.innerHTML = cutHTML;
+        }
+
+        /**
+         * Generic equation string builder - evaluates expressions with variable substitution
+         * Uses recursive evaluation for all variables
+         */
+        function buildEquationString(expr, context) {
             if (!expr) return '';
 
-            // Evaluate to get result
-            const result = evaluateExpr(expr, user_inputs);
+            // Evaluate to get result using recursive evaluation
+            const result = evaluateExprRecursive(expr, variablesConfig.variables, context, new Set());
             const formattedResult = typeof result === 'number' ? result.toFixed(2) : result;
 
-            // Build display string with formatted values
-            let displayExpr = expr;
-            for (const [varName, value] of Object.entries(user_inputs)) {
+            // Build display string with formatted values from context
+            let displayExpr = String(expr);
+
+            // Get all variable IDs
+            const allVarIds = variablesConfig.variables.map(v => v.id);
+
+            // Extract variable names from expression
+            const varPattern = /\b[a-zA-Z_][a-zA-Z0-9_]*\b/g;
+            const varNames = expr.match(varPattern) || [];
+
+            for (const varName of varNames) {
+                // Skip keywords
+                if (['true', 'false', 'null', 'undefined'].includes(varName)) continue;
+
+                // Get value (either from context or recursively)
+                let value;
+                if (varName in context) {
+                    value = context[varName];
+                } else if (allVarIds.includes(varName)) {
+                    value = getValue(varName, variablesConfig.variables, context);
+                } else {
+                    continue; // Skip string literals
+                }
+
                 if (typeof value === 'number') {
                     const formatted = varName.includes('clearance') ? value.toFixed(3) : value.toFixed(2);
                     displayExpr = displayExpr.replace(new RegExp(`\\b${varName}\\b`, 'g'), formatted);
@@ -1162,15 +1489,18 @@
         }
 
         // Data-driven 3D rendering helpers
-        function renderInstance(inst, width, height, depth, color, user_inputs, panelKey, orientation) {
-            // Check instance-level condition
-            if (inst.condition && !evaluateExpr(inst.condition, user_inputs)) {
+        /**
+         * VIEW: Render single instance (Uses context + recursive getValue)
+         */
+        function renderInstance(inst, width, height, depth, color, context, panelKey, orientation) {
+            // Check instance-level condition (use recursive evaluation)
+            if (inst.condition && !evaluateExprRecursive(inst.condition, variablesConfig.variables, context, new Set())) {
                 return;
             }
 
-            const x = evaluateExpr(inst.x, user_inputs);
-            const y = evaluateExpr(inst.y, user_inputs);
-            const z = evaluateExpr(inst.z, user_inputs);
+            const x = evaluateExprRecursive(inst.x, variablesConfig.variables, context, new Set());
+            const y = evaluateExprRecursive(inst.y, variablesConfig.variables, context, new Set());
+            const z = evaluateExprRecursive(inst.z, variablesConfig.variables, context, new Set());
 
             // Determine box dimensions based on orientation from equations
             // Default is 'vertical' if not specified
@@ -1182,7 +1512,7 @@
                 // Railings are special - 2" tall, extends in Z
                 boxWidth = width;
                 boxHeight = 2.0;
-                boxDepth = user_inputs.drawer_depth;
+                boxDepth = getValue('drawer_depth', variablesConfig.variables, context);
             } else if (orient === 'rotated') {
                 // Rotated 90°: BOM(width=depth, height=height, thick) → 3D(X=thick, Y=height, Z=width)
                 boxWidth = depth;    // thickness → X
@@ -1210,39 +1540,45 @@
             cabinetGroup.add(box);
         }
 
-        function renderPanel3D(panelKey, panel, user_inputs) {
+        /**
+         * VIEW: Render single panel type (Uses context + recursive getValue)
+         */
+        function renderPanel3D(panelKey, panel, context) {
             const viz = panel.viz3d;
             if (!viz) return;
 
-            // Check panel-level condition
-            if (viz.condition && !evaluateExpr(viz.condition, user_inputs)) {
+            // Check panel-level condition (use recursive evaluation)
+            if (viz.condition && !evaluateExprRecursive(viz.condition, variablesConfig.variables, context, new Set())) {
                 return;
             }
 
-            // Evaluate dimensions
-            const width = evaluateExpr(panel.dimensions.width, user_inputs);
-            const height = evaluateExpr(panel.dimensions.height, user_inputs);
-            const depth = evaluateExpr(panel.dimensions.thickness, user_inputs);
+            // Evaluate dimensions using recursive evaluation
+            const width = evaluateExprRecursive(panel.dimensions.width, variablesConfig.variables, context, new Set());
+            const height = evaluateExprRecursive(panel.dimensions.height, variablesConfig.variables, context, new Set());
+            const depth = evaluateExprRecursive(panel.dimensions.thickness, variablesConfig.variables, context, new Set());
 
             console.log(`[${panelKey}] w=${width.toFixed(1)}, h=${height.toFixed(1)}, d=${depth.toFixed(1)}, loop=${viz.loop}, instances=${viz.instances?.length}`);
 
             // Handle loop or static instances
             if (viz.loop) {
-                const loopCount = user_inputs[viz.loop];
+                const loopCount = getValue(viz.loop, variablesConfig.variables, context);
                 for (let i = 0; i < loopCount; i++) {
-                    const loopInputs = { ...user_inputs, i };
+                    const loopContext = { ...context, i };
                     viz.instances.forEach(inst => {
-                        renderInstance(inst, width, height, depth, viz.color, loopInputs, panelKey, viz.orientation);
+                        renderInstance(inst, width, height, depth, viz.color, loopContext, panelKey, viz.orientation);
                     });
                 }
             } else if (viz.instances) {
                 viz.instances.forEach(inst => {
-                    renderInstance(inst, width, height, depth, viz.color, user_inputs, panelKey, viz.orientation);
+                    renderInstance(inst, width, height, depth, viz.color, context, panelKey, viz.orientation);
                 });
             }
         }
 
-        function render3DCabinet(config) {
+        /**
+         * VIEW: Render 3D cabinet (Uses context + recursive getValue)
+         */
+        function render3DCabinet(context) {
             if (!equations || !equations.calculated || !equations.panels) {
                 console.error('equations not loaded yet, skipping 3D render');
                 return;
@@ -1253,16 +1589,9 @@
                 cabinetGroup.remove(cabinetGroup.children[0]);
             }
 
-            // Build user_inputs with all variables
-            const calc = calculateDimensions(config);
-            const user_inputs = buildUserInputs(config, calc);
-
-            // Evaluate calculated values and add to user_inputs
-            evaluateCalculatedValues(equations.calculated, user_inputs);
-
             // Render all panels using data-driven approach
             for (const [panelKey, panel] of Object.entries(equations.panels)) {
-                renderPanel3D(panelKey, panel, user_inputs);
+                renderPanel3D(panelKey, panel, context);
             }
 
             // Cabinet positioned with (0,0,0) at front-left-bottom corner
@@ -1317,23 +1646,23 @@
         function initPlywoodTable() {
             const backingStyle = document.getElementById('backing_style').value;
 
-            // Get default data from config
+            // Get initial state from config
             const plywoodSection = inputsConfig.sections.find(s => s.type === 'plywood_table');
-            if (!plywoodSection || !plywoodSection.defaultData) {
+            if (!plywoodSection || !plywoodSection.initial_state) {
                 console.error('Plywood table config not found');
                 plywoodData = [];
                 renderPlywoodTable();
                 return;
             }
 
-            // Load default data for the current backing style
-            const defaultData = plywoodSection.defaultData[backingStyle];
-            if (!defaultData) {
-                console.error(`No default plywood data for backing style: ${backingStyle}`);
+            // Load initial state for the current backing style
+            const initialState = plywoodSection.initial_state[backingStyle];
+            if (!initialState) {
+                console.error(`No initial plywood data for backing style: ${backingStyle}`);
                 plywoodData = [];
             } else {
                 // Deep copy to avoid mutating the config
-                plywoodData = JSON.parse(JSON.stringify(defaultData));
+                plywoodData = JSON.parse(JSON.stringify(initialState));
             }
 
             renderPlywoodTable();
@@ -1522,6 +1851,9 @@
             }
         }
 
+        /**
+         * CONTROLLER: Handle plywood drag/drop (Immutable update)
+         */
         function handleDrop(e) {
             e.preventDefault();
             e.currentTarget.style.background = '#fafafa';
@@ -1530,106 +1862,56 @@
             const component = draggedComponent.component;
             const fromRow = draggedComponent.fromRow;
 
-            // Remove from old row if it had one
-            if (fromRow !== undefined) {
-                const fromIndex = parseInt(fromRow);
-                plywoodData[fromIndex].components = plywoodData[fromIndex].components.filter(c => c !== component);
-            }
+            // Use MODEL layer (immutable update)
+            const newPlywoodData = updatePlywoodAssignment(
+                plywoodData,
+                fromRow,
+                toRow,
+                component
+            );
 
-            // Add to new row if not already there
-            if (!plywoodData[toRow].components.includes(component)) {
-                plywoodData[toRow].components.push(component);
-            }
-
+            // Replace global state
+            plywoodData = newPlywoodData;
             draggedComponent = null;
+
+            // Update VIEW
             renderPlywoodTable();
             calculate();
         }
 
+        /**
+         * CONTROLLER: Handle drop to available components (Immutable update)
+         */
         function handleDropToAvailable(e) {
             e.preventDefault();
             e.currentTarget.style.background = '#f0f0f0';
 
             const component = draggedComponent.component;
-            const fromRow = draggedComponent.fromRow;
 
-            // Remove from old row if it had one
-            if (fromRow !== undefined) {
-                const fromIndex = parseInt(fromRow);
-                plywoodData[fromIndex].components = plywoodData[fromIndex].components.filter(c => c !== component);
-            }
+            // Use MODEL layer (immutable update)
+            const newPlywoodData = removeComponentFromPlywood(
+                plywoodData,
+                component
+            );
 
-            // Component is now unassigned (not added to any row)
-
+            // Replace global state
+            plywoodData = newPlywoodData;
             draggedComponent = null;
+
+            // Update VIEW
             renderPlywoodTable();
             calculate();
         }
 
-        function getPlywoodForComponent(component) {
-            for (const row of plywoodData) {
-                if (row.components.includes(component)) {
-                    return { thickness: row.thickness };
-                }
-            }
-            // Fallback defaults
-            return { thickness: 0.75 };
-        }
-
-        function getInputValues() {
-            // Read values from form and update variables.json
-            const inputVars = getVariablesByType('input');
-
-            inputVars.forEach(variable => {
-                const element = document.getElementById(variable.id);
-                if (element) {
-                    let value;
-                    if (element.type === 'select-one') {
-                        value = element.value;
-                    } else if (variable.unit === 'count') {
-                        value = parseInt(element.value);
-                    } else {
-                        value = parseFloat(element.value);
-                    }
-                    setVariableValue(variable.id, value);
-                }
-            });
-
-            // Return values in old format for backwards compatibility
-            return {
-                dim_w: getVariableValue('dim_w'),
-                dim_h: getVariableValue('dim_h'),
-                dim_d: getVariableValue('dim_d'),
-                dim_railing_w: getVariableValue('dim_railing_w'),
-                num_drawers: getVariableValue('num_drawers'),
-                dim_drawer_stretcher: getVariableValue('dim_drawer_stretcher'),
-                dim_back_stretcher: getVariableValue('dim_back_stretcher'),
-                sheet_w: getVariableValue('sheet_w'),
-                sheet_h: getVariableValue('sheet_h'),
-                kerf: getVariableValue('kerf'),
-                backing_style: getVariableValue('backing_style'),
-                drawer_clearance: getVariableValue('drawer_clearance'),
-                plywoodData: plywoodData
-            };
-        }
-
-        function calculateDimensions(config) {
-            // NEW IMPLEMENTATION: Use variables.json instead of hardcoded logic
-            // All calculations now done by evaluateAllVariables()
-
-            // First, sync plywood variables from plywoodData
-            syncPlywoodVariables();
-            return evaluateAllVariables();
-        }
-
-        function generateBOM(config, calc) {
+        /**
+         * MODEL: Generate BOM from context (Pure function)
+         * Uses recursive getValue() for all expressions
+         */
+        function generateBOM(context, equations, variablesList) {
             if (!equations || !equations.panels) {
-                console.error('equations.panels not loaded yet');
+                console.error('equations.panels not loaded');
                 return [];
             }
-
-            // Build user_inputs object with all variables
-            const user_inputs = buildUserInputs(config, calc);
 
             const bom = [];
             let id = 1;
@@ -1638,27 +1920,25 @@
             for (const [panelKey, panel] of Object.entries(equations.panels)) {
                 if (!panel.bom) continue;
 
-                // Check condition if present
+                // Check condition if present (use recursive getValue)
                 if (panel.bom.condition) {
-                    if (!evaluateExpr(panel.bom.condition, user_inputs)) continue;
+                    const conditionMet = evaluateExprRecursive(panel.bom.condition, variablesList, context, new Set());
+                    if (!conditionMet) continue;
                 }
 
-                // Get plywood data for this panel
-                const plyData = getPlywoodForComponent(panelKey);
-
-                // Evaluate dimensions
-                const width = evaluateExpr(panel.dimensions.width, user_inputs);
-                const height = evaluateExpr(panel.dimensions.height, user_inputs);
-                const thickness = evaluateExpr(panel.dimensions.thickness, user_inputs);
+                // Evaluate dimensions using recursive tree search
+                const width = evaluateExprRecursive(panel.dimensions.width, variablesList, context, new Set());
+                const height = evaluateExprRecursive(panel.dimensions.height, variablesList, context, new Set());
+                const thickness = evaluateExprRecursive(panel.dimensions.thickness, variablesList, context, new Set());
 
                 // Evaluate quantity
                 const quantity = typeof panel.bom.quantity === 'number' ?
                     panel.bom.quantity :
-                    evaluateExpr(panel.bom.quantity, user_inputs);
+                    evaluateExprRecursive(panel.bom.quantity, variablesList, context, new Set());
 
-                // Build equations
-                const widthEq = buildEquationString(panel.dimensions.width, user_inputs);
-                const heightEq = buildEquationString(panel.dimensions.height, user_inputs);
+                // Build equation strings for display
+                const widthEq = buildEquationString(panel.dimensions.width, context);
+                const heightEq = buildEquationString(panel.dimensions.height, context);
                 const equation = `W: ${widthEq}"<br>H: ${heightEq}"`;
 
                 bom.push({
@@ -1675,22 +1955,11 @@
             return bom;
         }
 
-        // Build user_inputs object from config and calc
-        function buildUserInputs(config, calc) {
-            // NEW: Use variables.json system
-            // All values already calculated in evaluateAllVariables()
-            const context = buildEvaluationContext();
-
-            // Also add nested objects from equations.calculated for backwards compatibility
-            if (equations && equations.calculated) {
-                evaluateCalculatedValues(equations.calculated, context);
-            }
-
-            return context;
-        }
-
-        function optimizeCuts(bom, config) {
-            const { sheet_w, sheet_h, kerf } = config;
+        /**
+         * MODEL: Optimize cuts (Pure function)
+         */
+        function optimizeCuts(bom, context) {
+            const { sheet_w, sheet_h, kerf } = context;
             const sheets = {};
 
             // Group by thickness
@@ -1812,161 +2081,30 @@
             return cutOrder;
         }
 
+        /**
+         * CONTROLLER: Main calculation pipeline
+         * Coordinates MODEL and VIEW layers (Stateless)
+         */
         function calculate() {
-            if (!equations || !equations.calculated || !equations.panels) {
-                console.error('equations not loaded yet, skipping calculate');
+            if (!equations || !equations.calculated || !equations.panels || !variablesConfig) {
+                console.error('Configs not loaded, skipping calculate');
                 return;
             }
 
-            const config = getInputValues();
-            const calc = calculateDimensions(config);
-            const bom = generateBOM(config, calc);
-            const optimizedSheets = optimizeCuts(bom, config);
+            // 1. Build base context (input + plywood only) - CONTROLLER
+            const context = mergeInputsWithVariables(variablesConfig, plywoodData);
 
-            // Update 3D view
-            render3DCabinet(config);
+            // 2. Generate derived data using MODEL layer
+            //    getValue() will recursively evaluate calculated vars as needed
+            const bom = generateBOM(context, equations, variablesConfig.variables);
+            const optimizedSheets = optimizeCuts(bom, context);
 
-            // Update calculated dimensions with equations
-            const calcDiv = document.getElementById('calculated-dimensions');
-            if (!calcDiv) {
-                console.error('calculated-dimensions div not found');
-                return;
-            }
-
-            const user_inputs = buildUserInputs(config, calc);
-
-            // Evaluate calculated values and add to user_inputs for display
-            evaluateCalculatedValues(equations.calculated, user_inputs);
-
-            calcDiv.innerHTML = renderDimensionsDisplay(user_inputs);
-
-            // Update BOM table
-            const bomDiv = document.getElementById('bom-table');
-            let bomHTML = `
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Item</th>
-                            <th>Width</th>
-                            <th>Height</th>
-                            <th>Thickness</th>
-                            <th>Qty</th>
-                            <th>Equation</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-
-            bom.forEach(item => {
-                bomHTML += `
-                    <tr>
-                        <td>${item.id}</td>
-                        <td>${item.item}</td>
-                        <td>${item.width.toFixed(2)}"</td>
-                        <td>${item.height.toFixed(2)}"</td>
-                        <td>${item.thickness.toFixed(2)}"</td>
-                        <td>${item.quantity}</td>
-                        <td style="font-size: 11px; color: #666;">${item.equation || ''}</td>
-                    </tr>
-                `;
-            });
-
-            bomHTML += '</tbody></table>';
-
-            // Calculate thickness area summary
-            const materialSummary = {};
-            bom.forEach(item => {
-                const key = `${item.thickness.toFixed(2)}"`;
-                const area = item.width * item.height * item.quantity;
-
-                if (!materialSummary[key]) {
-                    materialSummary[key] = {
-                        thickness: item.thickness,
-                        area: 0
-                    };
-                }
-                materialSummary[key].area += area;
-            });
-
-            // Add thickness summary table
-            bomHTML += `
-                <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 2px solid #3498db;">
-                    <h3 style="margin-bottom: 10px; color: #2c3e50; font-size: 16px;">📊 Plywood Area Summary</h3>
-                    <table style="background: white;">
-                        <thead>
-                            <tr style="background: #e3f2fd;">
-                                <th>Thickness</th>
-                                <th>Total Area</th>
-                                <th>Sheets Needed (${config.sheet_w/12}'×${config.sheet_h/12}')</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
-
-            const sheetArea = config.sheet_w * config.sheet_h; // Standard sheet area
-            Object.keys(materialSummary).sort().forEach(key => {
-                const summary = materialSummary[key];
-                const sheetsNeeded = Math.ceil(summary.area / sheetArea);
-                const efficiency = ((summary.area / (sheetsNeeded * sheetArea)) * 100).toFixed(1);
-                bomHTML += `
-                    <tr style="background: white;">
-                        <td><strong>${summary.thickness.toFixed(2)}"</strong></td>
-                        <td>${summary.area.toFixed(2)} sq in <span style="color: #666;">(${(summary.area / 144).toFixed(2)} sq ft)</span></td>
-                        <td><strong style="color: #3498db;">${sheetsNeeded}</strong> <span style="color: #666; font-size: 12px;">(${efficiency}% utilization)</span></td>
-                    </tr>
-                `;
-            });
-
-            bomHTML += `
-                        </tbody>
-                    </table>
-                </div>
-            `;
-
-            bomDiv.innerHTML = bomHTML;
-
-            // Update cut optimizer
-            const cutDiv = document.getElementById('cut-optimizer');
-            let cutHTML = '<div class="cut-sheet">';
-
-            Object.keys(optimizedSheets).forEach(key => {
-                const sheet = optimizedSheets[key];
-                sheet.layouts.forEach((layout, idx) => {
-                    const efficiency = ((1 - layout.waste / (config.sheet_w * config.sheet_h)) * 100).toFixed(1);
-                    cutHTML += `
-                        <div class="sheet">
-                            <h3>${sheet.thickness.toFixed(2)}" Plywood - Sheet ${idx + 1}</h3>
-                            <p><strong>Efficiency:</strong> ${efficiency}%</p>
-                            <p><strong>Waste:</strong> ${layout.waste.toFixed(1)} sq in</p>
-                            <div class="sheet-visual">
-                    `;
-
-                    const scale = 200 / Math.max(config.sheet_w, config.sheet_h);
-                    layout.pieces.forEach(piece => {
-                        cutHTML += `
-                            <div class="cut-piece" style="
-                                left: ${piece.x * scale}px;
-                                top: ${piece.y * scale}px;
-                                width: ${piece.width * scale}px;
-                                height: ${piece.height * scale}px;
-                            ">${piece.name}</div>
-                        `;
-                    });
-
-                    cutHTML += `
-                            </div>
-                            <p><strong>Pieces:</strong> ${layout.pieces.length}</p>
-                        </div>
-                    `;
-                });
-            });
-
-            cutHTML += '</div>';
-            cutDiv.innerHTML = cutHTML;
-
-            // Update debug output
-            generateDebugOutput();
+            // 3. Update VIEW layer
+            render3DCabinet(context);
+            renderDimensionsSection(context);
+            renderBOMSection(bom, context);
+            renderCutOptimizerSection(optimizedSheets, context);
+            renderDebugSection(context);
         }
 
         // Toggle back stretcher input based on backing style
@@ -2062,27 +2200,6 @@
         }
 
         // Debug mode handler
-        function generateDebugOutput() {
-            if (!equations || !equations.calculated) {
-                console.error('equations not loaded yet');
-                return;
-            }
-
-            const config = getInputValues();
-            const calc = calculateDimensions(config);
-            const user_inputs = buildUserInputs(config, calc);
-
-            // Evaluate calculated values
-            evaluateCalculatedValues(equations.calculated, user_inputs);
-
-            const debugDiv = document.getElementById('debug-output');
-            if (!debugDiv) {
-                console.error('debug-output div not found');
-                return;
-            }
-            debugDiv.innerHTML = renderDebugOutput(user_inputs, config);
-        }
-
         // Setup section observers for navigation highlighting
         function setupSectionObserver() {
             const sections = document.querySelectorAll('.main-content .panel[id^="section-"]');
@@ -2121,6 +2238,9 @@
                 await loadEquations();
                 await loadInputs();
                 await loadVariables();
+
+                // Test for circular dependencies (MODEL layer validation)
+                testCircularDependencies(variablesConfig);
             } catch (error) {
                 console.error('Failed to load configuration files:', error);
                 document.body.innerHTML = `
