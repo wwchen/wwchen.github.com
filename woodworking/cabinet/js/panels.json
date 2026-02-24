@@ -112,7 +112,7 @@
         {
           "x": "ply_carcass",
           "y": "i * (drawer_height + ply_drawer_divider)",
-          "z": "ply_drawer_face"
+          "z": "0"
         },
         {
           "x": "ply_carcass",
