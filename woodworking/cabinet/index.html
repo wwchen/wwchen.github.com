@@ -346,6 +346,20 @@
                 grid-template-columns: 1fr;
             }
 
+            /* Keep cabinet dimensions (W×H×D) on one row for mobile */
+            .sidebar h2:first-child + .input-row {
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 8px;
+            }
+
+            .sidebar h2:first-child + .input-row .input-group label {
+                font-size: 11px;
+            }
+
+            .sidebar h2:first-child + .input-row .input-group input {
+                font-size: 14px;
+            }
+
             .input-row-2 {
                 grid-template-columns: 1fr;
             }
@@ -398,6 +412,21 @@
 
             .panel h2 {
                 font-size: 16px;
+            }
+
+            /* Keep cabinet dimensions (W×H×D) on one row for mobile */
+            .sidebar h2:first-child + .input-row {
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 6px;
+            }
+
+            .sidebar h2:first-child + .input-row .input-group label {
+                font-size: 10px;
+            }
+
+            .sidebar h2:first-child + .input-row .input-group input {
+                font-size: 13px;
+                padding: 6px;
             }
 
             table {
@@ -554,6 +583,7 @@
             font-size: 11px;
             cursor: move;
             user-select: none;
+            touch-action: none;
         }
 
         .component-pill:hover {
@@ -562,6 +592,12 @@
 
         .component-pill.dragging {
             opacity: 0.5;
+        }
+
+        .component-pill.selected {
+            background: #e74c3c;
+            box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.3);
+            transform: scale(1.1);
         }
 
         .available-components {
@@ -2122,7 +2158,7 @@
                 // Components - drag/drop zone
                 const tdComponents = document.createElement('td');
                 const divComponents = document.createElement('div');
-                divComponents.className = 'component-pills';
+                divComponents.className = 'component-pills components-zone';
                 divComponents.dataset.rowIndex = index;
 
                 // Add drop handlers
@@ -2161,9 +2197,9 @@
             availableTd.style.borderTop = '2px solid #ddd';
 
             const availableDiv = document.createElement('div');
-            availableDiv.innerHTML = '<strong style="display: block; margin-bottom: 4px;">Available Components (drag here to unassign):</strong>';
+            availableDiv.innerHTML = '<strong style="display: block; margin-bottom: 4px;">Available Components (tap to unassign):</strong>';
             const pillsContainer = document.createElement('div');
-            pillsContainer.className = 'available-components';
+            pillsContainer.className = 'available-components components-zone';
             pillsContainer.dataset.isAvailable = 'true';
 
             // Add drop handlers to available components area
@@ -2199,6 +2235,11 @@
             pill.addEventListener('dragstart', handleDragStart);
             pill.addEventListener('dragend', handleDragEnd);
 
+            // Touch support for mobile
+            pill.addEventListener('touchstart', handleTouchStart, { passive: false });
+            pill.addEventListener('touchmove', handleTouchMove, { passive: false });
+            pill.addEventListener('touchend', handleTouchEnd);
+
             return pill;
         }
 
@@ -2211,6 +2252,11 @@
 
             pill.addEventListener('dragstart', handleDragStart);
             pill.addEventListener('dragend', handleDragEnd);
+
+            // Touch support for mobile
+            pill.addEventListener('touchstart', handleTouchStart, { passive: false });
+            pill.addEventListener('touchmove', handleTouchMove, { passive: false });
+            pill.addEventListener('touchend', handleTouchEnd);
 
             return pill;
         }
@@ -2297,6 +2343,114 @@
             renderPlywoodTable();
             calculate();
         }
+
+        // ============================================
+        // Mobile Touch Drag Interaction
+        // ============================================
+
+        let touchDragState = null;
+
+        function handleTouchStart(e) {
+            const pill = e.target;
+            const touch = e.touches[0];
+
+            pill.classList.add('dragging');
+
+            touchDragState = {
+                element: pill,
+                component: pill.dataset.component,
+                fromRow: pill.dataset.rowIndex,
+                startX: touch.clientX,
+                startY: touch.clientY,
+                lastDropZone: null
+            };
+
+            draggedComponent = {
+                component: pill.dataset.component,
+                fromRow: pill.dataset.rowIndex
+            };
+        }
+
+        function handleTouchMove(e) {
+            if (!touchDragState) return;
+            e.preventDefault();
+
+            const touch = e.touches[0];
+
+            // Get element under touch
+            const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+
+            // Find the drop zone
+            let dropZone = elementBelow;
+            while (dropZone && !dropZone.classList.contains('components-zone')) {
+                dropZone = dropZone.parentElement;
+            }
+
+            // Reset all drop zone highlights
+            document.querySelectorAll('.components-zone').forEach(zone => {
+                zone.style.background = '';
+                zone.style.border = '';
+            });
+
+            // Highlight current drop zone
+            if (dropZone && dropZone !== touchDragState.element.parentElement) {
+                if (dropZone.dataset.isAvailable) {
+                    dropZone.style.background = '#ffebee';
+                    dropZone.style.border = '2px dashed #e74c3c';
+                } else {
+                    dropZone.style.background = '#e3f2fd';
+                    dropZone.style.border = '2px dashed #3498db';
+                }
+                touchDragState.lastDropZone = dropZone;
+            } else {
+                touchDragState.lastDropZone = null;
+            }
+        }
+
+        function handleTouchEnd(e) {
+            if (!touchDragState) return;
+            e.preventDefault();
+
+            touchDragState.element.classList.remove('dragging');
+
+            const dropZone = touchDragState.lastDropZone;
+
+            // Reset all backgrounds
+            document.querySelectorAll('.components-zone').forEach(zone => {
+                zone.style.background = '';
+                zone.style.border = '';
+            });
+
+            if (dropZone && dropZone !== touchDragState.element.parentElement) {
+                // Perform the move
+                if (dropZone.dataset.isAvailable) {
+                    // Unassign
+                    const newPlywoodData = removeComponentFromPlywood(
+                        plywoodData,
+                        draggedComponent.component
+                    );
+                    plywoodData = newPlywoodData;
+                } else if (dropZone.dataset.rowIndex !== undefined) {
+                    // Assign to row
+                    const toRow = parseInt(dropZone.dataset.rowIndex);
+                    const newPlywoodData = updatePlywoodAssignment(
+                        plywoodData,
+                        draggedComponent.fromRow,
+                        toRow,
+                        draggedComponent.component
+                    );
+                    plywoodData = newPlywoodData;
+                }
+
+                // Update UI
+                renderPlywoodTable();
+                calculate();
+            }
+
+            touchDragState = null;
+            draggedComponent = null;
+        }
+
 
         /**
          * MODEL: Generate BOM from context (Pure function)
