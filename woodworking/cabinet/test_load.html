@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test</title></head>
+<body>
+<iframe src="index.html" width="1200" height="800" onload="console.log('Loaded successfully')"></iframe>
+<script>
+setTimeout(() => {
+    const iframe = document.querySelector('iframe');
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    console.log('Testing cabinet maker...');
+    
+    // Try to run tests
+    try {
+        iframe.contentWindow.runAllTests();
+        console.log('Tests executed');
+    } catch (e) {
+        console.error('Error running tests:', e);
+    }
+}, 2000);
+</script>
+</body>
+</html>
