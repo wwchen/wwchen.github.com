@@ -22,8 +22,8 @@
       "unit": "inch"
     },
     {
-      "id": "dim_drawer_stretcher",
-      "label": "Drawer Stretcher",
+      "id": "dim_drawer_support",
+      "label": "Drawer Support Width",
       "type": "input",
       "value": 3.00,
       "unit": "inch"
@@ -127,8 +127,8 @@
       "unit": "inch"
     },
     {
-      "id": "ply_drawer_stretcher",
-      "label": "Drawer Stretcher Thickness",
+      "id": "ply_drawer_support",
+      "label": "Drawer Support Thickness",
       "type": "plywood",
       "value": 0.75,
       "unit": "inch"
@@ -158,7 +158,7 @@
       "id": "drawer_height",
       "label": "Drawer Height",
       "type": "calculated",
-      "value": "(dim_h - ply_carcass - num_drawers * ply_drawer_stretcher) / num_drawers",
+      "value": "(dim_h - ply_carcass - num_drawers * ply_drawer_support) / num_drawers",
       "unit": "inch"
     },
     {

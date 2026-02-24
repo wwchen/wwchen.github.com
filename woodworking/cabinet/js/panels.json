@@ -97,28 +97,28 @@
   },
   "drawer_stretcher": {
     "key": "drawer_stretcher",
-    "name": "Drawer stretchers (front & back)",
+    "name": "Drawer supports (front & back)",
     "dimensions": {
       "width": "dim_w - 2 * ply_carcass",
-      "height": "dim_drawer_stretcher",
-      "thickness": "ply_drawer_stretcher"
+      "height": "dim_drawer_support",
+      "thickness": "ply_drawer_support"
     },
     "quantity": "num_drawers * 2",
     "viz3d": {
       "color": 13808780,
       "orientation": "horizontal",
       "loop": "num_drawers",
-      "stretcherDepth": "dim_drawer_stretcher",
+      "stretcherDepth": "dim_drawer_support",
       "instances": [
         {
           "x": "ply_carcass",
-          "y": "i * (drawer_height + ply_drawer_stretcher)",
+          "y": "i * (drawer_height + ply_drawer_support)",
           "z": "ply_drawer_face"
         },
         {
           "x": "ply_carcass",
-          "y": "i * (drawer_height + ply_drawer_stretcher)",
-          "z": "dim_d - dim_drawer_stretcher - ply_carcass_back"
+          "y": "i * (drawer_height + ply_drawer_support)",
+          "z": "dim_d - dim_drawer_support - ply_carcass_back"
         }
       ]
     }
@@ -139,12 +139,12 @@
       "instances": [
         {
           "x": "ply_carcass + dim_railing_w",
-          "y": "i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + ply_bottom + drawer_clearance",
+          "y": "i * (drawer_height + ply_drawer_support) + ply_drawer_support + ply_bottom + drawer_clearance",
           "z": "ply_drawer_face"
         },
         {
           "x": "dim_w - ply_carcass - dim_railing_w - ply_drawer",
-          "y": "i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + ply_bottom + drawer_clearance",
+          "y": "i * (drawer_height + ply_drawer_support) + ply_drawer_support + ply_bottom + drawer_clearance",
           "z": "ply_drawer_face"
         }
       ]
@@ -166,12 +166,12 @@
       "instances": [
         {
           "x": "ply_carcass + dim_railing_w + ply_drawer",
-          "y": "i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + ply_bottom + drawer_clearance",
+          "y": "i * (drawer_height + ply_drawer_support) + ply_drawer_support + ply_bottom + drawer_clearance",
           "z": "ply_drawer_face"
         },
         {
           "x": "ply_carcass + dim_railing_w + ply_drawer",
-          "y": "i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + ply_bottom + drawer_clearance",
+          "y": "i * (drawer_height + ply_drawer_support) + ply_drawer_support + ply_bottom + drawer_clearance",
           "z": "ply_drawer_face + drawer_depth - ply_drawer"
         }
       ]
@@ -193,7 +193,7 @@
       "instances": [
         {
           "x": "ply_carcass + dim_railing_w",
-          "y": "i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + drawer_clearance",
+          "y": "i * (drawer_height + ply_drawer_support) + ply_drawer_support + drawer_clearance",
           "z": "ply_drawer_face"
         }
       ]
@@ -216,7 +216,7 @@
       "instances": [
         {
           "x": "ply_carcass + drawer_clearance",
-          "y": "i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + drawer_clearance",
+          "y": "i * (drawer_height + ply_drawer_support) + ply_drawer_support + drawer_clearance",
           "z": "0"
         }
       ]
@@ -238,12 +238,12 @@
       "instances": [
         {
           "x": "ply_carcass",
-          "y": "i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + 1.0",
+          "y": "i * (drawer_height + ply_drawer_support) + ply_drawer_support + 1.0",
           "z": "ply_drawer_face"
         },
         {
           "x": "dim_w - ply_carcass - dim_railing_w",
-          "y": "i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + 1.0",
+          "y": "i * (drawer_height + ply_drawer_support) + ply_drawer_support + 1.0",
           "z": "ply_drawer_face"
         }
       ]

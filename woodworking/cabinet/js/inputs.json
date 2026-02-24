@@ -19,7 +19,7 @@
           "layout": "row3"
         },
         {
-          "variable_id": "dim_drawer_stretcher",
+          "variable_id": "dim_drawer_support",
           "step": 0.125,
           "layout": "row2"
         },
