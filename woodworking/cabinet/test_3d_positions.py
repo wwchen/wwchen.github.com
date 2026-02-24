@@ -2,33 +2,87 @@
 """
 Test and visualize cabinet 3D positions
 Validates that the data-driven approach matches expected positions
+
+This script can optionally validate against equations.json to ensure
+the test data matches the actual application equations.
 """
 
+import sys
+import json
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import numpy as np
+from pathlib import Path
 
-# Cabinet dimensions from debug output
-dim_w = 25.0
-dim_h = 37.0
-dim_d = 21.0
-num_drawers = 3
-dim_railing_w = 1.0
-drawer_clearance = 0.125
+# Default configuration
+DEFAULT_CONFIG = {
+    "dim_w": 25.0,
+    "dim_h": 37.0,
+    "dim_d": 21.0,
+    "num_drawers": 3,
+    "dim_railing_w": 1.0,
+    "drawer_clearance": 0.125,
+    "ply_carcass": 0.75,
+    "ply_drawer_stretcher": 0.75,
+    "ply_bottom": 0.25,
+    "ply_drawer": 0.5,
+    "ply_drawer_face": 0.0,
+    "ply_back_stretcher": 0.75,
+    "backing_style": "stretcher"
+}
 
-# Plywood thicknesses
-ply_carcass = 0.75
-ply_drawer_stretcher = 0.75
-ply_bottom = 0.25
-ply_drawer = 0.5
-ply_drawer_face = 0.0
-ply_back_stretcher = 0.75
+def load_config(config_file=None):
+    """Load configuration from JSON file or use defaults"""
+    if config_file:
+        try:
+            with open(config_file, 'r') as f:
+                config = json.load(f)
+                print(f"Loaded configuration from: {config_file}")
+                return config
+        except FileNotFoundError:
+            print(f"Config file '{config_file}' not found. Using defaults.")
+        except json.JSONDecodeError as e:
+            print(f"Error parsing config file: {e}. Using defaults.")
+
+    return DEFAULT_CONFIG.copy()
+
+def load_equations():
+    """Load equations.json if available for validation"""
+    equations_path = Path(__file__).parent / 'equations.json'
+    if equations_path.exists():
+        try:
+            with open(equations_path, 'r') as f:
+                equations = json.load(f)
+                print(f"Loaded equations.json for validation")
+                return equations
+        except Exception as e:
+            print(f"Warning: Could not load equations.json: {e}")
+    return None
+
+# Load configuration and equations
+config_file = sys.argv[1] if len(sys.argv) > 1 else None
+config = load_config(config_file)
+equations = load_equations()
+
+# Extract values from config
+dim_w = config['dim_w']
+dim_h = config['dim_h']
+dim_d = config['dim_d']
+num_drawers = config['num_drawers']
+dim_railing_w = config['dim_railing_w']
+drawer_clearance = config['drawer_clearance']
+ply_carcass = config['ply_carcass']
+ply_drawer_stretcher = config['ply_drawer_stretcher']
+ply_bottom = config['ply_bottom']
+ply_drawer = config['ply_drawer']
+ply_drawer_face = config['ply_drawer_face']
+ply_back_stretcher = config['ply_back_stretcher']
 
 # Calculated values
-drawer_height = (dim_h - ply_carcass - num_drawers * ply_drawer_stretcher) / num_drawers  # 11.333
-drawer_depth = dim_d - ply_drawer_face - ply_back_stretcher  # 20.25
-drawer_width = dim_w - 2 * (ply_carcass + dim_railing_w)  # 21.5
+drawer_height = (dim_h - ply_carcass - num_drawers * ply_drawer_stretcher) / num_drawers
+drawer_depth = dim_d - ply_drawer_face - ply_back_stretcher
+drawer_width = dim_w - 2 * (ply_carcass + dim_railing_w)
 
 print(f"Cabinet: {dim_w}\" × {dim_h}\" × {dim_d}\"")
 print(f"Drawer height: {drawer_height:.3f}\"")

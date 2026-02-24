@@ -573,99 +573,8 @@
         <h1>🪚 Cabinet Maker Pro</h1>
 
         <div class="layout">
-            <div class="sidebar">
-                <h2>Cabinet Dimensions</h2>
-
-                <div class="input-row">
-                    <div class="input-group">
-                        <label>Width (in)</label>
-                        <input type="number" id="dim_w" value="25.00" step="0.125">
-                    </div>
-                    <div class="input-group">
-                        <label>Height (in)</label>
-                        <input type="number" id="dim_h" value="37.00" step="0.125">
-                    </div>
-                    <div class="input-group">
-                        <label>Depth (in)</label>
-                        <input type="number" id="dim_d" value="21.00" step="0.125">
-                    </div>
-                </div>
-
-                <div class="input-row-2">
-                    <div class="input-group">
-                        <label>Drawer Stretcher (in)</label>
-                        <input type="number" id="dim_drawer_stretcher" value="3.00" step="0.125">
-                    </div>
-                    <div class="input-group" id="back_stretcher_group" style="display: none;">
-                        <label>Back Stretcher (in)</label>
-                        <input type="number" id="dim_back_stretcher" value="3.00" step="0.125">
-                    </div>
-                </div>
-
-                <div class="input-group">
-                    <label>Drawer Railing Width (in)</label>
-                    <input type="number" id="dim_railing_w" value="1.00" step="0.125">
-                </div>
-
-                <div class="input-row-2">
-                    <div class="input-group">
-                        <label>Drawer Count</label>
-                        <input type="number" id="num_drawers" value="3" min="1" max="10">
-                    </div>
-                    <div class="input-group">
-                        <label>Drawer Clearance (in)</label>
-                        <input type="number" id="drawer_clearance" value="0.125" step="0.0625">
-                    </div>
-                </div>
-
-                <div class="section-divider"></div>
-                <h2>Cabinet Style</h2>
-
-                <div class="input-group">
-                    <label>Carcass Backing</label>
-                    <select id="backing_style">
-                        <option value="none">None</option>
-                        <option value="stretcher" selected>Stretcher Only</option>
-                        <option value="inlay">Routed Inlay</option>
-                        <option value="full">Full Plywood</option>
-                    </select>
-                </div>
-
-                <div class="section-divider"></div>
-                <h2>Plywood Materials</h2>
-
-                <table class="plywood-table" id="plywood-table">
-                    <thead>
-                        <tr>
-                            <th>Thickness</th>
-                            <th>Material</th>
-                            <th>Components</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody id="plywood-rows">
-                    </tbody>
-                </table>
-                <button class="button btn-small btn-add" onclick="addPlywoodRow()">+ Add Row</button>
-
-                <div class="section-divider"></div>
-                <h2>Cut Settings</h2>
-
-                <div class="input-group">
-                    <label>Sheet Width (in)</label>
-                    <input type="number" id="sheet_w" value="48" step="1">
-                </div>
-
-                <div class="input-group">
-                    <label>Sheet Height (in)</label>
-                    <input type="number" id="sheet_h" value="96" step="1">
-                </div>
-
-                <div class="input-group">
-                    <label>Kerf Width (in)</label>
-                    <input type="number" id="kerf" value="0.125" step="0.0625">
-                </div>
-
+            <div class="sidebar" id="sidebar-container">
+                <!-- Inputs will be dynamically generated from inputs.json -->
             </div>
 
             <div class="main-content">
@@ -676,9 +585,7 @@
                         <a class="nav-link" href="#section-dimensions">Dimensions</a>
                         <a class="nav-link" href="#section-bom">BOM</a>
                         <a class="nav-link" href="#section-optimizer">Optimizer</a>
-                        <a class="nav-link" href="#section-assembly">Assembly</a>
                         <a class="nav-link" href="#section-debug">Debug</a>
-                        <a class="nav-link" href="#section-tests">Tests</a>
                     </div>
                 </div>
 
@@ -709,20 +616,9 @@
                     <div id="cut-optimizer"></div>
                 </div>
 
-                <div class="panel" id="section-assembly">
-                    <h2>Assembly Instructions</h2>
-                    <div id="assembly-order"></div>
-                </div>
-
                 <div class="panel" id="section-debug">
                     <h2>Debug Information</h2>
                     <div id="debug-output"></div>
-                </div>
-
-                <div class="panel" id="section-tests">
-                    <h2>Test Suite</h2>
-                    <button onclick="runAllTests()" style="margin-bottom: 10px; padding: 8px 16px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">Run All Tests</button>
-                    <div id="test-output" style="font-family: monospace; font-size: 12px;"></div>
                 </div>
             </div>
         </div>
@@ -733,324 +629,194 @@
         let scene, camera, renderer, controls;
         let cabinetGroup;
 
-        // Equations structure - single source of truth for all calculations
-        const equations = {
-            panels: {
-                // Carcass components
-                carcass_sides: {
-                    dimensions: {
-                        width: 'dim_d',
-                        height: 'dim_h - ply_carcass',
-                        thickness: 'ply_carcass'
-                    },
-                    bom: {
-                        item: 'Carcass sides',
-                        quantity: 2
-                    },
-                    viz3d: {
-                        color: 0xD2B48C,
-                        orientation: 'rotated', // BOM width (depth) → Z, thickness → X
-                        instances: [
-                            { // left
-                                x: 'ply_carcass / 2',
-                                y: '(dim_h - ply_carcass) / 2',
-                                z: 'dim_d / 2'
-                            },
-                            { // right
-                                x: 'dim_w - ply_carcass / 2',
-                                y: '(dim_h - ply_carcass) / 2',
-                                z: 'dim_d / 2'
-                            }
-                        ]
-                    }
-                },
+        // Equations structure - loaded from equations.json
+        let equations = null;
 
-                carcass_top: {
-                    dimensions: {
-                        width: 'dim_w',
-                        height: 'dim_d',
-                        thickness: 'ply_carcass'
-                    },
-                    bom: {
-                        item: 'Carcass top',
-                        quantity: 1
-                    },
-                    viz3d: {
-                        color: 0xC19A6B,
-                        orientation: 'horizontal', // Lies flat
-                        instances: [{
-                            x: 'dim_w / 2',
-                            y: 'dim_h - ply_carcass / 2',
-                            z: 'dim_d / 2'
-                        }]
-                    }
-                },
+        // Load equations from JSON file
+        async function loadEquations() {
+            try {
+                const response = await fetch('equations.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                equations = await response.json();
+                console.log('Loaded equations from equations.json');
+                return equations;
+            } catch (error) {
+                console.error('Failed to load equations.json:', error);
+                throw error;
+            }
+        }
 
-                carcass_back_full: {
-                    dimensions: {
-                        width: 'dim_w - 2 * ply_carcass',
-                        height: 'dim_h - 2 * ply_carcass',
-                        thickness: 'ply_carcass_back'
-                    },
-                    bom: {
-                        item: 'Carcass back',
-                        quantity: 1,
-                        condition: 'backing_style === "full"'
-                    },
-                    viz3d: {
-                        color: 0xA0826D,
-                        orientation: 'vertical', // Stands upright
-                        condition: 'backing_style === "full"',
-                        instances: [{
-                            x: 'dim_w / 2',
-                            y: 'ply_carcass + (dim_h - 2 * ply_carcass) / 2',
-                            z: 'dim_d - ply_carcass_back / 2'
-                        }]
-                    }
-                },
+        // Inputs configuration
+        let inputsConfig = null;
 
-                carcass_back_inlay: {
-                    dimensions: {
-                        width: 'dim_w - 2 * ply_carcass',
-                        height: 'dim_h - 2 * ply_carcass',
-                        thickness: 'ply_carcass_back'
-                    },
-                    bom: {
-                        item: 'Carcass back (routed inlay)',
-                        quantity: 1,
-                        condition: 'backing_style === "inlay"'
-                    },
-                    viz3d: {
-                        color: 0xA0826D,
-                        orientation: 'vertical', // Stands upright
-                        condition: 'backing_style === "inlay"',
-                        instances: [{
-                            x: 'dim_w / 2',
-                            y: 'ply_carcass + (dim_h - 2 * ply_carcass) / 2',
-                            z: 'dim_d - ply_carcass_back / 2'
-                        }]
-                    }
-                },
+        // Load inputs from JSON file
+        async function loadInputs() {
+            try {
+                const response = await fetch('inputs.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                inputsConfig = await response.json();
+                console.log('Loaded inputs from inputs.json');
+                return inputsConfig;
+            } catch (error) {
+                console.error('Failed to load inputs.json:', error);
+                throw error;
+            }
+        }
 
-                back_stretchers: {
-                    dimensions: {
-                        width: 'dim_w - 2 * ply_carcass',
-                        height: 'dim_back_stretcher',
-                        thickness: 'ply_back_stretcher'
-                    },
-                    bom: {
-                        item: 'Back stretchers (top & bottom)',
-                        quantity: 2,
-                        condition: 'backing_style === "stretcher"'
-                    },
-                    viz3d: {
-                        color: 0xD2B48C,
-                        orientation: 'vertical', // Stands upright
-                        condition: 'backing_style === "stretcher"',
-                        instances: [
-                            { // top
-                                x: 'dim_w / 2',
-                                y: 'dim_h - ply_carcass - dim_back_stretcher / 2',
-                                z: 'dim_d - ply_back_stretcher / 2'
-                            },
-                            { // bottom
-                                x: 'dim_w / 2',
-                                y: 'ply_carcass + dim_back_stretcher / 2',
-                                z: 'dim_d - ply_back_stretcher / 2'
-                            }
-                        ]
-                    }
-                },
+        // Generate sidebar inputs from config
+        function generateInputs() {
+            if (!inputsConfig) {
+                console.error('inputsConfig not loaded');
+                return;
+            }
 
-                drawer_stretchers: {
-                    dimensions: {
-                        width: 'dim_w - 2 * ply_carcass',
-                        height: 'dim_drawer_stretcher',
-                        thickness: 'ply_drawer_stretcher'
-                    },
-                    bom: {
-                        item: 'Drawer stretchers (front & back)',
-                        quantity: 'num_drawers * 2'
-                    },
-                    viz3d: {
-                        color: 0xD2B48C,
-                        orientation: 'horizontal', // Lies flat
-                        loop: 'num_drawers',
-                        stretcherDepth: 'dim_drawer_stretcher',
-                        instances: [
-                            { // front stretcher
-                                x: 'dim_w / 2',
-                                y: 'i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher / 2',
-                                z: 'ply_drawer_face + dim_drawer_stretcher / 2'
-                            },
-                            { // back stretcher
-                                x: 'dim_w / 2',
-                                y: 'i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher / 2',
-                                z: 'dim_d - dim_drawer_stretcher / 2'
-                            }
-                        ]
-                    }
-                },
+            const sidebar = document.getElementById('sidebar-container');
+            let html = '';
 
-                drawer_sides: {
-                    dimensions: {
-                        width: 'drawer_depth',
-                        height: 'drawer_height - ply_bottom',
-                        thickness: 'ply_drawer'
-                    },
-                    bom: {
-                        item: 'Drawer sides',
-                        quantity: '2 * num_drawers'
-                    },
-                    viz3d: {
-                        color: 0xF5DEB3,
-                        orientation: 'rotated', // BOM width (depth) → Z, thickness → X
-                        loop: 'num_drawers',
-                        instances: [
-                            { // left
-                                x: 'ply_carcass + dim_railing_w + ply_drawer / 2',
-                                y: 'i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + (drawer_height - ply_bottom) / 2',
-                                z: 'ply_drawer_face + drawer_depth / 2'
-                            },
-                            { // right
-                                x: 'dim_w - ply_carcass - dim_railing_w - ply_drawer / 2',
-                                y: 'i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + (drawer_height - ply_bottom) / 2',
-                                z: 'ply_drawer_face + drawer_depth / 2'
-                            }
-                        ]
-                    }
-                },
+            for (const section of inputsConfig.sections) {
+                html += `<h2>${section.title}</h2>\n`;
 
-                drawer_front_back: {
-                    dimensions: {
-                        width: 'drawer_width - 2 * ply_drawer',
-                        height: 'drawer_height - ply_bottom',
-                        thickness: 'ply_drawer'
-                    },
-                    bom: {
-                        item: 'Drawer front/back',
-                        quantity: '2 * num_drawers'
-                    },
-                    viz3d: {
-                        color: 0xF5E6D3,
-                        orientation: 'vertical', // Stands upright
-                        loop: 'num_drawers',
-                        instances: [
-                            { // back
-                                x: 'dim_w / 2',
-                                y: 'i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + (drawer_height - ply_bottom) / 2',
-                                z: 'ply_drawer_face + ply_drawer / 2'
-                            },
-                            { // front
-                                x: 'dim_w / 2',
-                                y: 'i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + (drawer_height - ply_bottom) / 2',
-                                z: 'ply_drawer_face + drawer_depth - ply_drawer / 2'
-                            }
-                        ]
-                    }
-                },
+                if (section.type === 'plywood_table') {
+                    // Special handling for plywood table
+                    html += `
+                <table class="plywood-table" id="plywood-table">
+                    <thead>
+                        <tr>
+                            <th>Thickness</th>
+                            <th>Material</th>
+                            <th>Components</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="plywood-rows">
+                    </tbody>
+                </table>
+                <button class="button btn-small btn-add" onclick="addPlywoodRow()">+ Add Row</button>
+                    `;
+                } else if (section.inputs) {
+                    // Group inputs by layout
+                    const row3Inputs = section.inputs.filter(i => i.layout === 'row3');
+                    const row2Inputs = section.inputs.filter(i => i.layout === 'row2');
+                    const regularInputs = section.inputs.filter(i => !i.layout);
 
-                drawer_bottom: {
-                    dimensions: {
-                        width: 'drawer_width',
-                        height: 'drawer_depth',
-                        thickness: 'ply_bottom'
-                    },
-                    bom: {
-                        item: 'Drawer bottom',
-                        quantity: 'num_drawers'
-                    },
-                    viz3d: {
-                        color: 0xE6D7C3,
-                        orientation: 'horizontal', // Lies flat
-                        loop: 'num_drawers',
-                        instances: [{
-                            x: 'dim_w / 2',
-                            y: 'i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + ply_bottom / 2',
-                            z: 'ply_drawer_face + drawer_depth / 2'
-                        }]
+                    // Render row3 inputs
+                    if (row3Inputs.length > 0) {
+                        html += '<div class="input-row">\n';
+                        for (const input of row3Inputs) {
+                            html += generateInputHTML(input);
+                        }
+                        html += '</div>\n';
                     }
-                },
 
-                drawer_faces: {
-                    dimensions: {
-                        width: 'dim_w - 2 * ply_carcass - 2 * drawer_clearance',
-                        height: 'drawer_height - 2 * drawer_clearance',
-                        thickness: 'ply_drawer_face'
-                    },
-                    bom: {
-                        item: 'Drawer faces',
-                        quantity: 'num_drawers',
-                        condition: 'drawer_face_enabled && ply_drawer_face > 0'
-                    },
-                    viz3d: {
-                        color: 0x8B4513,
-                        condition: 'drawer_face_enabled && ply_drawer_face > 0',
-                        loop: 'num_drawers',
-                        instances: [{
-                            x: 'dim_w / 2',
-                            y: 'i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + drawer_clearance + (drawer_height - 2 * drawer_clearance) / 2',
-                            z: 'ply_drawer_face / 2'
-                        }]
+                    // Render row2 inputs
+                    const row2Groups = [];
+                    for (let i = 0; i < row2Inputs.length; i += 2) {
+                        row2Groups.push(row2Inputs.slice(i, i + 2));
                     }
-                },
+                    for (const group of row2Groups) {
+                        html += '<div class="input-row-2">\n';
+                        for (const input of group) {
+                            html += generateInputHTML(input);
+                        }
+                        html += '</div>\n';
+                    }
 
-                drawer_railings: {
-                    dimensions: {
-                        width: 'dim_railing_w',
-                        height: '2.0',
-                        thickness: 'ply_carcass'
-                    },
-                    viz3d: {
-                        color: 0xC0C0C0,
-                        loop: 'num_drawers',
-                        instances: [
-                            { // left railing
-                                x: 'ply_carcass + dim_railing_w / 2',
-                                y: 'i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + 1.0 + 1.0',
-                                z: 'ply_drawer_face + drawer_depth / 2'
-                            },
-                            { // right railing
-                                x: 'dim_w - ply_carcass - dim_railing_w / 2',
-                                y: 'i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + 1.0 + 1.0',
-                                z: 'ply_drawer_face + drawer_depth / 2'
-                            }
-                        ]
+                    // Render regular inputs
+                    for (const input of regularInputs) {
+                        html += generateInputHTML(input);
                     }
                 }
-            },
 
-            // Calculated helper values with display info
-            calculated: [
-                {
-                    label: 'overall',
-                    width: 'dim_w',
-                    height: 'dim_h',
-                    depth: 'dim_d'
-                },
-                {
-                    label: 'interior',
-                    width: 'dim_w - 2 * ply_carcass',
-                    height: 'dim_h - ply_carcass',
-                    depth: 'dim_d - ply_drawer_face - ply_back_thickness'
-                },
-                {
-                    label: 'drawer',
-                    width: 'dim_w - 2 * (ply_carcass + dim_railing_w)',
-                    height: '(dim_h - ply_carcass - num_drawers * ply_drawer_stretcher) / num_drawers',
-                    depth: 'dim_d - ply_drawer_face - ply_back_thickness'
+                html += '<div class="section-divider"></div>\n';
+            }
+
+            sidebar.innerHTML = html;
+
+            // Setup conditional visibility
+            setupConditionalInputs();
+        }
+
+        // Generate HTML for a single input
+        function generateInputHTML(input) {
+            const groupId = input.condition ? `${input.id}_group` : '';
+            const groupStyle = input.condition ? ' style="display: none;"' : '';
+
+            let html = `<div class="input-group"${groupId ? ` id="${groupId}"` : ''}${groupStyle}>\n`;
+            html += `    <label>${input.label}</label>\n`;
+
+            if (input.type === 'select') {
+                html += `    <select id="${input.id}">\n`;
+                for (const option of input.options) {
+                    const selected = option.value === input.value ? ' selected' : '';
+                    html += `        <option value="${option.value}"${selected}>${option.label}</option>\n`;
                 }
-            ]
-        };
+                html += `    </select>\n`;
+            } else if (input.type === 'number') {
+                const attrs = [];
+                attrs.push(`type="number"`);
+                attrs.push(`id="${input.id}"`);
+                attrs.push(`value="${input.value}"`);
+                if (input.step) attrs.push(`step="${input.step}"`);
+                if (input.min !== undefined) attrs.push(`min="${input.min}"`);
+                if (input.max !== undefined) attrs.push(`max="${input.max}"`);
+                html += `    <input ${attrs.join(' ')}>\n`;
+            }
 
-        // Render debug output showing all variables
+            html += `</div>\n`;
+            return html;
+        }
+
+        // Setup conditional visibility for inputs
+        function setupConditionalInputs() {
+            // Get all inputs with conditions
+            const conditionalInputs = [];
+            for (const section of inputsConfig.sections) {
+                if (section.inputs) {
+                    for (const input of section.inputs) {
+                        if (input.condition) {
+                            conditionalInputs.push(input);
+                        }
+                    }
+                }
+            }
+
+            // Setup listeners for conditional visibility
+            for (const input of conditionalInputs) {
+                // Simple condition parsing (only handles "variable === 'value'" for now)
+                const match = input.condition.match(/^(\w+)\s*===\s*['"]([^'"]+)['"]$/);
+                if (match) {
+                    const [, variable, expectedValue] = match;
+                    const groupId = `${input.id}_group`;
+                    const group = document.getElementById(groupId);
+
+                    if (group) {
+                        const triggerInput = document.getElementById(variable);
+                        if (triggerInput) {
+                            const updateVisibility = () => {
+                                const show = triggerInput.value === expectedValue;
+                                group.style.display = show ? '' : 'none';
+                            };
+
+                            triggerInput.addEventListener('change', updateVisibility);
+                            updateVisibility(); // Initial state
+                        }
+                    }
+                }
+            }
+        }
+
+                // Render debug output showing all variables
         function renderDebugOutput(user_inputs, config) {
             const sortedKeys = Object.keys(user_inputs).sort();
 
             let html = '<div class="debug-section">';
 
             // JSON Config Export/Import
-            html += '<h3>JSON Configuration</h3>';
+            html += '<h3>Configuration & Variables</h3>';
             html += '<div class="config-json">';
             html += '<textarea id="config-json-textarea" placeholder="Paste JSON configuration here..."></textarea>';
             html += '<div class="config-actions">';
@@ -1060,7 +826,7 @@
             html += '</div>';
             html += '</div>';
 
-            html += '<h3>Configuration & Calculated Variables</h3>';
+            html += '<h4 style="margin-top: 20px; margin-bottom: 10px;">All Variables</h4>';
             html += '<div class="debug-group">';
 
             sortedKeys.forEach(key => {
@@ -1106,20 +872,18 @@
 
         // Render dimensions display using equations.display configuration
         function renderDimensionsDisplay(user_inputs) {
-            let html = '';
+            if (!equations || !equations.calculated) {
+                console.error('equations.calculated not loaded yet');
+                return '';
+            }
 
-            // Display label formatting
-            const displayLabels = {
-                'overall': 'Carcass Total (W×H×D)',
-                'interior': 'Interior (W×H×D)',
-                'drawer': 'Drawer Box (W×H×D)'
-            };
+            let html = '';
 
             for (const calc of equations.calculated) {
                 // Get dimension values from the group object
-                const group = user_inputs[calc.label];
+                const group = user_inputs[calc.key];
                 if (!group) {
-                    console.error(`Group not found: ${calc.label}`);
+                    console.error(`Group not found: ${calc.key}`);
                     continue;
                 }
 
@@ -1130,7 +894,7 @@
                 ).join('" × ') + '"';
 
                 html += `<div class="calc-item">`;
-                html += `<strong>${displayLabels[calc.label] || calc.label}</strong>`;
+                html += `<strong>${calc.label}</strong>`;
                 html += `<span>${displayValue}</span>`;
 
                 // Render equations
@@ -1169,19 +933,19 @@
         // Evaluate calculated values from array structure
         function evaluateCalculatedValues(calculated, user_inputs) {
             for (const group of calculated) {
-                const { label, width, height, depth } = group;
+                const { key, width, height, depth } = group;
 
                 // Create nested object for the group
-                user_inputs[label] = {
+                user_inputs[key] = {
                     width: evaluateExpr(width, user_inputs),
                     height: evaluateExpr(height, user_inputs),
                     depth: evaluateExpr(depth, user_inputs)
                 };
 
                 // Also add flat aliases for backward compatibility (e.g., drawer_width)
-                user_inputs[`${label}_width`] = user_inputs[label].width;
-                user_inputs[`${label}_height`] = user_inputs[label].height;
-                user_inputs[`${label}_depth`] = user_inputs[label].depth;
+                user_inputs[`${key}_width`] = user_inputs[key].width;
+                user_inputs[`${key}_height`] = user_inputs[key].height;
+                user_inputs[`${key}_depth`] = user_inputs[key].depth;
             }
         }
 
@@ -1364,6 +1128,11 @@
         }
 
         function render3DCabinet(config) {
+            if (!equations || !equations.calculated || !equations.panels) {
+                console.error('equations not loaded yet, skipping 3D render');
+                return;
+            }
+
             // Clear existing cabinet
             while(cabinetGroup.children.length > 0) {
                 cabinetGroup.remove(cabinetGroup.children[0]);
@@ -1389,24 +1158,65 @@
         let plywoodData = [];
         let draggedComponent = null;
 
-        function getAvailableComponents(backingStyle) {
-            const base = [
-                { value: 'carcass_sides', label: 'Carcass Sides' },
-                { value: 'carcass_top', label: 'Carcass Top' },
-                { value: 'drawer_sides', label: 'Drawer Sides' },
-                { value: 'drawer_bottom', label: 'Drawer Bottom' },
-                { value: 'drawer_face', label: 'Drawer Face' },
-                { value: 'drawer_stretcher', label: 'Drawer Stretcher' }
-            ];
+        // Map panel keys to component names used in plywood table
+        function getPanelComponentName(panelKey) {
+            const componentMap = {
+                'carcass_sides': 'carcass_sides',
+                'carcass_top': 'carcass_top',
+                'carcass_back_full': 'carcass_back',
+                'carcass_back_inlay': 'carcass_back',
+                'back_stretchers': 'back_stretcher',
+                'drawer_stretchers': 'drawer_stretcher',
+                'drawer_sides': 'drawer_sides',
+                'drawer_front_back': 'drawer_sides',
+                'drawer_bottom': 'drawer_bottom',
+                'drawer_faces': 'drawer_face'
+            };
+            return componentMap[panelKey] || panelKey;
+        }
 
-            // Add backing-specific components
-            if (backingStyle === 'stretcher') {
-                base.push({ value: 'back_stretcher', label: 'Back Stretcher' });
-            } else if (backingStyle === 'inlay' || backingStyle === 'full') {
-                base.push({ value: 'carcass_back', label: 'Carcass Back' });
+        function getAvailableComponents(backingStyle) {
+            if (!equations || !equations.panels) {
+                console.error('equations.panels not loaded');
+                return [];
             }
 
-            return base;
+            const components = [];
+            const seenComponents = new Set();
+
+            // Generate components from equations.panels
+            for (const [panelKey, panel] of Object.entries(equations.panels)) {
+                if (!panel.bom) continue; // Skip panels without BOM (like railings)
+
+                // Check if panel has a condition
+                if (panel.bom.condition) {
+                    // Simple condition parsing for backing_style
+                    const conditionMatch = panel.bom.condition.match(/backing_style === "(\w+)"/);
+                    if (conditionMatch) {
+                        const requiredStyle = conditionMatch[1];
+                        if (backingStyle !== requiredStyle) {
+                            continue; // Skip if condition not met
+                        }
+                    }
+                }
+
+                // Map panel key to component name
+                const componentName = getPanelComponentName(panelKey);
+
+                // Avoid duplicates (e.g., drawer_front_back and drawer_sides both map to drawer_sides)
+                if (seenComponents.has(componentName)) {
+                    continue;
+                }
+                seenComponents.add(componentName);
+
+                // Use component name as value (what's stored in plywood table)
+                components.push({
+                    value: componentName,
+                    label: panel.bom.item
+                });
+            }
+
+            return components;
         }
 
         function initPlywoodTable() {
@@ -1848,6 +1658,11 @@
         }
 
         function generateBOM(config, calc) {
+            if (!equations || !equations.panels) {
+                console.error('equations.panels not loaded yet');
+                return [];
+            }
+
             // Build user_inputs object with all variables
             const user_inputs = buildUserInputs(config, calc);
 
@@ -1864,19 +1679,7 @@
                 }
 
                 // Map panel key to component name for plywood lookup
-                const componentMap = {
-                    'carcass_sides': 'carcass_sides',
-                    'carcass_top': 'carcass_top',
-                    'carcass_back_full': 'carcass_back',
-                    'carcass_back_inlay': 'carcass_back',
-                    'back_stretchers': 'back_stretcher',
-                    'drawer_stretchers': 'drawer_stretcher',
-                    'drawer_sides': 'drawer_sides',
-                    'drawer_front_back': 'drawer_sides',
-                    'drawer_bottom': 'drawer_bottom',
-                    'drawer_faces': 'drawer_face'
-                };
-                const componentName = componentMap[panelKey] || panelKey;
+                const componentName = getPanelComponentName(panelKey);
                 const plyData = getPlywoodForComponent(componentName);
 
                 // Evaluate dimensions
@@ -2093,104 +1896,27 @@
             return cutOrder;
         }
 
-        function generateAssemblyOrder(config, bom) {
-            const { backing_style, num_drawers } = config;
-
-            const drawer_face_enabled = plywoodData.some(row => row.components.includes('drawer_face'));
-
-            const steps = [];
-            let stepNum = 1;
-
-            // Step 1: Prepare pieces
-            steps.push({
-                step: stepNum++,
-                title: 'Prepare all pieces',
-                description: `Cut all pieces according to cut order. Sand edges and surfaces.`,
-                pieces: ['All pieces from BOM']
-            });
-
-            // Step 2: Install drawer stretchers
-            steps.push({
-                step: stepNum++,
-                title: 'Install drawer stretchers',
-                description: `Install ${num_drawers * 2} drawer stretchers (front and back pairs) to carcass sides. Each pair sits flat (horizontal) below each drawer position. The first pair should sit directly on the bottom carcass (no gap). Space them evenly to divide the interior height into ${num_drawers} equal drawer spaces.`,
-                pieces: ['Carcass sides', 'Drawer stretchers (front & back)']
-            });
-
-            // Step 4: Attach carcass top
-            steps.push({
-                step: stepNum++,
-                title: 'Attach carcass top',
-                description: `Position top piece and secure to sides from inside. Check for square.`,
-                pieces: ['Carcass top']
-            });
-
-            // Step 5: Install backing
-            if (backing_style === 'full') {
-                steps.push({
-                    step: stepNum++,
-                    title: 'Install carcass back',
-                    description: `Slide back panel into place. Secure to top, sides, and bottom stretcher. This will square the carcass.`,
-                    pieces: ['Carcass back']
-                });
-            } else if (backing_style === 'stretcher') {
-                steps.push({
-                    step: stepNum++,
-                    title: 'Install back stretchers',
-                    description: `Attach back stretchers at top and bottom. This provides backing support.`,
-                    pieces: ['Back stretchers']
-                });
-            }
-
-            // Step 6: Assemble drawer boxes
-            steps.push({
-                step: stepNum++,
-                title: 'Assemble drawer boxes',
-                description: `Assemble all ${num_drawers} drawer boxes. Connect sides to front/back. Attach bottoms with glue and brad nails.`,
-                pieces: ['Drawer sides', 'Drawer front/back', 'Drawer bottom']
-            });
-
-            // Step 7: Install drawer slides
-            steps.push({
-                step: stepNum++,
-                title: 'Install drawer slides',
-                description: 'Mount drawer slides on carcass sides and drawer boxes according to manufacturer specifications. Test fit drawers.',
-                pieces: ['Drawer slides (not in BOM)']
-            });
-
-            // Step 8: Drawer faces (if enabled)
-            if (drawer_face_enabled) {
-                steps.push({
-                    step: stepNum++,
-                    title: 'Attach drawer faces',
-                    description: `Attach drawer faces to drawer fronts using screws from inside. Ensure proper spacing and alignment between faces.`,
-                    pieces: ['Drawer faces']
-                });
-            }
-
-            // Final step
-            steps.push({
-                step: stepNum++,
-                title: 'Final assembly',
-                description: 'Install drawers into slides. Check all drawers operate smoothly. Apply finish as desired.',
-                pieces: ['Complete cabinet']
-            });
-
-            return steps;
-        }
-
         function calculate() {
+            if (!equations || !equations.calculated || !equations.panels) {
+                console.error('equations not loaded yet, skipping calculate');
+                return;
+            }
+
             const config = getInputValues();
             const calc = calculateDimensions(config);
             const bom = generateBOM(config, calc);
             const optimizedSheets = optimizeCuts(bom, config);
-            const assemblyOrder = generateAssemblyOrder(config, bom);
 
             // Update 3D view
             render3DCabinet(config);
 
             // Update calculated dimensions with equations
             const calcDiv = document.getElementById('calculated-dimensions');
+            if (!calcDiv) {
+                console.error('calculated-dimensions div not found');
+                return;
+            }
+
             const user_inputs = buildUserInputs(config, calc);
 
             // Evaluate calculated values and add to user_inputs for display
@@ -2328,22 +2054,6 @@
             cutHTML += '</div>';
             cutDiv.innerHTML = cutHTML;
 
-            // Update assembly order
-            const assemblyDiv = document.getElementById('assembly-order');
-            let assemblyHTML = '';
-
-            assemblyOrder.forEach(step => {
-                assemblyHTML += `
-                    <div class="assembly-step">
-                        <h4>Step ${step.step}: ${step.title}</h4>
-                        <p>${step.description}</p>
-                        <p><strong>Required pieces:</strong> ${step.pieces.join(', ')}</p>
-                    </div>
-                `;
-            });
-
-            assemblyDiv.innerHTML = assemblyHTML;
-
             // Update debug output
             generateDebugOutput();
         }
@@ -2351,15 +2061,6 @@
         // Toggle back stretcher input based on backing style
         function setupBackingStyleHandler() {
             const backingSelect = document.getElementById('backing_style');
-            const backStretcherGroup = document.getElementById('back_stretcher_group');
-
-            function updateBackStretcherVisibility() {
-                if (backingSelect.value === 'stretcher') {
-                    backStretcherGroup.style.display = 'block';
-                } else {
-                    backStretcherGroup.style.display = 'none';
-                }
-            }
 
             function updateBackingComponents(newStyle) {
                 // Remove all backing-related components from all rows
@@ -2392,13 +2093,11 @@
             }
 
             backingSelect.addEventListener('change', () => {
-                updateBackStretcherVisibility();
                 updateBackingComponents(backingSelect.value);
                 renderPlywoodTable(); // Re-render to update available components
                 calculate();
             });
 
-            updateBackStretcherVisibility();
             updateBackingComponents(backingSelect.value); // Initialize on load
         }
 
@@ -2453,6 +2152,11 @@
 
         // Debug mode handler
         function generateDebugOutput() {
+            if (!equations || !equations.calculated) {
+                console.error('equations not loaded yet');
+                return;
+            }
+
             const config = getInputValues();
             const calc = calculateDimensions(config);
             const user_inputs = buildUserInputs(config, calc);
@@ -2461,6 +2165,10 @@
             evaluateCalculatedValues(equations.calculated, user_inputs);
 
             const debugDiv = document.getElementById('debug-output');
+            if (!debugDiv) {
+                console.error('debug-output div not found');
+                return;
+            }
             debugDiv.innerHTML = renderDebugOutput(user_inputs, config);
         }
 
@@ -2496,7 +2204,42 @@
         }
 
         // Initialize
-        window.addEventListener('load', () => {
+        window.addEventListener('load', async () => {
+            // Load configuration files before initializing
+            try {
+                await loadEquations();
+                await loadInputs();
+            } catch (error) {
+                console.error('Failed to load configuration files:', error);
+                document.body.innerHTML = `
+                    <div style="padding: 40px; max-width: 800px; margin: 0 auto; font-family: system-ui;">
+                        <h1 style="color: #c00;">⚠️ Configuration Error</h1>
+                        <p style="font-size: 16px; line-height: 1.6;">
+                            Failed to load configuration files (equations.json, inputs.json).
+                        </p>
+                        <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
+                            <strong>📌 Important:</strong> This application must be served via HTTP, not opened directly as a file.
+                        </div>
+                        <h3>How to run:</h3>
+                        <div style="background: #f5f5f5; padding: 15px; border-radius: 4px; font-family: monospace; margin: 10px 0;">
+                            ./serve.sh
+                        </div>
+                        <p style="font-size: 14px; color: #666;">
+                            Or manually: <code style="background: #f5f5f5; padding: 2px 6px;">python3 -m http.server 8000</code>
+                            <br>Then open: <a href="http://localhost:8000">http://localhost:8000</a>
+                        </p>
+                        <details style="margin-top: 20px;">
+                            <summary style="cursor: pointer; color: #666;">Technical details</summary>
+                            <pre style="background: #f5f5f5; padding: 10px; overflow: auto; font-size: 12px;">${error.toString()}</pre>
+                        </details>
+                    </div>
+                `;
+                return;
+            }
+
+            // Generate inputs from config
+            generateInputs();
+
             initThreeJS();
             initPlywoodTable();
             setupBackingStyleHandler();
@@ -2520,420 +2263,6 @@
             renderer.setSize(container.clientWidth, container.clientHeight);
         });
 
-        // ============= TEST SUITE =============
-
-        // Helper function to get config for tests (without requiring DOM)
-        function getConfig() {
-            return {
-                dim_w: 25.0,
-                dim_h: 37.0,
-                dim_d: 21.0,
-                dim_railing_w: 1.0,
-                num_drawers: 3,
-                dim_drawer_stretcher: 2.0,
-                dim_back_stretcher: 4.0,
-                sheet_w: 48.0,
-                sheet_h: 96.0,
-                kerf: 0.125,
-                backing_style: 'stretcher',
-                drawer_clearance: 0.0625,
-                plywoodData: plywoodData
-            };
-        }
-
-        class TestRunner {
-            constructor() {
-                this.tests = [];
-                this.results = [];
-            }
-
-            test(name, fn) {
-                this.tests.push({ name, fn });
-            }
-
-            assertEqual(actual, expected, message = '') {
-                const passed = Math.abs(actual - expected) < 0.01;
-                if (!passed) {
-                    throw new Error(`Expected ${expected}, got ${actual}. ${message}`);
-                }
-            }
-
-            assertDeepEqual(actual, expected, message = '') {
-                const actualStr = JSON.stringify(actual);
-                const expectedStr = JSON.stringify(expected);
-                if (actualStr !== expectedStr) {
-                    throw new Error(`Expected ${expectedStr}, got ${actualStr}. ${message}`);
-                }
-            }
-
-            assertTrue(condition, message = '') {
-                if (!condition) {
-                    throw new Error(`Assertion failed: ${message}`);
-                }
-            }
-
-            run() {
-                this.results = [];
-                let passed = 0;
-                let failed = 0;
-
-                for (const test of this.tests) {
-                    try {
-                        test.fn(this);
-                        this.results.push({ name: test.name, status: 'PASS', error: null });
-                        passed++;
-                    } catch (e) {
-                        this.results.push({ name: test.name, status: 'FAIL', error: e.message });
-                        failed++;
-                    }
-                }
-
-                return { passed, failed, results: this.results };
-            }
-
-            displayResults() {
-                const output = document.getElementById('test-output');
-                const { passed, failed, results } = this.run();
-
-                let html = `<div style="margin-bottom: 10px; padding: 10px; background: ${failed === 0 ? '#e8f5e9' : '#ffebee'}; border-radius: 4px;">`;
-                html += `<strong>Results: ${passed} passed, ${failed} failed</strong>`;
-                html += `</div>`;
-
-                for (const result of results) {
-                    const color = result.status === 'PASS' ? '#4CAF50' : '#f44336';
-                    html += `<div style="padding: 8px; margin: 4px 0; background: #f5f5f5; border-left: 4px solid ${color};">`;
-                    html += `<span style="color: ${color}; font-weight: bold;">[${result.status}]</span> ${result.name}`;
-                    if (result.error) {
-                        html += `<div style="color: #c62828; margin-top: 4px; font-size: 11px;">${result.error}</div>`;
-                    }
-                    html += `</div>`;
-                }
-
-                output.innerHTML = html;
-            }
-        }
-
-        function runAllTests() {
-            const runner = new TestRunner();
-
-            // Test 1: evaluateExpr basic math
-            runner.test('evaluateExpr - basic math', (t) => {
-                const inputs = { a: 10, b: 5 };
-                t.assertEqual(evaluateExpr('a + b', inputs), 15, 'Addition');
-                t.assertEqual(evaluateExpr('a - b', inputs), 5, 'Subtraction');
-                t.assertEqual(evaluateExpr('a * b', inputs), 50, 'Multiplication');
-                t.assertEqual(evaluateExpr('a / b', inputs), 2, 'Division');
-            });
-
-            // Test 2: evaluateExpr complex expressions
-            runner.test('evaluateExpr - complex expressions', (t) => {
-                const inputs = { dim_w: 25, ply_carcass: 0.75, dim_railing_w: 1.0 };
-                const result = evaluateExpr('dim_w - 2 * (ply_carcass + dim_railing_w)', inputs);
-                t.assertEqual(result, 21.5, 'Complex nested expression');
-            });
-
-            // Test 3: buildEquationString formatting
-            runner.test('buildEquationString - format output', (t) => {
-                const inputs = { dim_h: 37, ply_carcass: 0.75 };
-                const output = buildEquationString('dim_h - ply_carcass', inputs);
-                t.assertTrue(output.includes('dim_h - ply_carcass'), 'Contains original expression');
-                t.assertTrue(output.includes('37'), 'Contains dim_h value');
-                t.assertTrue(output.includes('0.75'), 'Contains ply_carcass value');
-                t.assertTrue(output.includes('36.25'), 'Contains result');
-            });
-
-            // Test 4: buildUserInputs creates all required fields
-            runner.test('buildUserInputs - all fields present', (t) => {
-                const config = getConfig();
-                const calc = calculateDimensions(config);
-                const inputs = buildUserInputs(config, calc);
-
-                t.assertTrue(inputs.hasOwnProperty('dim_w'), 'Has dim_w');
-                t.assertTrue(inputs.hasOwnProperty('dim_h'), 'Has dim_h');
-                t.assertTrue(inputs.hasOwnProperty('dim_d'), 'Has dim_d');
-                t.assertTrue(inputs.hasOwnProperty('ply_carcass'), 'Has ply_carcass');
-                t.assertTrue(inputs.hasOwnProperty('drawer_width'), 'Has drawer_width');
-                t.assertTrue(inputs.hasOwnProperty('drawer_height'), 'Has drawer_height');
-                t.assertTrue(inputs.hasOwnProperty('drawer_depth'), 'Has drawer_depth');
-            });
-
-            // Test 5: calculateDimensions - drawer height
-            runner.test('calculateDimensions - drawer height', (t) => {
-                const config = {
-                    dim_w: 25, dim_h: 37, dim_d: 21,
-                    num_drawers: 3,
-                    dim_railing_w: 1.0,
-                    drawer_clearance: 0.0625,
-                    backing_style: 'stretcher'
-                };
-                const calc = calculateDimensions(config);
-                t.assertTrue(calc.drawer_height > 0, 'Drawer height is positive');
-            });
-
-            // Test 6: calculateDimensions - drawer width
-            runner.test('calculateDimensions - drawer width', (t) => {
-                const config = {
-                    dim_w: 25, dim_h: 37, dim_d: 21,
-                    num_drawers: 3,
-                    dim_railing_w: 1.0,
-                    drawer_clearance: 0.0625,
-                    backing_style: 'stretcher'
-                };
-                const calc = calculateDimensions(config);
-                // drawer_width = 25 - 2 * (0.75 + 1.0) = 21.5
-                t.assertEqual(calc.drawer_width, 21.5, 'Drawer width calculation');
-            });
-
-            // Test 7: calculateDimensions - drawer depth with backing
-            runner.test('calculateDimensions - drawer depth with backing', (t) => {
-                const config = {
-                    dim_w: 25, dim_h: 37, dim_d: 21,
-                    num_drawers: 3,
-                    dim_railing_w: 1.0,
-                    drawer_clearance: 0.0625,
-                    backing_style: 'stretcher'
-                };
-                const calc = calculateDimensions(config);
-                t.assertTrue(calc.drawer_depth < 21, 'Drawer depth less than total depth');
-                t.assertTrue(calc.drawer_depth > 0, 'Drawer depth positive');
-            });
-
-            // Test 8: BOM generation - correct number of items
-            runner.test('BOM generation - item count', (t) => {
-                const config = getConfig();
-                const calc = calculateDimensions(config);
-                const bom = generateBOM(config, calc);
-
-                t.assertTrue(bom.length > 0, 'BOM has items');
-                t.assertTrue(bom.every(item => item.id > 0), 'All items have IDs');
-                t.assertTrue(bom.every(item => item.item), 'All items have names');
-                t.assertTrue(bom.every(item => item.width > 0), 'All items have width');
-                t.assertTrue(bom.every(item => item.height > 0), 'All items have height');
-            });
-
-            // Test 9: BOM generation - equations present
-            runner.test('BOM generation - equations present', (t) => {
-                const config = getConfig();
-                const calc = calculateDimensions(config);
-                const bom = generateBOM(config, calc);
-
-                t.assertTrue(bom.every(item => item.equation), 'All items have equations');
-                t.assertTrue(bom.every(item => item.equation.includes('W:')), 'Equations have width');
-                t.assertTrue(bom.every(item => item.equation.includes('H:')), 'Equations have height');
-            });
-
-            // Test 10: BOM generation - backing style conditions
-            runner.test('BOM generation - backing style full', (t) => {
-                const config = { ...getConfig(), backing_style: 'full' };
-                const calc = calculateDimensions(config);
-                const bom = generateBOM(config, calc);
-
-                const hasFullBack = bom.some(item => item.item === 'Carcass back');
-                const hasStretchers = bom.some(item => item.item === 'Back stretchers (top & bottom)');
-                t.assertTrue(hasFullBack, 'Has full back panel');
-                t.assertTrue(!hasStretchers, 'No back stretchers with full back');
-            });
-
-            // Test 11: BOM generation - backing style stretcher
-            runner.test('BOM generation - backing style stretcher', (t) => {
-                const config = { ...getConfig(), backing_style: 'stretcher' };
-                const calc = calculateDimensions(config);
-                const bom = generateBOM(config, calc);
-
-                const hasFullBack = bom.some(item => item.item === 'Carcass back');
-                const hasStretchers = bom.some(item => item.item === 'Back stretchers (top & bottom)');
-                t.assertTrue(!hasFullBack, 'No full back panel');
-                t.assertTrue(hasStretchers, 'Has back stretchers');
-            });
-
-            // Test 12: BOM generation - drawer quantities
-            runner.test('BOM generation - drawer quantities', (t) => {
-                const config = { ...getConfig(), num_drawers: 3 };
-                const calc = calculateDimensions(config);
-                const bom = generateBOM(config, calc);
-
-                const drawerSides = bom.find(item => item.item === 'Drawer sides');
-                const drawerBottom = bom.find(item => item.item === 'Drawer bottom');
-
-                t.assertEqual(drawerSides.quantity, 6, 'Drawer sides: 2 per drawer * 3 drawers');
-                t.assertEqual(drawerBottom.quantity, 3, 'Drawer bottoms: 1 per drawer');
-            });
-
-            // Test 13: Equations structure - all panels have required fields
-            runner.test('Equations structure - panel definitions', (t) => {
-                for (const [key, panel] of Object.entries(equations.panels)) {
-                    t.assertTrue(panel.dimensions, `${key} has dimensions`);
-                    t.assertTrue(panel.dimensions.width, `${key} has width`);
-                    t.assertTrue(panel.dimensions.height, `${key} has height`);
-                    t.assertTrue(panel.dimensions.thickness, `${key} has thickness`);
-
-                    if (panel.bom) {
-                        t.assertTrue(panel.bom.item, `${key} BOM has item name`);
-                        t.assertTrue(panel.bom.quantity !== undefined, `${key} BOM has quantity`);
-                    }
-                }
-            });
-
-            // Test 14: Interior dimensions calculation
-            runner.test('Interior dimensions - correct calculations', (t) => {
-                const config = {
-                    dim_w: 25, dim_h: 37, dim_d: 21,
-                    num_drawers: 3,
-                    dim_railing_w: 1.0,
-                    drawer_clearance: 0.0625,
-                    backing_style: 'none'
-                };
-                const calc = calculateDimensions(config);
-
-                t.assertTrue(calc.interior_width < config.dim_w, 'Interior width less than total');
-                t.assertTrue(calc.interior_height < config.dim_h, 'Interior height less than total');
-                t.assertTrue(calc.interior_height > config.dim_h - 2, 'Interior height only subtracts top');
-            });
-
-            // Test 15: Drawer clearance not in drawer width
-            runner.test('Drawer clearance - not in drawer_width', (t) => {
-                const config = {
-                    dim_w: 25, dim_h: 37, dim_d: 21,
-                    num_drawers: 3,
-                    dim_railing_w: 1.0,
-                    drawer_clearance: 0.125,
-                    backing_style: 'stretcher'
-                };
-                const calc = calculateDimensions(config);
-                const inputs = buildUserInputs(config, calc);
-
-                const expected = config.dim_w - 2 * (inputs.ply_carcass + config.dim_railing_w);
-                t.assertEqual(calc.drawer_width, expected, 'Drawer width does not include clearance');
-            });
-
-            // Test 16: Calculated array structure exists
-            runner.test('equations.calculated is array with required fields', (t) => {
-                t.assertTrue(Array.isArray(equations.calculated), 'calculated is an array');
-                t.assertTrue(equations.calculated.length > 0, 'calculated has items');
-
-                for (const item of equations.calculated) {
-                    t.assertTrue(item.hasOwnProperty('label'), 'Item has label');
-                    t.assertTrue(item.hasOwnProperty('width'), 'Item has width');
-                    t.assertTrue(item.hasOwnProperty('height'), 'Item has height');
-                    t.assertTrue(item.hasOwnProperty('depth'), 'Item has depth');
-                }
-            });
-
-            // Test 17: Nested dimension structure created
-            runner.test('user_inputs has nested dimension objects', (t) => {
-                const config = {
-                    dim_w: 25, dim_h: 37, dim_d: 21,
-                    num_drawers: 3,
-                    backing_style: 'stretcher'
-                };
-                const calc = calculateDimensions(config);
-                const inputs = buildUserInputs(config, calc);
-                evaluateCalculatedValues(equations.calculated, inputs);
-
-                t.assertTrue(inputs.hasOwnProperty('overall'), 'Has overall object');
-                t.assertTrue(inputs.hasOwnProperty('interior'), 'Has interior object');
-                t.assertTrue(inputs.hasOwnProperty('drawer'), 'Has drawer object');
-
-                t.assertTrue(inputs.overall.hasOwnProperty('width'), 'overall has width');
-                t.assertTrue(inputs.overall.hasOwnProperty('height'), 'overall has height');
-                t.assertTrue(inputs.overall.hasOwnProperty('depth'), 'overall has depth');
-
-                t.assertEqual(inputs.overall.width, 25, 'overall.width matches dim_w');
-                t.assertEqual(inputs.overall.height, 37, 'overall.height matches dim_h');
-                t.assertEqual(inputs.overall.depth, 21, 'overall.depth matches dim_d');
-            });
-
-            // Test 18: Backward compatibility flat aliases exist
-            runner.test('Flat dimension aliases for backward compatibility', (t) => {
-                const config = {
-                    dim_w: 25, dim_h: 37, dim_d: 21,
-                    num_drawers: 3,
-                    backing_style: 'stretcher'
-                };
-                const calc = calculateDimensions(config);
-                const inputs = buildUserInputs(config, calc);
-                evaluateCalculatedValues(equations.calculated, inputs);
-
-                t.assertTrue(inputs.hasOwnProperty('drawer_width'), 'Has drawer_width flat alias');
-                t.assertTrue(inputs.hasOwnProperty('drawer_height'), 'Has drawer_height flat alias');
-                t.assertTrue(inputs.hasOwnProperty('drawer_depth'), 'Has drawer_depth flat alias');
-
-                t.assertEqual(inputs.drawer_width, inputs.drawer.width, 'drawer_width matches drawer.width');
-                t.assertEqual(inputs.drawer_height, inputs.drawer.height, 'drawer_height matches drawer.height');
-                t.assertEqual(inputs.drawer_depth, inputs.drawer.depth, 'drawer_depth matches drawer.depth');
-            });
-
-            // Test 19: Interior dimensions calculated correctly
-            runner.test('Interior dimensions subtract carcass thickness', (t) => {
-                const config = {
-                    dim_w: 25, dim_h: 37, dim_d: 21,
-                    num_drawers: 3,
-                    backing_style: 'stretcher'
-                };
-                const calc = calculateDimensions(config);
-                const inputs = buildUserInputs(config, calc);
-                evaluateCalculatedValues(equations.calculated, inputs);
-
-                const expectedWidth = 25 - 2 * inputs.ply_carcass;
-                const expectedHeight = 37 - inputs.ply_carcass;
-
-                t.assertEqual(inputs.interior.width, expectedWidth, 'Interior width subtracts both sides');
-                t.assertEqual(inputs.interior.height, expectedHeight, 'Interior height subtracts top only');
-                t.assertTrue(inputs.interior.depth < 21, 'Interior depth accounts for backing');
-            });
-
-            // Test 20: Drawer dimensions include railing width
-            runner.test('Drawer dimensions account for railings', (t) => {
-                const config = {
-                    dim_w: 25, dim_h: 37, dim_d: 21,
-                    num_drawers: 3,
-                    dim_railing_w: 1.0,
-                    backing_style: 'stretcher'
-                };
-                const calc = calculateDimensions(config);
-                const inputs = buildUserInputs(config, calc);
-                evaluateCalculatedValues(equations.calculated, inputs);
-
-                const expectedWidth = 25 - 2 * (inputs.ply_carcass + 1.0);
-                t.assertEqual(inputs.drawer.width, expectedWidth, 'Drawer width accounts for railings');
-                t.assertTrue(inputs.drawer.width < inputs.interior.width, 'Drawer narrower than interior');
-            });
-
-            // Test 21: 3D orientation flags are correctly set
-            runner.test('viz3d orientation flags set correctly', (t) => {
-                // Horizontal components
-                t.assertEqual(equations.panels.carcass_top.viz3d.orientation, 'horizontal', 'carcass_top is horizontal');
-                t.assertEqual(equations.panels.drawer_stretchers.viz3d.orientation, 'horizontal', 'drawer_stretchers are horizontal');
-                t.assertEqual(equations.panels.drawer_bottom.viz3d.orientation, 'horizontal', 'drawer_bottom is horizontal');
-
-                // Vertical components
-                t.assertEqual(equations.panels.back_stretchers.viz3d.orientation, 'vertical', 'back_stretchers are vertical');
-                t.assertEqual(equations.panels.carcass_back_full.viz3d.orientation, 'vertical', 'carcass_back_full is vertical');
-                t.assertEqual(equations.panels.carcass_back_inlay.viz3d.orientation, 'vertical', 'carcass_back_inlay is vertical');
-                t.assertEqual(equations.panels.drawer_front_back.viz3d.orientation, 'vertical', 'drawer_front_back is vertical');
-
-                // Rotated components
-                t.assertEqual(equations.panels.carcass_sides.viz3d.orientation, 'rotated', 'carcass_sides are rotated');
-                t.assertEqual(equations.panels.drawer_sides.viz3d.orientation, 'rotated', 'drawer_sides are rotated');
-            });
-
-            // Test 22: All panels with viz3d have orientation defined
-            runner.test('All viz3d panels have orientation', (t) => {
-                for (const [panelKey, panel] of Object.entries(equations.panels)) {
-                    if (panel.viz3d) {
-                        t.assertTrue(
-                            panel.viz3d.orientation === 'horizontal' ||
-                            panel.viz3d.orientation === 'vertical' ||
-                            panel.viz3d.orientation === 'rotated' ||
-                            panelKey === 'drawer_railings', // railings have special handling
-                            `${panelKey} has valid orientation`
-                        );
-                    }
-                }
-            });
-
-            runner.displayResults();
-        }
     </script>
 </body>
 </html>

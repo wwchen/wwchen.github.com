@@ -1,0 +1,308 @@
+{
+  "panels": {
+    "carcass_sides": {
+      "dimensions": {
+        "width": "dim_d",
+        "height": "dim_h - ply_carcass",
+        "thickness": "ply_carcass"
+      },
+      "bom": {
+        "item": "Carcass sides",
+        "quantity": 2
+      },
+      "viz3d": {
+        "color": 13808780,
+        "orientation": "rotated",
+        "instances": [
+          {
+            "x": "ply_carcass / 2",
+            "y": "(dim_h - ply_carcass) / 2",
+            "z": "dim_d / 2"
+          },
+          {
+            "x": "dim_w - ply_carcass / 2",
+            "y": "(dim_h - ply_carcass) / 2",
+            "z": "dim_d / 2"
+          }
+        ]
+      }
+    },
+    "carcass_top": {
+      "dimensions": {
+        "width": "dim_w",
+        "height": "dim_d",
+        "thickness": "ply_carcass"
+      },
+      "bom": {
+        "item": "Carcass top",
+        "quantity": 1
+      },
+      "viz3d": {
+        "color": 12687979,
+        "orientation": "horizontal",
+        "instances": [
+          {
+            "x": "dim_w / 2",
+            "y": "dim_h - ply_carcass / 2",
+            "z": "dim_d / 2"
+          }
+        ]
+      }
+    },
+    "carcass_back_full": {
+      "dimensions": {
+        "width": "dim_w - 2 * ply_carcass",
+        "height": "dim_h - 2 * ply_carcass",
+        "thickness": "ply_carcass_back"
+      },
+      "bom": {
+        "item": "Carcass back",
+        "quantity": 1,
+        "condition": "backing_style === \"full\""
+      },
+      "viz3d": {
+        "color": 10519149,
+        "orientation": "vertical",
+        "condition": "backing_style === \"full\"",
+        "instances": [
+          {
+            "x": "dim_w / 2",
+            "y": "ply_carcass + (dim_h - 2 * ply_carcass) / 2",
+            "z": "dim_d - ply_carcass_back / 2"
+          }
+        ]
+      }
+    },
+    "carcass_back_inlay": {
+      "dimensions": {
+        "width": "dim_w - 2 * ply_carcass",
+        "height": "dim_h - 2 * ply_carcass",
+        "thickness": "ply_carcass_back"
+      },
+      "bom": {
+        "item": "Carcass back (routed inlay)",
+        "quantity": 1,
+        "condition": "backing_style === \"inlay\""
+      },
+      "viz3d": {
+        "color": 10519149,
+        "orientation": "vertical",
+        "condition": "backing_style === \"inlay\"",
+        "instances": [
+          {
+            "x": "dim_w / 2",
+            "y": "ply_carcass + (dim_h - 2 * ply_carcass) / 2",
+            "z": "dim_d - ply_carcass_back / 2"
+          }
+        ]
+      }
+    },
+    "back_stretchers": {
+      "dimensions": {
+        "width": "dim_w - 2 * ply_carcass",
+        "height": "dim_back_stretcher",
+        "thickness": "ply_back_stretcher"
+      },
+      "bom": {
+        "item": "Back stretchers (top & bottom)",
+        "quantity": 2,
+        "condition": "backing_style === \"stretcher\""
+      },
+      "viz3d": {
+        "color": 13808780,
+        "orientation": "vertical",
+        "condition": "backing_style === \"stretcher\"",
+        "instances": [
+          {
+            "x": "dim_w / 2",
+            "y": "dim_h - ply_carcass - dim_back_stretcher / 2",
+            "z": "dim_d - ply_back_stretcher / 2"
+          },
+          {
+            "x": "dim_w / 2",
+            "y": "ply_carcass + dim_back_stretcher / 2",
+            "z": "dim_d - ply_back_stretcher / 2"
+          }
+        ]
+      }
+    },
+    "drawer_stretchers": {
+      "dimensions": {
+        "width": "dim_w - 2 * ply_carcass",
+        "height": "dim_drawer_stretcher",
+        "thickness": "ply_drawer_stretcher"
+      },
+      "bom": {
+        "item": "Drawer stretchers (front & back)",
+        "quantity": "num_drawers * 2"
+      },
+      "viz3d": {
+        "color": 13808780,
+        "orientation": "horizontal",
+        "loop": "num_drawers",
+        "stretcherDepth": "dim_drawer_stretcher",
+        "instances": [
+          {
+            "x": "dim_w / 2",
+            "y": "i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher / 2",
+            "z": "ply_drawer_face + dim_drawer_stretcher / 2"
+          },
+          {
+            "x": "dim_w / 2",
+            "y": "i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher / 2",
+            "z": "dim_d - dim_drawer_stretcher / 2"
+          }
+        ]
+      }
+    },
+    "drawer_sides": {
+      "dimensions": {
+        "width": "drawer_depth",
+        "height": "drawer_height - ply_bottom",
+        "thickness": "ply_drawer"
+      },
+      "bom": {
+        "item": "Drawer sides",
+        "quantity": "2 * num_drawers"
+      },
+      "viz3d": {
+        "color": 16113331,
+        "orientation": "rotated",
+        "loop": "num_drawers",
+        "instances": [
+          {
+            "x": "ply_carcass + dim_railing_w + ply_drawer / 2",
+            "y": "i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + (drawer_height - ply_bottom) / 2",
+            "z": "ply_drawer_face + drawer_depth / 2"
+          },
+          {
+            "x": "dim_w - ply_carcass - dim_railing_w - ply_drawer / 2",
+            "y": "i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + (drawer_height - ply_bottom) / 2",
+            "z": "ply_drawer_face + drawer_depth / 2"
+          }
+        ]
+      }
+    },
+    "drawer_front_back": {
+      "dimensions": {
+        "width": "drawer_width - 2 * ply_drawer",
+        "height": "drawer_height - ply_bottom",
+        "thickness": "ply_drawer"
+      },
+      "bom": {
+        "item": "Drawer front/back",
+        "quantity": "2 * num_drawers"
+      },
+      "viz3d": {
+        "color": 16115411,
+        "orientation": "vertical",
+        "loop": "num_drawers",
+        "instances": [
+          {
+            "x": "dim_w / 2",
+            "y": "i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + (drawer_height - ply_bottom) / 2",
+            "z": "ply_drawer_face + ply_drawer / 2"
+          },
+          {
+            "x": "dim_w / 2",
+            "y": "i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + (drawer_height - ply_bottom) / 2",
+            "z": "ply_drawer_face + drawer_depth - ply_drawer / 2"
+          }
+        ]
+      }
+    },
+    "drawer_bottom": {
+      "dimensions": {
+        "width": "drawer_width",
+        "height": "drawer_depth",
+        "thickness": "ply_bottom"
+      },
+      "bom": {
+        "item": "Drawer bottom",
+        "quantity": "num_drawers"
+      },
+      "viz3d": {
+        "color": 15128515,
+        "orientation": "horizontal",
+        "loop": "num_drawers",
+        "instances": [
+          {
+            "x": "dim_w / 2",
+            "y": "i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + ply_bottom / 2",
+            "z": "ply_drawer_face + drawer_depth / 2"
+          }
+        ]
+      }
+    },
+    "drawer_faces": {
+      "dimensions": {
+        "width": "dim_w - 2 * ply_carcass - 2 * drawer_clearance",
+        "height": "drawer_height - 2 * drawer_clearance",
+        "thickness": "ply_drawer_face"
+      },
+      "bom": {
+        "item": "Drawer faces",
+        "quantity": "num_drawers",
+        "condition": "drawer_face_enabled && ply_drawer_face > 0"
+      },
+      "viz3d": {
+        "color": 9127187,
+        "condition": "drawer_face_enabled && ply_drawer_face > 0",
+        "loop": "num_drawers",
+        "instances": [
+          {
+            "x": "dim_w / 2",
+            "y": "i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + drawer_clearance + (drawer_height - 2 * drawer_clearance) / 2",
+            "z": "ply_drawer_face / 2"
+          }
+        ]
+      }
+    },
+    "drawer_railings": {
+      "dimensions": {
+        "width": "dim_railing_w",
+        "height": "2.0",
+        "thickness": "ply_carcass"
+      },
+      "viz3d": {
+        "color": 12632256,
+        "loop": "num_drawers",
+        "instances": [
+          {
+            "x": "ply_carcass + dim_railing_w / 2",
+            "y": "i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + 1.0 + 1.0",
+            "z": "ply_drawer_face + drawer_depth / 2"
+          },
+          {
+            "x": "dim_w - ply_carcass - dim_railing_w / 2",
+            "y": "i * (drawer_height + ply_drawer_stretcher) + ply_drawer_stretcher + 1.0 + 1.0",
+            "z": "ply_drawer_face + drawer_depth / 2"
+          }
+        ]
+      }
+    }
+  },
+  "calculated": [
+    {
+      "key": "overall",
+      "label": "Carcass Total (W×H×D)",
+      "width": "dim_w",
+      "height": "dim_h",
+      "depth": "dim_d"
+    },
+    {
+      "key": "interior",
+      "label": "Interior (W×H×D)",
+      "width": "dim_w - 2 * ply_carcass",
+      "height": "dim_h - ply_carcass",
+      "depth": "dim_d - ply_drawer_face - ply_back_thickness"
+    },
+    {
+      "key": "drawer",
+      "label": "Drawer Box (W×H×D)",
+      "width": "dim_w - 2 * (ply_carcass + dim_railing_w)",
+      "height": "(dim_h - ply_carcass - num_drawers * ply_drawer_stretcher) / num_drawers",
+      "depth": "dim_d - ply_drawer_face - ply_back_thickness"
+    }
+  ]
+}

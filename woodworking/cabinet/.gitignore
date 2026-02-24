@@ -23,6 +23,10 @@ dist/
 *.jpeg
 *.gif
 
+# Config files (keep test configs)
+*_config.json
+!test_configs.json
+
 # macOS
 .DS_Store
 .AppleDouble
@@ -46,6 +50,7 @@ dist/
 Network Trash Folder
 Temporary Items
 .apdisk
+.DS_Store
 
 # IDEs
 .vscode/
