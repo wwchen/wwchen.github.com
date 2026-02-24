@@ -790,7 +790,7 @@
                 <div class="panel" id="section-optimizer">
                     <h2>Cut Optimizer</h2>
                     <div class="warning">
-                        <strong>⚠️ Cut Optimization:</strong> Sheets are optimized to minimize waste. Use scraps for smaller pieces when possible.
+                        <strong>⚠️ WIP feature:</strong> Use <a href="https://www.opticutter.com/cut-list-optimizer" target="_blank">https://www.opticutter.com/cut-list-optimizer</a> instead
                     </div>
                     <div id="cut-optimizer"></div>
                 </div>
@@ -1129,6 +1129,25 @@
         }
 
         /**
+         * STATIC: Get plywood variable name from panel
+         * Returns the plywood variable (e.g., "ply_carcass") or null
+         */
+        function getPlyVarFromPanel(panelKey) {
+            const panel = panels[panelKey];
+            if (!panel || !panel.dimensions || !panel.dimensions.thickness) {
+                return null;
+            }
+
+            const plyVar = panel.dimensions.thickness;
+            // Only return if it's a simple variable reference (not an expression)
+            if (typeof plyVar === 'string' && /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(plyVar)) {
+                return plyVar;
+            }
+
+            return null;
+        }
+
+        /**
          * STATIC: Update plywood assignment (immutable)
          */
         function updatePlywoodAssignment(plywoodData, fromRow, toRow, component) {
@@ -1215,15 +1234,29 @@
         function mergeInputsWithVariables(variablesConfig, plywoodData) {
             const context = {};
 
-            // Only add input and plywood variables to base context
-            // Calculated variables are evaluated on-demand via recursive getValue()
+            // Add input variables
             variablesConfig.variables.forEach(v => {
                 if (v.type === 'input') {
-                    context[v.id] = getDOMValue(v.id);  // VIEW layer
-                } else if (v.type === 'plywood') {
-                    context[v.id] = getPlywoodThickness(v.component, plywoodData);  // MODEL layer
+                    context[v.id] = getDOMValue(v.id);
                 }
-                // Skip calculated - evaluated on-demand
+            });
+
+            // Map plywood variables from plywood table
+            // Each panel defines which plywood variable it uses via dimensions.thickness
+            plywoodData.forEach(row => {
+                row.components.forEach(panelKey => {
+                    const plyVar = getPlyVarFromPanel(panelKey);
+                    if (plyVar) {
+                        context[plyVar] = row.thickness;
+                    }
+                });
+            });
+
+            // Set default values for any plywood variables not assigned
+            variablesConfig.variables.forEach(v => {
+                if (v.type === 'plywood' && !(v.id in context)) {
+                    context[v.id] = v.value;
+                }
             });
 
             return context;
