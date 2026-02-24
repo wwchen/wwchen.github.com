@@ -1565,13 +1565,13 @@
             csv += '@,Length,Width,Quantity,Grain direction\n';
             const sheetArea = context.sheet_w * context.sheet_h;
             const sheetsNeeded = Math.ceil(totalArea / sheetArea);
-            csv += `S,${context.sheet_w.toFixed(2)}″,${context.sheet_h.toFixed(2)}″,${sheetsNeeded},\n`;
+            csv += `S,${context.sheet_w}″,${context.sheet_h}″,${sheetsNeeded},\n`;
 
             // Panel section (cuts)
             csv += '@,Length,Width,Quantity,Grain direction,Label\n';
             filteredBOM.forEach(item => {
                 const label = item.item.replace(/,/g, ';'); // Escape commas
-                csv += `P,${item.width.toFixed(2)}″,${item.height.toFixed(2)}″,${item.quantity},,${label}\n`;
+                csv += `P,${item.width}″,${item.height}″,${item.quantity},,${label}\n`;
             });
 
             // Download CSV
