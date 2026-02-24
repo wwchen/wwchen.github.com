@@ -133,19 +133,6 @@ function testGetPlywoodForComponentFallback() {
     }
 }
 
-function testPanelComponentNameMapping() {
-    assert(getPanelComponentName('drawer_stretchers') === 'drawer_stretcher',
-           "Plural to singular: drawer_stretchers");
-    assert(getPanelComponentName('back_stretchers') === 'back_stretcher',
-           "Plural to singular: back_stretchers");
-    assert(getPanelComponentName('drawer_front_back') === 'drawer_sides',
-           "Alias mapping: drawer_front_back");
-    assert(getPanelComponentName('drawer_faces') === 'drawer_face',
-           "Plural to singular: drawer_faces");
-    assert(getPanelComponentName('carcass_sides') === 'carcass_sides',
-           "Identity mapping: carcass_sides");
-}
-
 // ============= TEST SUITE 3: Calculated Dimensions =============
 
 function testCalculateDimensionsDefault() {
@@ -446,7 +433,6 @@ async function runAllTests() {
     console.log('\n🪵 Suite 2: Plywood Component Mapping');
     runTest('getPlywoodForComponent - basic', testGetPlywoodForComponentBasic);
     runTest('getPlywoodForComponent - fallback', testGetPlywoodForComponentFallback);
-    runTest('Panel component name mapping', testPanelComponentNameMapping);
 
     // Suite 3: Calculated Dimensions
     console.log('\n📐 Suite 3: Calculated Dimensions');

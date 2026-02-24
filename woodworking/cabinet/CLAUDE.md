@@ -47,23 +47,15 @@ Updates: BOM → Cut Optimizer → 3D Viz → Calculated Dimensions → Debug
 
 ## Critical Concepts
 
-### 1. Panel Key vs Component Name Mapping
+### 1. Panel Keys and Component Names
 
-**Problem:** `equations.json` uses plural panel keys (e.g., `drawer_stretchers`, `back_stretchers`) but the plywood table stores singular component names (e.g., `drawer_stretcher`, `back_stretcher`).
+Panel keys in `equations.json` directly correspond to component names used in the plywood table. For example:
+- `drawer_stretcher` - Panel key and component name
+- `back_stretcher` - Panel key and component name
+- `drawer_face` - Panel key and component name
+- `drawer_front_back` - Separate from `drawer_sides` (different dimensions)
 
-**Solution:** `getPanelComponentName()` function maps between them:
-
-```javascript
-// Panel key → Component name
-'drawer_stretchers' → 'drawer_stretcher'
-'back_stretchers' → 'back_stretcher'
-'drawer_front_back' → 'drawer_sides'
-'drawer_faces' → 'drawer_face'
-```
-
-Used by:
-- `getAvailableComponents()` - For plywood table UI
-- `generateBOM()` - For looking up plywood thickness/material
+The code uses panel keys directly - no mapping needed.
 
 ### 2. 3D Coordinate System and Orientation
 
@@ -170,9 +162,7 @@ plywoodData = [
 }
 ```
 
-2. If new component name, add to `getPanelComponentName()` mapping if needed
-
-3. UI automatically picks it up - no code changes needed!
+2. UI automatically picks it up - no code changes needed!
 
 ### Adding a New Input
 
@@ -230,7 +220,7 @@ Conditional visibility:
 5. **Removed assembly section** → Simplified UI
 6. **Removed test suite UI** → External tests only (tests.js placeholder exists)
 7. **Consolidated test configs** → Single `test_configs.json` with multiple scenarios
-8. **Fixed panel key mapping** → Created `getPanelComponentName()` to handle plural→singular
+8. **Unified naming** → Panel keys match component names directly (no mapping layer)
 
 ### Current State
 
@@ -241,18 +231,16 @@ Conditional visibility:
 
 ## Known Gotchas
 
-### 1. Plywood Component Names Must Match
+### 1. Panel Keys = Component Names
 
-The component names in `plywoodData[]` must match what `getAvailableComponents()` returns (after mapping through `getPanelComponentName()`).
+Panel keys in `equations.json` are used directly as component names in `plywoodData[]`. They must match exactly:
 
-**Wrong:**
 ```javascript
-components: ['drawer_stretchers']  // Panel key
-```
+// In equations.json
+"drawer_stretcher": { ... }
 
-**Right:**
-```javascript
-components: ['drawer_stretcher']  // Component name
+// In plywoodData
+components: ['drawer_stretcher']  // Must match panel key
 ```
 
 ### 2. Must Call calculate() After Changes
@@ -350,11 +338,6 @@ buildEquationString("dim_w - 2", {dim_w: 25})
 // → "dim_w - 2 = 25 - 2 = 23.00"
 ```
 
-**`getPanelComponentName(panelKey)`** - Maps panel key to component name
-```javascript
-getPanelComponentName('drawer_stretchers') // → 'drawer_stretcher'
-```
-
 **`getPlywoodForComponent(component)`** - Finds plywood row for component
 ```javascript
 getPlywoodForComponent('drawer_stretcher')
@@ -394,7 +377,7 @@ make test
 When resuming work on this project:
 
 1. **Always check if configs are loaded** before accessing `equations` or `inputsConfig`
-2. **Use getPanelComponentName()** when working with plywood table mappings
+2. **Panel keys are component names** - use them directly, no mapping needed
 3. **Call calculate()** after any data changes
 4. **Remember the orientation system** when debugging 3D issues
 5. **Check browser console** - defensive checks log helpful errors

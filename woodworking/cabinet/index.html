@@ -1273,23 +1273,6 @@
         let plywoodData = [];
         let draggedComponent = null;
 
-        // Map panel keys to component names used in plywood table
-        function getPanelComponentName(panelKey) {
-            const componentMap = {
-                'carcass_sides': 'carcass_sides',
-                'carcass_top': 'carcass_top',
-                'carcass_back_full': 'carcass_back',
-                'carcass_back_inlay': 'carcass_back',
-                'back_stretchers': 'back_stretcher',
-                'drawer_stretchers': 'drawer_stretcher',
-                'drawer_sides': 'drawer_sides',
-                'drawer_front_back': 'drawer_sides',
-                'drawer_bottom': 'drawer_bottom',
-                'drawer_faces': 'drawer_face'
-            };
-            return componentMap[panelKey] || panelKey;
-        }
-
         function getAvailableComponents(backingStyle) {
             if (!equations || !equations.panels) {
                 console.error('equations.panels not loaded');
@@ -1315,18 +1298,15 @@
                     }
                 }
 
-                // Map panel key to component name
-                const componentName = getPanelComponentName(panelKey);
-
-                // Avoid duplicates (e.g., drawer_front_back and drawer_sides both map to drawer_sides)
-                if (seenComponents.has(componentName)) {
+                // Avoid duplicates
+                if (seenComponents.has(panelKey)) {
                     continue;
                 }
-                seenComponents.add(componentName);
+                seenComponents.add(panelKey);
 
-                // Use component name as value (what's stored in plywood table)
+                // Use panel key directly as component name
                 components.push({
-                    value: componentName,
+                    value: panelKey,
                     label: panel.bom.item
                 });
             }
@@ -1663,9 +1643,8 @@
                     if (!evaluateExpr(panel.bom.condition, user_inputs)) continue;
                 }
 
-                // Map panel key to component name for plywood lookup
-                const componentName = getPanelComponentName(panelKey);
-                const plyData = getPlywoodForComponent(componentName);
+                // Get plywood data for this panel
+                const plyData = getPlywoodForComponent(panelKey);
 
                 // Evaluate dimensions
                 const width = evaluateExpr(panel.dimensions.width, user_inputs);

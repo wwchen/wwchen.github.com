@@ -97,7 +97,7 @@
         ]
       }
     },
-    "back_stretchers": {
+    "back_stretcher": {
       "dimensions": {
         "width": "dim_w - 2 * ply_carcass",
         "height": "dim_back_stretcher",
@@ -126,7 +126,7 @@
         ]
       }
     },
-    "drawer_stretchers": {
+    "drawer_stretcher": {
       "dimensions": {
         "width": "dim_w - 2 * ply_carcass",
         "height": "dim_drawer_stretcher",
@@ -234,7 +234,7 @@
         ]
       }
     },
-    "drawer_faces": {
+    "drawer_face": {
       "dimensions": {
         "width": "dim_w - 2 * ply_carcass - 2 * drawer_clearance",
         "height": "drawer_height - 2 * drawer_clearance",
