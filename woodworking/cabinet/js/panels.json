@@ -137,12 +137,12 @@
       "loop": "num_drawers",
       "instances": [
         {
-          "x": "ply_carcass + dim_railing_w",
+          "x": "ply_carcass + dim_slides_w",
           "y": "i * (drawer_height + ply_drawer_divider) + ply_drawer_divider + ply_bottom + drawer_clearance",
           "z": "ply_drawer_face"
         },
         {
-          "x": "dim_w - ply_carcass - dim_railing_w - ply_drawer",
+          "x": "dim_w - ply_carcass - dim_slides_w - ply_drawer",
           "y": "i * (drawer_height + ply_drawer_divider) + ply_drawer_divider + ply_bottom + drawer_clearance",
           "z": "ply_drawer_face"
         }
@@ -164,12 +164,12 @@
       "loop": "num_drawers",
       "instances": [
         {
-          "x": "ply_carcass + dim_railing_w + ply_drawer",
+          "x": "ply_carcass + dim_slides_w + ply_drawer",
           "y": "i * (drawer_height + ply_drawer_divider) + ply_drawer_divider + ply_bottom + drawer_clearance",
           "z": "ply_drawer_face"
         },
         {
-          "x": "ply_carcass + dim_railing_w + ply_drawer",
+          "x": "ply_carcass + dim_slides_w + ply_drawer",
           "y": "i * (drawer_height + ply_drawer_divider) + ply_drawer_divider + ply_bottom + drawer_clearance",
           "z": "ply_drawer_face + drawer_depth - ply_drawer"
         }
@@ -191,7 +191,7 @@
       "loop": "num_drawers",
       "instances": [
         {
-          "x": "ply_carcass + dim_railing_w",
+          "x": "ply_carcass + dim_slides_w",
           "y": "i * (drawer_height + ply_drawer_divider) + ply_drawer_divider + drawer_clearance",
           "z": "ply_drawer_face"
         }
@@ -221,11 +221,11 @@
       ]
     }
   },
-  "drawer_railings": {
-    "key": "drawer_railings",
-    "name": "Drawer railings",
+  "drawer_slides": {
+    "key": "drawer_slides",
+    "name": "Drawer slides",
     "dimensions": {
-      "width": "dim_railing_w",
+      "width": "dim_slides_w",
       "height": "2.0",
       "thickness": "ply_carcass"
     },
@@ -241,7 +241,7 @@
           "z": "ply_drawer_face"
         },
         {
-          "x": "dim_w - ply_carcass - dim_railing_w",
+          "x": "dim_w - ply_carcass - dim_slides_w",
           "y": "i * (drawer_height + ply_drawer_divider) + ply_drawer_divider + 1.0",
           "z": "ply_drawer_face"
         }

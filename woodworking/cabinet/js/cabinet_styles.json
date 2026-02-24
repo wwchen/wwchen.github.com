@@ -13,7 +13,7 @@
         "drawer_front_back",
         "drawer_bottom",
         "drawer_face",
-        "drawer_railings"
+        "drawer_slides"
       ],
       "material_defaults": [
         {
@@ -58,7 +58,7 @@
         "drawer_front_back",
         "drawer_bottom",
         "drawer_face",
-        "drawer_railings"
+        "drawer_slides"
       ],
       "material_defaults": [
         {
@@ -88,7 +88,7 @@
         "drawer_front_back",
         "drawer_bottom",
         "drawer_face",
-        "drawer_railings"
+        "drawer_slides"
       ],
       "material_defaults": [
         {
@@ -117,7 +117,7 @@
         "drawer_front_back",
         "drawer_bottom",
         "drawer_face",
-        "drawer_railings"
+        "drawer_slides"
       ],
       "material_defaults": [
         {

@@ -1934,8 +1934,8 @@
 
             let boxWidth, boxHeight, boxDepth;
 
-            if (panelKey === 'drawer_railings') {
-                // Railings are special - 2" tall, extends in Z
+            if (panelKey === 'drawer_slides') {
+                // Slides are special - 2" tall, extends in Z
                 boxWidth = width;
                 boxHeight = 2.0;
                 boxDepth = getValue('drawer_depth', variablesConfig.variables, context);
@@ -2063,7 +2063,7 @@
 
             // Generate components from active panels
             for (const [panelKey, panel] of Object.entries(activePanels)) {
-                // Skip panels without quantity (e.g., drawer_railings for visualization only)
+                // Skip panels without quantity (e.g., drawer_slides for visualization only)
                 if (panel.quantity === undefined || panel.quantity === null) continue;
 
                 // Return object with value and label for UI compatibility
@@ -2471,7 +2471,7 @@
 
             // Iterate through active panels and generate BOM entries
             for (const [panelKey, panel] of Object.entries(activePanels)) {
-                // Skip panels without quantity (e.g., drawer_railings for visualization only)
+                // Skip panels without quantity (e.g., drawer_slides for visualization only)
                 if (panel.quantity === undefined || panel.quantity === null) continue;
 
                 // Skip panels that aren't assigned to any plywood row
@@ -2762,7 +2762,7 @@
                 document.getElementById('dim_w').value = config.dim_w || 25;
                 document.getElementById('dim_h').value = config.dim_h || 37;
                 document.getElementById('dim_d').value = config.dim_d || 21;
-                document.getElementById('dim_railing_w').value = config.dim_railing_w || 1;
+                document.getElementById('dim_slides_w').value = config.dim_slides_w || 1;
                 document.getElementById('num_drawers').value = config.num_drawers || 3;
                 document.getElementById('dim_drawer_divider').value = config.dim_drawer_divider || 3;
                 document.getElementById('dim_back_stretcher').value = config.dim_back_stretcher || 3;

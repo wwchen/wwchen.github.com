@@ -30,7 +30,7 @@
           "condition": "backing_style === 'stretcher'"
         },
         {
-          "variable_id": "dim_railing_w",
+          "variable_id": "dim_slides_w",
           "step": 0.125
         },
         {

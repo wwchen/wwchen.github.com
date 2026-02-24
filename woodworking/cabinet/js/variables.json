@@ -36,8 +36,8 @@
       "unit": "inch"
     },
     {
-      "id": "dim_railing_w",
-      "label": "Drawer Railing Width",
+      "id": "dim_slides_w",
+      "label": "Drawer Slides Width",
       "type": "input",
       "value": 1.00,
       "unit": "inch"
@@ -151,7 +151,7 @@
       "id": "drawer_width",
       "label": "Drawer Width",
       "type": "calculated",
-      "value": "dim_w - 2 * (ply_carcass + dim_railing_w)",
+      "value": "dim_w - 2 * (ply_carcass + dim_slides_w)",
       "unit": "inch"
     },
     {
