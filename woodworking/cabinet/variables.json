@@ -1,0 +1,200 @@
+{
+  "variables": [
+    {
+      "id": "dim_w",
+      "label": "Width",
+      "type": "input",
+      "value": 25.00,
+      "unit": "inch"
+    },
+    {
+      "id": "dim_h",
+      "label": "Height",
+      "type": "input",
+      "value": 37.00,
+      "unit": "inch"
+    },
+    {
+      "id": "dim_d",
+      "label": "Depth",
+      "type": "input",
+      "value": 21.00,
+      "unit": "inch"
+    },
+    {
+      "id": "dim_drawer_stretcher",
+      "label": "Drawer Stretcher",
+      "type": "input",
+      "value": 3.00,
+      "unit": "inch"
+    },
+    {
+      "id": "dim_back_stretcher",
+      "label": "Back Stretcher",
+      "type": "input",
+      "value": 3.00,
+      "unit": "inch"
+    },
+    {
+      "id": "dim_railing_w",
+      "label": "Drawer Railing Width",
+      "type": "input",
+      "value": 1.00,
+      "unit": "inch"
+    },
+    {
+      "id": "num_drawers",
+      "label": "Drawer Count",
+      "type": "input",
+      "value": 3,
+      "unit": "count"
+    },
+    {
+      "id": "drawer_clearance",
+      "label": "Drawer Clearance",
+      "type": "input",
+      "value": 0.125,
+      "unit": "inch"
+    },
+    {
+      "id": "backing_style",
+      "label": "Carcass Backing",
+      "type": "input",
+      "value": "stretcher",
+      "unit": "none"
+    },
+    {
+      "id": "sheet_w",
+      "label": "Sheet Width",
+      "type": "input",
+      "value": 48,
+      "unit": "inch"
+    },
+    {
+      "id": "sheet_h",
+      "label": "Sheet Height",
+      "type": "input",
+      "value": 96,
+      "unit": "inch"
+    },
+    {
+      "id": "kerf",
+      "label": "Kerf Width",
+      "type": "input",
+      "value": 0.125,
+      "unit": "inch"
+    },
+    {
+      "id": "ply_carcass",
+      "label": "Carcass Plywood Thickness",
+      "type": "plywood",
+      "value": 0.75,
+      "unit": "inch",
+      "component": "carcass_sides"
+    },
+    {
+      "id": "ply_carcass_back",
+      "label": "Carcass Back Thickness",
+      "type": "plywood",
+      "value": 0.5,
+      "unit": "inch",
+      "component": "carcass_back"
+    },
+    {
+      "id": "ply_back_stretcher",
+      "label": "Back Stretcher Thickness",
+      "type": "plywood",
+      "value": 0.75,
+      "unit": "inch",
+      "component": "back_stretcher"
+    },
+    {
+      "id": "ply_drawer",
+      "label": "Drawer Sides Thickness",
+      "type": "plywood",
+      "value": 0.5,
+      "unit": "inch",
+      "component": "drawer_sides"
+    },
+    {
+      "id": "ply_bottom",
+      "label": "Drawer Bottom Thickness",
+      "type": "plywood",
+      "value": 0.25,
+      "unit": "inch",
+      "component": "drawer_bottom"
+    },
+    {
+      "id": "ply_drawer_face",
+      "label": "Drawer Face Thickness",
+      "type": "plywood",
+      "value": 0,
+      "unit": "inch",
+      "component": "drawer_face"
+    },
+    {
+      "id": "ply_drawer_stretcher",
+      "label": "Drawer Stretcher Thickness",
+      "type": "plywood",
+      "value": 0.75,
+      "unit": "inch",
+      "component": "drawer_stretcher"
+    },
+    {
+      "id": "ply_back_thickness",
+      "label": "Effective Back Thickness",
+      "type": "calculated",
+      "value": "backing_style === 'stretcher' ? ply_back_stretcher : (backing_style === 'inlay' || backing_style === 'full' ? ply_carcass_back : 0)",
+      "unit": "inch"
+    },
+    {
+      "id": "drawer_face_enabled",
+      "label": "Drawer Face Enabled",
+      "type": "calculated",
+      "value": "ply_drawer_face > 0",
+      "unit": "boolean"
+    },
+    {
+      "id": "drawer_width",
+      "label": "Drawer Width",
+      "type": "calculated",
+      "value": "dim_w - 2 * (ply_carcass + dim_railing_w)",
+      "unit": "inch"
+    },
+    {
+      "id": "drawer_height",
+      "label": "Drawer Height",
+      "type": "calculated",
+      "value": "(dim_h - ply_carcass - num_drawers * ply_drawer_stretcher) / num_drawers",
+      "unit": "inch"
+    },
+    {
+      "id": "drawer_depth",
+      "label": "Drawer Depth",
+      "type": "calculated",
+      "value": "dim_d - ply_drawer_face - ply_back_thickness",
+      "unit": "inch"
+    },
+    {
+      "id": "interior_width",
+      "label": "Interior Width",
+      "type": "calculated",
+      "value": "dim_w - 2 * ply_carcass",
+      "unit": "inch"
+    },
+    {
+      "id": "interior_height",
+      "label": "Interior Height",
+      "type": "calculated",
+      "value": "dim_h - ply_carcass",
+      "unit": "inch"
+    },
+    {
+      "id": "interior_depth",
+      "label": "Interior Depth",
+      "type": "calculated",
+      "value": "dim_d - ply_drawer_face - ply_back_thickness",
+      "unit": "inch"
+    }
+  ]
+}

@@ -6,6 +6,7 @@
     <title>Cabinet Maker Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="tests.js"></script>
     <style>
         * {
             margin: 0;
@@ -632,6 +633,9 @@
         // Equations structure - loaded from equations.json
         let equations = null;
 
+        // Variables configuration - loaded from variables.json
+        let variablesConfig = null;
+
         // Load equations from JSON file
         async function loadEquations() {
             try {
@@ -665,6 +669,109 @@
                 console.error('Failed to load inputs.json:', error);
                 throw error;
             }
+        }
+
+        // Load variables from JSON file
+        async function loadVariables() {
+            try {
+                const response = await fetch('variables.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                variablesConfig = await response.json();
+                console.log('Loaded variables from variables.json');
+                return variablesConfig;
+            } catch (error) {
+                console.error('Failed to load variables.json:', error);
+                throw error;
+            }
+        }
+
+        // Variable utility functions
+        function getVariable(id) {
+            if (!variablesConfig || !variablesConfig.variables) {
+                console.error('Variables not loaded yet');
+                return null;
+            }
+            return variablesConfig.variables.find(v => v.id === id);
+        }
+
+        function getVariableValue(id) {
+            const variable = getVariable(id);
+            return variable ? variable.value : undefined;
+        }
+
+        function setVariableValue(id, value) {
+            const variable = getVariable(id);
+            if (variable) {
+                variable.value = value;
+            }
+        }
+
+        function getVariablesByType(type) {
+            if (!variablesConfig || !variablesConfig.variables) {
+                console.error('Variables not loaded yet');
+                return [];
+            }
+            return variablesConfig.variables.filter(v => v.type === type);
+        }
+
+        // Sync plywood variables from plywoodData table
+        function syncPlywoodVariables() {
+            // Get all plywood-type variables
+            const plywoodVars = getVariablesByType('plywood');
+
+            // For each plywood variable, find its thickness from plywoodData
+            plywoodVars.forEach(variable => {
+                const component = variable.component;
+                const row = plywoodData.find(r => r.components.includes(component));
+
+                if (row) {
+                    setVariableValue(variable.id, row.thickness);
+                } else {
+                    // Not assigned - use fallback value 0.75 (matches getPlywoodForComponent fallback)
+                    setVariableValue(variable.id, 0.75);
+                }
+            });
+        }
+
+        // Build evaluation context with all current variable values
+        function buildEvaluationContext() {
+            const context = {};
+
+            // Add all input variables
+            getVariablesByType('input').forEach(v => {
+                context[v.id] = v.value;
+            });
+
+            // Add all plywood variables (already synced from plywood table)
+            getVariablesByType('plywood').forEach(v => {
+                context[v.id] = v.value;
+            });
+
+            // Evaluate calculated variables (they may depend on each other)
+            const calculated = getVariablesByType('calculated');
+            calculated.forEach(v => {
+                // Evaluate the expression using current context
+                const value = evaluateExpr(v.value, context);
+                context[v.id] = value;
+            });
+
+            return context;
+        }
+
+        // Evaluate all calculated variables and update their values
+        function evaluateAllVariables() {
+            const context = buildEvaluationContext();
+
+            // Update calculated variable values
+            const calculated = getVariablesByType('calculated');
+            calculated.forEach(v => {
+                const value = evaluateExpr(v.value, context);
+                setVariableValue(v.id, value);
+            });
+
+            return context;
         }
 
         // Generate sidebar inputs from config
@@ -744,21 +851,32 @@
             const groupId = input.condition ? `${input.id}_group` : '';
             const groupStyle = input.condition ? ' style="display: none;"' : '';
 
-            let html = `<div class="input-group"${groupId ? ` id="${groupId}"` : ''}${groupStyle}>\n`;
-            html += `    <label>${input.label}</label>\n`;
+            // Get label and value from variables.json
+            const variable = getVariable(input.id);
+            if (!variable && !input.type) {
+                console.error(`Variable not found for input ${input.id}`);
+                return '';
+            }
 
-            if (input.type === 'select') {
+            const label = variable ? variable.label : '';
+            const value = variable ? variable.value : '';
+            const inputType = input.type || 'number'; // Default to number if not specified
+
+            let html = `<div class="input-group"${groupId ? ` id="${groupId}"` : ''}${groupStyle}>\n`;
+            html += `    <label>${label}</label>\n`;
+
+            if (inputType === 'select') {
                 html += `    <select id="${input.id}">\n`;
                 for (const option of input.options) {
-                    const selected = option.value === input.value ? ' selected' : '';
+                    const selected = option.value === value ? ' selected' : '';
                     html += `        <option value="${option.value}"${selected}>${option.label}</option>\n`;
                 }
                 html += `    </select>\n`;
-            } else if (input.type === 'number') {
+            } else {
                 const attrs = [];
                 attrs.push(`type="number"`);
                 attrs.push(`id="${input.id}"`);
-                attrs.push(`value="${input.value}"`);
+                attrs.push(`value="${value}"`);
                 if (input.step) attrs.push(`step="${input.step}"`);
                 if (input.min !== undefined) attrs.push(`min="${input.min}"`);
                 if (input.max !== undefined) attrs.push(`max="${input.max}"`);
@@ -912,7 +1030,7 @@
 
         // Evaluate expression with user_inputs context
         function evaluateExpr(expr, user_inputs) {
-            let evalStr = expr;
+            let evalStr = String(expr);
             for (const [varName, value] of Object.entries(user_inputs)) {
                 evalStr = evalStr.replace(new RegExp(`\\b${varName}\\b`, 'g'),
                     typeof value === 'number' ? value : `"${value}"`);
@@ -1479,84 +1597,49 @@
         }
 
         function getInputValues() {
+            // Read values from form and update variables.json
+            const inputVars = getVariablesByType('input');
+
+            inputVars.forEach(variable => {
+                const element = document.getElementById(variable.id);
+                if (element) {
+                    let value;
+                    if (element.type === 'select-one') {
+                        value = element.value;
+                    } else if (variable.unit === 'count') {
+                        value = parseInt(element.value);
+                    } else {
+                        value = parseFloat(element.value);
+                    }
+                    setVariableValue(variable.id, value);
+                }
+            });
+
+            // Return values in old format for backwards compatibility
             return {
-                dim_w: parseFloat(document.getElementById('dim_w').value),
-                dim_h: parseFloat(document.getElementById('dim_h').value),
-                dim_d: parseFloat(document.getElementById('dim_d').value),
-                dim_railing_w: parseFloat(document.getElementById('dim_railing_w').value),
-                num_drawers: parseInt(document.getElementById('num_drawers').value),
-                dim_drawer_stretcher: parseFloat(document.getElementById('dim_drawer_stretcher').value),
-                dim_back_stretcher: parseFloat(document.getElementById('dim_back_stretcher').value),
-                sheet_w: parseFloat(document.getElementById('sheet_w').value),
-                sheet_h: parseFloat(document.getElementById('sheet_h').value),
-                kerf: parseFloat(document.getElementById('kerf').value),
-                backing_style: document.getElementById('backing_style').value,
-                drawer_clearance: parseFloat(document.getElementById('drawer_clearance').value),
+                dim_w: getVariableValue('dim_w'),
+                dim_h: getVariableValue('dim_h'),
+                dim_d: getVariableValue('dim_d'),
+                dim_railing_w: getVariableValue('dim_railing_w'),
+                num_drawers: getVariableValue('num_drawers'),
+                dim_drawer_stretcher: getVariableValue('dim_drawer_stretcher'),
+                dim_back_stretcher: getVariableValue('dim_back_stretcher'),
+                sheet_w: getVariableValue('sheet_w'),
+                sheet_h: getVariableValue('sheet_h'),
+                kerf: getVariableValue('kerf'),
+                backing_style: getVariableValue('backing_style'),
+                drawer_clearance: getVariableValue('drawer_clearance'),
                 plywoodData: plywoodData
             };
         }
 
         function calculateDimensions(config) {
-            const { dim_w, dim_h, dim_d, num_drawers, dim_railing_w,
-                    drawer_clearance, backing_style } = config;
+            // NEW IMPLEMENTATION: Use variables.json instead of hardcoded logic
+            // All calculations now done by evaluateAllVariables()
 
-            // Get plywood specs from table
-            const carcassSidesPly = getPlywoodForComponent('carcass_sides');
-            const carcassBackPly = getPlywoodForComponent('carcass_back');
-            const backStretcherPly = getPlywoodForComponent('back_stretcher');
-            const drawerSidesPly = getPlywoodForComponent('drawer_sides');
-            const drawerBottomPly = getPlywoodForComponent('drawer_bottom');
-            const drawerFacePly = getPlywoodForComponent('drawer_face');
-            const drawerStretcherPly = getPlywoodForComponent('drawer_stretcher');
-
-            const ply_carcass = carcassSidesPly.thickness;
-            const ply_carcass_back = carcassBackPly.thickness;
-            const ply_back_stretcher = backStretcherPly.thickness;
-            const ply_drawer = drawerSidesPly.thickness;
-            const ply_bottom = drawerBottomPly.thickness;
-            const ply_drawer_face = drawerFacePly.thickness;
-            const ply_drawer_stretcher = drawerStretcherPly.thickness;
-
-            // Stretchers below each drawer, sitting flat (only take ply thickness in height)
-            const availableHeight = dim_h - ply_carcass - (num_drawers * ply_drawer_stretcher);
-            const drawerHeight = availableHeight / num_drawers;
-
-            // Calculate drawer depth based on backing style and drawer face
-            // Start with total_d, always subtract drawer face, then subtract backing
-            let drawerDepth = dim_d - ply_drawer_face;
-            let interiorDepth = dim_d - ply_drawer_face;
-
-            // Subtract backing thickness based on style
-            if (backing_style === 'none') {
-                // No backing - no additional subtraction
-            } else if (backing_style === 'routed inlay' || backing_style === 'inlay') {
-                // Routed inlay - back panel takes up space
-                drawerDepth -= ply_carcass_back;
-                interiorDepth -= ply_carcass_back;
-            } else if (backing_style === 'stretcher') {
-                // Stretcher - back stretcher takes up space
-                drawerDepth -= ply_back_stretcher;
-                interiorDepth -= ply_back_stretcher;
-            } else {
-                // Full ply - back panel takes up space
-                drawerDepth -= ply_carcass_back;
-                interiorDepth -= ply_carcass_back;
-            }
-
-            return {
-                drawer_width: dim_w - 2 * (ply_carcass + dim_railing_w),
-                drawer_height: drawerHeight,
-                drawer_depth: drawerDepth,
-                carcass_width: dim_w,
-                carcass_height: dim_h,
-                carcass_depth: dim_d,
-                interior_width: dim_w - 2 * ply_carcass,
-                interior_height: dim_h - ply_carcass,
-                interior_depth: interiorDepth,
-                available_drawer_height: availableHeight,
-                actual_drawer_box_width: dim_w - 2 * (ply_carcass + dim_railing_w),
-                actual_drawer_box_depth: drawerDepth
-            };
+            // First, sync plywood variables from plywoodData
+            syncPlywoodVariables();
+            return evaluateAllVariables();
         }
 
         function generateBOM(config, calc) {
@@ -1615,62 +1698,16 @@
 
         // Build user_inputs object from config and calc
         function buildUserInputs(config, calc) {
-            const { dim_w, dim_h, dim_d, num_drawers, dim_drawer_stretcher, dim_back_stretcher,
-                    backing_style, dim_railing_w, drawer_clearance } = config;
+            // NEW: Use variables.json system
+            // All values already calculated in evaluateAllVariables()
+            const context = buildEvaluationContext();
 
-            // Get plywood specs
-            const carcassSidesPly = getPlywoodForComponent('carcass_sides');
-            const carcassBackPly = getPlywoodForComponent('carcass_back');
-            const backStretcherPly = getPlywoodForComponent('back_stretcher');
-            const drawerSidesPly = getPlywoodForComponent('drawer_sides');
-            const drawerBottomPly = getPlywoodForComponent('drawer_bottom');
-            const drawerFacePly = getPlywoodForComponent('drawer_face');
-            const drawerStretcherPly = getPlywoodForComponent('drawer_stretcher');
-
-            // Calculate backing thickness
-            let ply_back_thickness = 0;
-            if (backing_style === 'stretcher') {
-                ply_back_thickness = backStretcherPly.thickness;
-            } else if (backing_style === 'inlay' || backing_style === 'full') {
-                ply_back_thickness = carcassBackPly.thickness;
+            // Also add nested objects from equations.calculated for backwards compatibility
+            if (equations && equations.calculated) {
+                evaluateCalculatedValues(equations.calculated, context);
             }
 
-            const drawer_face_enabled = plywoodData.some(row => row.components.includes('drawer_face'));
-
-            return {
-                // Config values
-                dim_w,
-                dim_h,
-                dim_d,
-                num_drawers,
-                dim_drawer_stretcher,
-                dim_back_stretcher,
-                dim_railing_w,
-                drawer_clearance,
-                backing_style,
-
-                // Plywood thicknesses
-                ply_carcass: carcassSidesPly.thickness,
-                ply_carcass_back: carcassBackPly.thickness,
-                ply_back_stretcher: backStretcherPly.thickness,
-                ply_drawer: drawerSidesPly.thickness,
-                ply_bottom: drawerBottomPly.thickness,
-                ply_drawer_face: drawerFacePly.thickness,
-                ply_drawer_stretcher: drawerStretcherPly.thickness,
-                ply_back_thickness,
-
-                // Calculated values
-                drawer_width: calc.drawer_width,
-                drawer_height: calc.drawer_height,
-                drawer_depth: calc.drawer_depth,
-                interior_width: calc.interior_width,
-                interior_height: calc.interior_height,
-                interior_depth: calc.interior_depth,
-                available_drawer_height: calc.available_drawer_height,
-
-                // Flags
-                drawer_face_enabled
-            };
+            return context;
         }
 
         function optimizeCuts(bom, config) {
@@ -2104,13 +2141,14 @@
             try {
                 await loadEquations();
                 await loadInputs();
+                await loadVariables();
             } catch (error) {
                 console.error('Failed to load configuration files:', error);
                 document.body.innerHTML = `
                     <div style="padding: 40px; max-width: 800px; margin: 0 auto; font-family: system-ui;">
                         <h1 style="color: #c00;">⚠️ Configuration Error</h1>
                         <p style="font-size: 16px; line-height: 1.6;">
-                            Failed to load configuration files (equations.json, inputs.json).
+                            Failed to load configuration files (equations.json, inputs.json, variables.json).
                         </p>
                         <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
                             <strong>📌 Important:</strong> This application must be served via HTTP, not opened directly as a file.

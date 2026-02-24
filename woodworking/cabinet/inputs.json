@@ -5,57 +5,36 @@
       "inputs": [
         {
           "id": "dim_w",
-          "label": "Width (in)",
-          "type": "number",
-          "value": 25.00,
           "step": 0.125,
           "layout": "row3"
         },
         {
           "id": "dim_h",
-          "label": "Height (in)",
-          "type": "number",
-          "value": 37.00,
           "step": 0.125,
           "layout": "row3"
         },
         {
           "id": "dim_d",
-          "label": "Depth (in)",
-          "type": "number",
-          "value": 21.00,
           "step": 0.125,
           "layout": "row3"
         },
         {
           "id": "dim_drawer_stretcher",
-          "label": "Drawer Stretcher (in)",
-          "type": "number",
-          "value": 3.00,
           "step": 0.125,
           "layout": "row2"
         },
         {
           "id": "dim_back_stretcher",
-          "label": "Back Stretcher (in)",
-          "type": "number",
-          "value": 3.00,
           "step": 0.125,
           "layout": "row2",
           "condition": "backing_style === 'stretcher'"
         },
         {
           "id": "dim_railing_w",
-          "label": "Drawer Railing Width (in)",
-          "type": "number",
-          "value": 1.00,
           "step": 0.125
         },
         {
           "id": "num_drawers",
-          "label": "Drawer Count",
-          "type": "number",
-          "value": 3,
           "min": 1,
           "max": 10,
           "step": 1,
@@ -63,9 +42,6 @@
         },
         {
           "id": "drawer_clearance",
-          "label": "Drawer Clearance (in)",
-          "type": "number",
-          "value": 0.125,
           "step": 0.0625,
           "layout": "row2"
         }
@@ -76,9 +52,7 @@
       "inputs": [
         {
           "id": "backing_style",
-          "label": "Carcass Backing",
           "type": "select",
-          "value": "stretcher",
           "options": [
             { "value": "none", "label": "None" },
             { "value": "stretcher", "label": "Stretcher Only" },
@@ -123,23 +97,14 @@
       "inputs": [
         {
           "id": "sheet_w",
-          "label": "Sheet Width (in)",
-          "type": "number",
-          "value": 48,
           "step": 1
         },
         {
           "id": "sheet_h",
-          "label": "Sheet Height (in)",
-          "type": "number",
-          "value": 96,
           "step": 1
         },
         {
           "id": "kerf",
-          "label": "Kerf Width (in)",
-          "type": "number",
-          "value": 0.125,
           "step": 0.0625
         }
       ]
