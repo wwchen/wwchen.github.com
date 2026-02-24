@@ -23,14 +23,14 @@ force-setup: clean setup
 # Run all tests (validation + 3D visualization)
 test:
 	@echo "Running configuration validation..."
-	@./validate_config.py
+	@./tests/validate_config.py
 	@echo ""
 	@echo "Validation passed! ✅"
 
 # Run the 3D position test visualization
 test-viz: setup
 	@echo "Running 3D position visualization test..."
-	@$(VENV_DIR)/bin/python test_3d_positions.py $(CONFIG)
+	@$(VENV_DIR)/bin/python tests/test_3d_positions.py $(CONFIG)
 	@echo "Visualization saved to 3d_comparison.png"
 
 # Clean up virtual environment

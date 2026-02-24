@@ -202,21 +202,56 @@
             font-size: 16px;
         }
 
+        .sheet {
+            margin-bottom: 30px;
+        }
+
         .sheet-visual {
-            background: white;
-            border: 1px solid #ddd;
-            margin: 10px 0;
+            background: #f8f8f8;
+            border: 2px solid #333;
+            margin: 20px auto 20px 10px;
             position: relative;
-            height: 200px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 600px;
+            max-height: 600px;
         }
 
         .cut-piece {
             position: absolute;
-            border: 1px solid #333;
-            background: rgba(52, 152, 219, 0.3);
-            font-size: 10px;
+            border: 2px solid #2c3e50;
+            background: rgba(52, 152, 219, 0.4);
+            font-size: 9px;
             padding: 2px;
             overflow: hidden;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.2;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .cut-piece:hover {
+            background: rgba(52, 152, 219, 0.6);
+            z-index: 10;
+            transform: scale(1.02);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        .cut-piece.rotated {
+            background: rgba(231, 76, 60, 0.4);
+            border-color: #c0392b;
+        }
+
+        .cut-piece.rotated:hover {
+            background: rgba(231, 76, 60, 0.6);
+        }
+
+        .cut-piece small {
+            font-size: 8px;
+            opacity: 0.8;
         }
 
         .assembly-step {
@@ -1583,30 +1618,47 @@
             Object.keys(optimizedSheets).forEach(key => {
                 const sheet = optimizedSheets[key];
                 sheet.layouts.forEach((layout, idx) => {
-                    const efficiency = ((1 - layout.waste / (context.sheet_w * context.sheet_h)) * 100).toFixed(1);
+                    const sheetArea = context.sheet_w * context.sheet_h;
+                    const efficiency = ((1 - layout.waste / sheetArea) * 100).toFixed(1);
+                    const usedArea = (sheetArea - layout.waste).toFixed(1);
+
+                    // Calculate scale to fit within max dimensions while maintaining aspect ratio
+                    const maxVisualDim = 400; // Max size for visualization
+                    const scaleW = maxVisualDim / context.sheet_w;
+                    const scaleH = maxVisualDim / context.sheet_h;
+                    const scale = Math.min(scaleW, scaleH); // Use smaller scale to fit both dimensions
+
+                    const visualWidth = context.sheet_w * scale;
+                    const visualHeight = context.sheet_h * scale;
+
                     cutHTML += `
                         <div class="sheet">
                             <h3>${sheet.thickness.toFixed(2)}" Plywood - Sheet ${idx + 1}</h3>
-                            <p><strong>Efficiency:</strong> ${efficiency}%</p>
-                            <p><strong>Waste:</strong> ${layout.waste.toFixed(1)} sq in</p>
-                            <div class="sheet-visual">
+                            <p><strong>Sheet Size:</strong> ${context.sheet_w}" × ${context.sheet_h}" (${sheetArea.toFixed(0)} sq in)</p>
+                            <p><strong>Efficiency:</strong> ${efficiency}% (${usedArea} sq in used, ${layout.waste.toFixed(1)} sq in waste)</p>
+                            <p><strong>Pieces:</strong> ${layout.pieces.length} | <strong>Scale:</strong> ${scale.toFixed(2)}px per inch</p>
+                            <div class="sheet-visual" style="width: ${visualWidth.toFixed(0)}px; height: ${visualHeight.toFixed(0)}px;">
+                                <div style="position: absolute; top: -20px; right: 0; font-size: 11px; color: #666;">${context.sheet_w}"</div>
+                                <div style="position: absolute; bottom: 0; right: -30px; font-size: 11px; color: #666; writing-mode: vertical-rl;">${context.sheet_h}"</div>
                     `;
-
-                    const scale = 200 / Math.max(context.sheet_w, context.sheet_h);
                     layout.pieces.forEach(piece => {
+                        const rotationLabel = piece.rotated ? ' ↻' : '';
+                        const originalSize = `${piece.originalWidth.toFixed(1)}×${piece.originalHeight.toFixed(1)}`;
+                        const displaySize = `${piece.width.toFixed(1)}×${piece.height.toFixed(1)}`;
+                        const sizeLabel = piece.rotated ? `${displaySize}${rotationLabel}` : displaySize;
+
                         cutHTML += `
-                            <div class="cut-piece" style="
+                            <div class="cut-piece ${piece.rotated ? 'rotated' : ''}" style="
                                 left: ${piece.x * scale}px;
                                 top: ${piece.y * scale}px;
                                 width: ${piece.width * scale}px;
                                 height: ${piece.height * scale}px;
-                            ">${piece.name}</div>
+                            " title="${piece.name} - Original: ${originalSize}\", Placed: ${sizeLabel}\"">${piece.name}${rotationLabel}<br><small>${sizeLabel}"</small></div>
                         `;
                     });
 
                     cutHTML += `
                             </div>
-                            <p><strong>Pieces:</strong> ${layout.pieces.length}</p>
                         </div>
                     `;
                 });
@@ -2200,6 +2252,10 @@
         /**
          * MODEL: Optimize cuts (Pure function)
          */
+        /**
+         * Improved cut optimizer with rotation support and better bin packing
+         * Uses shelf algorithm with first-fit decreasing and rotation
+         */
         function optimizeCuts(bom, context) {
             const { sheet_w, sheet_h, kerf } = context;
             const sheets = {};
@@ -2220,77 +2276,142 @@
                         id: `${item.id}-${i+1}`,
                         name: item.item,
                         width: item.width,
-                        height: item.height
+                        height: item.height,
+                        originalWidth: item.width,
+                        originalHeight: item.height,
+                        rotated: false
                     });
                 }
             });
 
-            // Simple bin packing for each thickness
+            // Pack each thickness
             Object.keys(sheets).forEach(key => {
                 const sheet = sheets[key];
+
+                // Sort by area (largest first) for better packing
                 const pieces = [...sheet.pieces].sort((a, b) =>
                     (b.width * b.height) - (a.width * a.height)
                 );
 
-                let currentSheet = {
-                    pieces: [],
-                    waste: sheet_w * sheet_h
-                };
-                sheet.layouts.push(currentSheet);
-
-                let currentX = 0;
-                let currentY = 0;
-                let rowHeight = 0;
-
-                pieces.forEach(piece => {
-                    // Try to fit in current row
-                    if (currentX + piece.width + kerf <= sheet_w &&
-                        currentY + piece.height + kerf <= sheet_h) {
-                        currentSheet.pieces.push({
-                            ...piece,
-                            x: currentX,
-                            y: currentY
-                        });
-                        currentSheet.waste -= piece.width * piece.height;
-                        currentX += piece.width + kerf;
-                        rowHeight = Math.max(rowHeight, piece.height);
-                    } else if (currentY + rowHeight + piece.height + kerf <= sheet_h) {
-                        // Next row
-                        currentY += rowHeight + kerf;
-                        currentX = 0;
-                        rowHeight = piece.height;
-
-                        currentSheet.pieces.push({
-                            ...piece,
-                            x: currentX,
-                            y: currentY
-                        });
-                        currentSheet.waste -= piece.width * piece.height;
-                        currentX += piece.width + kerf;
-                    } else {
-                        // New sheet
-                        currentSheet = {
-                            pieces: [],
-                            waste: sheet_w * sheet_h
-                        };
-                        sheet.layouts.push(currentSheet);
-
-                        currentX = 0;
-                        currentY = 0;
-                        rowHeight = piece.height;
-
-                        currentSheet.pieces.push({
-                            ...piece,
-                            x: currentX,
-                            y: currentY
-                        });
-                        currentSheet.waste -= piece.width * piece.height;
-                        currentX += piece.width + kerf;
-                    }
-                });
+                // Try to pack all pieces
+                const layouts = packPieces(pieces, sheet_w, sheet_h, kerf);
+                sheet.layouts = layouts;
             });
 
             return sheets;
+        }
+
+        /**
+         * Pack pieces using shelf algorithm with rotation
+         * Returns array of sheet layouts
+         */
+        function packPieces(pieces, sheetW, sheetH, kerf) {
+            const layouts = [];
+            const remainingPieces = [...pieces];
+
+            while (remainingPieces.length > 0) {
+                const layout = {
+                    pieces: [],
+                    waste: sheetW * sheetH
+                };
+
+                const shelves = []; // Array of {y, height, remainingWidth}
+                let currentY = 0;
+
+                // Pack pieces into this sheet
+                let i = 0;
+                while (i < remainingPieces.length && currentY < sheetH) {
+                    const piece = remainingPieces[i];
+                    let placed = false;
+
+                    // Try both orientations
+                    const orientations = [
+                        { w: piece.width, h: piece.height, rotated: false },
+                        { w: piece.height, h: piece.width, rotated: true }
+                    ];
+
+                    // Try to place in existing shelves first
+                    for (const shelf of shelves) {
+                        for (const orient of orientations) {
+                            // Check if piece fits in this shelf
+                            if (orient.w + kerf <= shelf.remainingWidth &&
+                                orient.h <= shelf.height) {
+
+                                const x = sheetW - shelf.remainingWidth;
+                                const y = shelf.y;
+
+                                layout.pieces.push({
+                                    ...piece,
+                                    width: orient.w,
+                                    height: orient.h,
+                                    x: x,
+                                    y: y,
+                                    rotated: orient.rotated
+                                });
+
+                                layout.waste -= piece.originalWidth * piece.originalHeight;
+                                shelf.remainingWidth -= orient.w + kerf;
+
+                                remainingPieces.splice(i, 1);
+                                placed = true;
+                                break;
+                            }
+                        }
+                        if (placed) break;
+                    }
+
+                    // If not placed, try creating a new shelf
+                    if (!placed) {
+                        for (const orient of orientations) {
+                            // Check if new shelf can be created
+                            if (currentY + orient.h + kerf <= sheetH &&
+                                orient.w + kerf <= sheetW) {
+
+                                // Create new shelf
+                                const newShelf = {
+                                    y: currentY,
+                                    height: orient.h,
+                                    remainingWidth: sheetW - orient.w - kerf
+                                };
+                                shelves.push(newShelf);
+
+                                layout.pieces.push({
+                                    ...piece,
+                                    width: orient.w,
+                                    height: orient.h,
+                                    x: 0,
+                                    y: currentY,
+                                    rotated: orient.rotated
+                                });
+
+                                layout.waste -= piece.originalWidth * piece.originalHeight;
+                                currentY += orient.h + kerf;
+
+                                remainingPieces.splice(i, 1);
+                                placed = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    // If still not placed, try next piece
+                    if (!placed) {
+                        i++;
+                    }
+                }
+
+                // Add this layout if it has any pieces
+                if (layout.pieces.length > 0) {
+                    layouts.push(layout);
+                } else {
+                    // Can't fit any more pieces, but still have pieces remaining
+                    // This means pieces are too large for the sheet
+                    console.warn('Some pieces too large for sheet:', remainingPieces);
+                    break;
+                }
+            }
+
+            return layouts;
         }
 
         function generateCutOrder(optimizedSheets) {

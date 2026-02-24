@@ -258,16 +258,19 @@ def main():
     print("Validating configuration files...")
     print()
 
-    # Validate JSON files in js/ folder
+    # Get the parent directory (project root) since script is in tests/ folder
+    project_root = Path(__file__).parent.parent
+
+    # Validate JSON files in js/ folder (relative to project root)
     json_files = [
-        'js/equations.json',
-        'js/inputs.json',
-        'js/variables.json',
-        'js/panels.json',
-        'js/cabinet_styles.json',
-        'js/test_configs.json'
+        project_root / 'js/equations.json',
+        project_root / 'js/inputs.json',
+        project_root / 'js/variables.json',
+        project_root / 'js/panels.json',
+        project_root / 'js/cabinet_styles.json',
+        project_root / 'js/test_configs.json'
     ]
-    json_valid = all(validate_json_file(f) for f in json_files)
+    json_valid = all(validate_json_file(str(f)) for f in json_files)
 
     if not json_valid:
         print()
@@ -277,27 +280,30 @@ def main():
     # Check inputs.json structure
     print()
     print("Checking inputs.json structure...")
-    inputs_ok = check_required_inputs('js/inputs.json')
+    inputs_ok = check_required_inputs(str(project_root / 'js/inputs.json'))
 
     # Check equations.json structure
     print()
     print("Checking equations.json structure...")
-    equations_ok = check_equations_structure('js/equations.json')
+    equations_ok = check_equations_structure(str(project_root / 'js/equations.json'))
 
     # Check panels.json structure
     print()
     print("Checking panels.json structure...")
-    panels_ok = check_panels_structure('js/panels.json')
+    panels_ok = check_panels_structure(str(project_root / 'js/panels.json'))
 
     # Check cabinet_styles.json structure and references
     print()
     print("Checking cabinet_styles.json structure...")
-    styles_ok = check_cabinet_styles_structure('js/cabinet_styles.json', 'js/panels.json')
+    styles_ok = check_cabinet_styles_structure(
+        str(project_root / 'js/cabinet_styles.json'),
+        str(project_root / 'js/panels.json')
+    )
 
     # Check for circular dependencies
     print()
     print("Checking for circular dependencies...")
-    circular_ok = check_circular_dependencies('js/variables.json')
+    circular_ok = check_circular_dependencies(str(project_root / 'js/variables.json'))
 
     # Final result
     print()

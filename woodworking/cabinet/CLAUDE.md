@@ -49,11 +49,13 @@ Updates: BOM → Cut Optimizer → 3D Viz → Calculated Dimensions → Debug
 - `js/test_configs.json` - Multiple test scenarios (default, large, compact)
 - `js/tests.js` - Test suite placeholder
 
+**Tests (`tests/` folder):**
+- `tests/validate_config.py` - Validates JSON files and checks circular dependencies
+- `tests/test_3d_positions.py` - Python 3D visualization testing
+
 **Utilities:**
 - `serve.sh` - HTTP server startup
-- `validate_config.py` - Validates JSON files and checks circular dependencies
-- `test_3d_positions.py` - Python 3D visualization testing
-- `Makefile` - Test automation
+- `Makefile` - Test automation (uses tests/ folder)
 
 ## Data Models & Schemas
 

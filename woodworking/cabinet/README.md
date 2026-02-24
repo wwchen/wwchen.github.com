@@ -404,13 +404,13 @@ Validates all JSON files and checks for:
 - `test_configs.json` - Test scenarios (default, large, compact)
 - `tests.js` - Test suite placeholder
 
-### Python Tools
-- `test_3d_positions.py` - 3D visualization test script
+### Tests (`tests/` folder)
+- `test_3d_positions.py` - Python 3D visualization test script
 - `validate_config.py` - JSON validator with circular dependency check
 
 ### Build & Utilities
 - `serve.sh` - HTTP server startup script
-- `Makefile` - Test automation
+- `Makefile` - Test automation (uses tests/ folder)
 - `CLAUDE.md` - Comprehensive developer documentation
 - `README.md` - This file
 
