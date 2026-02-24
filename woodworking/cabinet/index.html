@@ -687,7 +687,6 @@
                     <thead>
                         <tr>
                             <th>Thickness</th>
-                            <th>Material</th>
                             <th>Components</th>
                             <th></th>
                         </tr>
@@ -853,10 +852,6 @@
                 html += `<div class="debug-var">
                     <span class="debug-var-name">thickness:</span>
                     <span class="debug-var-value">${row.thickness}"</span>
-                </div>`;
-                html += `<div class="debug-var">
-                    <span class="debug-var-name">material:</span>
-                    <span class="debug-var-value">${row.material}</span>
                 </div>`;
                 html += `<div class="debug-var">
                     <span class="debug-var-name">components:</span>
@@ -1224,103 +1219,23 @@
         function initPlywoodTable() {
             const backingStyle = document.getElementById('backing_style').value;
 
-            // Default rows based on backing style
-            if (backingStyle === 'full') {
-                // Full back: carcass back is 1/2"
-                plywoodData = [
-                    {
-                        thickness: 0.75,
-                        material: 'birch',
-                        components: ['carcass_sides', 'carcass_top', 'drawer_stretcher']
-                    },
-                    {
-                        thickness: 0.5,
-                        material: 'birch',
-                        components: ['drawer_sides', 'carcass_back']
-                    },
-                    {
-                        thickness: 0.25,
-                        material: 'birch',
-                        components: ['drawer_bottom']
-                    },
-                    {
-                        thickness: 0,
-                        material: 'birch',
-                        components: ['drawer_face']
-                    }
-                ];
-            } else if (backingStyle === 'inlay') {
-                // Routed inlay: carcass back is 1/4"
-                plywoodData = [
-                    {
-                        thickness: 0.75,
-                        material: 'birch',
-                        components: ['carcass_sides', 'carcass_top', 'drawer_stretcher']
-                    },
-                    {
-                        thickness: 0.5,
-                        material: 'birch',
-                        components: ['drawer_sides']
-                    },
-                    {
-                        thickness: 0.25,
-                        material: 'birch',
-                        components: ['drawer_bottom', 'carcass_back']
-                    },
-                    {
-                        thickness: 0,
-                        material: 'birch',
-                        components: ['drawer_face']
-                    }
-                ];
-            } else if (backingStyle === 'stretcher') {
-                // Stretcher: back stretcher is 3/4"
-                plywoodData = [
-                    {
-                        thickness: 0.75,
-                        material: 'birch',
-                        components: ['carcass_sides', 'carcass_top', 'drawer_stretcher', 'back_stretcher']
-                    },
-                    {
-                        thickness: 0.5,
-                        material: 'birch',
-                        components: ['drawer_sides']
-                    },
-                    {
-                        thickness: 0.25,
-                        material: 'birch',
-                        components: ['drawer_bottom']
-                    },
-                    {
-                        thickness: 0,
-                        material: 'birch',
-                        components: ['drawer_face']
-                    }
-                ];
+            // Get default data from config
+            const plywoodSection = inputsConfig.sections.find(s => s.type === 'plywood_table');
+            if (!plywoodSection || !plywoodSection.defaultData) {
+                console.error('Plywood table config not found');
+                plywoodData = [];
+                renderPlywoodTable();
+                return;
+            }
+
+            // Load default data for the current backing style
+            const defaultData = plywoodSection.defaultData[backingStyle];
+            if (!defaultData) {
+                console.error(`No default plywood data for backing style: ${backingStyle}`);
+                plywoodData = [];
             } else {
-                // None: no backing
-                plywoodData = [
-                    {
-                        thickness: 0.75,
-                        material: 'birch',
-                        components: ['carcass_sides', 'carcass_top', 'drawer_stretcher']
-                    },
-                    {
-                        thickness: 0.5,
-                        material: 'birch',
-                        components: ['drawer_sides']
-                    },
-                    {
-                        thickness: 0.25,
-                        material: 'birch',
-                        components: ['drawer_bottom']
-                    },
-                    {
-                        thickness: 0,
-                        material: 'birch',
-                        components: ['drawer_face']
-                    }
-                ];
+                // Deep copy to avoid mutating the config
+                plywoodData = JSON.parse(JSON.stringify(defaultData));
             }
 
             renderPlywoodTable();
@@ -1329,7 +1244,6 @@
         function addPlywoodRow() {
             plywoodData.push({
                 thickness: 0.75,
-                material: 'birch',
                 components: []
             });
             renderPlywoodTable();
@@ -1382,20 +1296,6 @@
                 inputThickness.onchange = (e) => updatePlywoodRow(index, 'thickness', e.target.value);
                 tdThickness.appendChild(inputThickness);
                 tr.appendChild(tdThickness);
-
-                // Material
-                const tdMaterial = document.createElement('td');
-                const selectMaterial = document.createElement('select');
-                ['birch', 'maple', 'oak', 'plywood'].forEach(mat => {
-                    const option = document.createElement('option');
-                    option.value = mat;
-                    option.textContent = mat.charAt(0).toUpperCase() + mat.slice(1);
-                    option.selected = row.material === mat;
-                    selectMaterial.appendChild(option);
-                });
-                selectMaterial.onchange = (e) => updatePlywoodRow(index, 'material', e.target.value);
-                tdMaterial.appendChild(selectMaterial);
-                tr.appendChild(tdMaterial);
 
                 // Components - drag/drop zone
                 const tdComponents = document.createElement('td');
@@ -1571,11 +1471,11 @@
         function getPlywoodForComponent(component) {
             for (const row of plywoodData) {
                 if (row.components.includes(component)) {
-                    return { thickness: row.thickness, material: row.material };
+                    return { thickness: row.thickness };
                 }
             }
             // Fallback defaults
-            return { thickness: 0.75, material: 'birch' };
+            return { thickness: 0.75 };
         }
 
         function getInputValues() {
@@ -1705,7 +1605,6 @@
                     width,
                     height,
                     thickness,
-                    material: plyData.material,
                     quantity,
                     equation
                 });
@@ -1778,13 +1677,12 @@
             const { sheet_w, sheet_h, kerf } = config;
             const sheets = {};
 
-            // Group by thickness and material
+            // Group by thickness
             bom.forEach(item => {
-                const key = `${item.thickness}-${item.material}`;
+                const key = `${item.thickness}`;
                 if (!sheets[key]) {
                     sheets[key] = {
                         thickness: item.thickness,
-                        material: item.material,
                         pieces: [],
                         layouts: []
                     };
@@ -1885,7 +1783,7 @@
                     sortedPieces.forEach((piece, idx) => {
                         cutOrder.push({
                             step: cutOrder.length + 1,
-                            sheet: `${sheet.thickness.toFixed(2)}" ${sheet.material.charAt(0).toUpperCase() + sheet.material.slice(1)} - Sheet ${sheetNum + 1}`,
+                            sheet: `${sheet.thickness.toFixed(2)}" Plywood - Sheet ${sheetNum + 1}`,
                             piece: piece.name,
                             dimensions: `${piece.width.toFixed(2)}" × ${piece.height.toFixed(2)}"`,
                             position: `X: ${piece.x.toFixed(1)}", Y: ${piece.y.toFixed(1)}"`,
@@ -1937,7 +1835,6 @@
                             <th>Width</th>
                             <th>Height</th>
                             <th>Thickness</th>
-                            <th>Material</th>
                             <th>Qty</th>
                             <th>Equation</th>
                         </tr>
@@ -1953,7 +1850,6 @@
                         <td>${item.width.toFixed(2)}"</td>
                         <td>${item.height.toFixed(2)}"</td>
                         <td>${item.thickness.toFixed(2)}"</td>
-                        <td style="text-transform: capitalize;">${item.material}</td>
                         <td>${item.quantity}</td>
                         <td style="font-size: 11px; color: #666;">${item.equation || ''}</td>
                     </tr>
@@ -1962,31 +1858,29 @@
 
             bomHTML += '</tbody></table>';
 
-            // Calculate material area summary
+            // Calculate thickness area summary
             const materialSummary = {};
             bom.forEach(item => {
-                const key = `${item.thickness.toFixed(2)}" ${item.material}`;
+                const key = `${item.thickness.toFixed(2)}"`;
                 const area = item.width * item.height * item.quantity;
 
                 if (!materialSummary[key]) {
                     materialSummary[key] = {
                         thickness: item.thickness,
-                        material: item.material,
                         area: 0
                     };
                 }
                 materialSummary[key].area += area;
             });
 
-            // Add material summary table
+            // Add thickness summary table
             bomHTML += `
                 <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 2px solid #3498db;">
-                    <h3 style="margin-bottom: 10px; color: #2c3e50; font-size: 16px;">📊 Material Area Summary</h3>
+                    <h3 style="margin-bottom: 10px; color: #2c3e50; font-size: 16px;">📊 Plywood Area Summary</h3>
                     <table style="background: white;">
                         <thead>
                             <tr style="background: #e3f2fd;">
                                 <th>Thickness</th>
-                                <th>Material</th>
                                 <th>Total Area</th>
                                 <th>Sheets Needed (${config.sheet_w/12}'×${config.sheet_h/12}')</th>
                             </tr>
@@ -2002,7 +1896,6 @@
                 bomHTML += `
                     <tr style="background: white;">
                         <td><strong>${summary.thickness.toFixed(2)}"</strong></td>
-                        <td style="text-transform: capitalize;"><strong>${summary.material}</strong></td>
                         <td>${summary.area.toFixed(2)} sq in <span style="color: #666;">(${(summary.area / 144).toFixed(2)} sq ft)</span></td>
                         <td><strong style="color: #3498db;">${sheetsNeeded}</strong> <span style="color: #666; font-size: 12px;">(${efficiency}% utilization)</span></td>
                     </tr>
@@ -2027,7 +1920,7 @@
                     const efficiency = ((1 - layout.waste / (config.sheet_w * config.sheet_h)) * 100).toFixed(1);
                     cutHTML += `
                         <div class="sheet">
-                            <h3>${sheet.thickness.toFixed(2)}" ${sheet.material.charAt(0).toUpperCase() + sheet.material.slice(1)} - Sheet ${idx + 1}</h3>
+                            <h3>${sheet.thickness.toFixed(2)}" Plywood - Sheet ${idx + 1}</h3>
                             <p><strong>Efficiency:</strong> ${efficiency}%</p>
                             <p><strong>Waste:</strong> ${layout.waste.toFixed(1)} sq in</p>
                             <div class="sheet-visual">
@@ -2074,20 +1967,20 @@
 
                 // Add appropriate backing component based on style
                 if (newStyle === 'stretcher') {
-                    // Add back_stretcher to 3/4" birch row
-                    const row34 = plywoodData.find(r => r.thickness === 0.75 && r.material === 'birch');
+                    // Add back_stretcher to 3/4" row
+                    const row34 = plywoodData.find(r => r.thickness === 0.75);
                     if (row34 && !row34.components.includes('back_stretcher')) {
                         row34.components.push('back_stretcher');
                     }
                 } else if (newStyle === 'full') {
-                    // Add carcass_back to 1/2" birch row
-                    const row12 = plywoodData.find(r => r.thickness === 0.5 && r.material === 'birch');
+                    // Add carcass_back to 1/2" row
+                    const row12 = plywoodData.find(r => r.thickness === 0.5);
                     if (row12 && !row12.components.includes('carcass_back')) {
                         row12.components.push('carcass_back');
                     }
                 } else if (newStyle === 'inlay') {
-                    // Add carcass_back to 1/4" birch row
-                    const row14 = plywoodData.find(r => r.thickness === 0.25 && r.material === 'birch');
+                    // Add carcass_back to 1/4" row
+                    const row14 = plywoodData.find(r => r.thickness === 0.25);
                     if (row14 && !row14.components.includes('carcass_back')) {
                         row14.components.push('carcass_back');
                     }
