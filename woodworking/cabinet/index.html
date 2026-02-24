@@ -2197,7 +2197,7 @@
             availableTd.style.borderTop = '2px solid #ddd';
 
             const availableDiv = document.createElement('div');
-            availableDiv.innerHTML = '<strong style="display: block; margin-bottom: 4px;">Available Components (tap to unassign):</strong>';
+            availableDiv.innerHTML = '<strong style="display: block; margin-bottom: 4px;">Available Components (drag to unassign):</strong>';
             const pillsContainer = document.createElement('div');
             pillsContainer.className = 'available-components components-zone';
             pillsContainer.dataset.isAvailable = 'true';
@@ -2764,7 +2764,7 @@
                 document.getElementById('dim_d').value = config.dim_d || 21;
                 document.getElementById('dim_railing_w').value = config.dim_railing_w || 1;
                 document.getElementById('num_drawers').value = config.num_drawers || 3;
-                document.getElementById('dim_drawer_support').value = config.dim_drawer_support || 3;
+                document.getElementById('dim_drawer_divider').value = config.dim_drawer_divider || 3;
                 document.getElementById('dim_back_stretcher').value = config.dim_back_stretcher || 3;
                 document.getElementById('backing_style').value = config.backing_style || 'stretcher';
                 document.getElementById('drawer_clearance').value = config.drawer_clearance || 0.125;
