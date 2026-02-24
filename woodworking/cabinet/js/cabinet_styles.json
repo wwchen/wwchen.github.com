@@ -1,0 +1,145 @@
+{
+  "styles": [
+    {
+      "id": "full",
+      "label": "Full Plywood",
+      "description": "Solid plywood back panel for maximum rigidity",
+      "panels": [
+        "carcass_sides",
+        "carcass_top",
+        "carcass_back",
+        "drawer_stretcher",
+        "drawer_sides",
+        "drawer_front_back",
+        "drawer_bottom",
+        "drawer_face",
+        "drawer_railings"
+      ],
+      "material_defaults": [
+        {
+          "thickness": 0.75,
+          "components": ["carcass_sides", "carcass_top", "drawer_stretcher"]
+        },
+        {
+          "thickness": 0.5,
+          "components": ["drawer_sides", "carcass_back"]
+        },
+        {
+          "thickness": 0.25,
+          "components": ["drawer_bottom"]
+        },
+        {
+          "thickness": 0,
+          "components": ["drawer_face"]
+        }
+      ]
+    },
+    {
+      "id": "inlay",
+      "label": "Routed Inlay",
+      "description": "Thin back panel set in routed groove",
+      "panels": [
+        "carcass_sides",
+        "carcass_top",
+        {
+          "key": "carcass_back",
+          "dimensions": {
+            "width": "dim_w - 2 * ply_carcass - 0.25",
+            "height": "dim_h - 2 * ply_carcass - 0.25"
+          }
+        },
+        "drawer_stretcher",
+        "drawer_sides",
+        "drawer_front_back",
+        "drawer_bottom",
+        "drawer_face",
+        "drawer_railings"
+      ],
+      "material_defaults": [
+        {
+          "thickness": 0.75,
+          "components": ["carcass_sides", "carcass_top", "drawer_stretcher"]
+        },
+        {
+          "thickness": 0.5,
+          "components": ["drawer_sides"]
+        },
+        {
+          "thickness": 0.25,
+          "components": ["drawer_bottom", "carcass_back"]
+        },
+        {
+          "thickness": 0,
+          "components": ["drawer_face"]
+        }
+      ]
+    },
+    {
+      "id": "stretcher",
+      "label": "Stretcher Only",
+      "description": "Top and bottom stretchers without full back panel",
+      "panels": [
+        "carcass_sides",
+        "carcass_top",
+        "back_stretcher",
+        "drawer_stretcher",
+        "drawer_sides",
+        "drawer_front_back",
+        "drawer_bottom",
+        "drawer_face",
+        "drawer_railings"
+      ],
+      "material_defaults": [
+        {
+          "thickness": 0.75,
+          "components": ["carcass_sides", "carcass_top", "drawer_stretcher", "back_stretcher"]
+        },
+        {
+          "thickness": 0.5,
+          "components": ["drawer_sides"]
+        },
+        {
+          "thickness": 0.25,
+          "components": ["drawer_bottom"]
+        },
+        {
+          "thickness": 0,
+          "components": ["drawer_face"]
+        }
+      ]
+    },
+    {
+      "id": "none",
+      "label": "None",
+      "description": "No backing - open back cabinet",
+      "panels": [
+        "carcass_sides",
+        "carcass_top",
+        "drawer_stretcher",
+        "drawer_sides",
+        "drawer_front_back",
+        "drawer_bottom",
+        "drawer_face",
+        "drawer_railings"
+      ],
+      "material_defaults": [
+        {
+          "thickness": 0.75,
+          "components": ["carcass_sides", "carcass_top", "drawer_stretcher"]
+        },
+        {
+          "thickness": 0.5,
+          "components": ["drawer_sides"]
+        },
+        {
+          "thickness": 0.25,
+          "components": ["drawer_bottom"]
+        },
+        {
+          "thickness": 0,
+          "components": ["drawer_face"]
+        }
+      ]
+    }
+  ]
+}

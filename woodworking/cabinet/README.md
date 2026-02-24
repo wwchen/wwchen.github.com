@@ -12,7 +12,7 @@ Then open **http://localhost:8000** in your browser.
 
 ### Why HTTP Server?
 
-This app loads configuration files (`equations.json`, `inputs.json`) using JavaScript fetch(), which requires HTTP protocol.
+This app loads configuration files from the `js/` folder using JavaScript fetch(), which requires HTTP protocol.
 
 - ❌ **Won't work:** Opening `index.html` directly (`file://`)
 - ✅ **Will work:** Serving via HTTP (`http://localhost:8000`)
@@ -36,38 +36,212 @@ npx http-server -p 8000
 ## Features
 
 - **Parametric Design**: Define cabinet dimensions and automatically calculate all component sizes
-- **Data-Driven Architecture**: All calculations driven by `equations.json` - single source of truth
+- **Style-Driven Architecture**: Cabinet styles define which panels are used and their material assignments
+- **Data-Driven Configuration**: All data in JSON files - clean separation of concerns
 - **3D Visualization**: Real-time Three.js rendering with proper component orientations
 - **Bill of Materials**: Automatic BOM generation with detailed dimensions
 - **Cut Optimization**: Smart sheet optimization for plywood cuts
 - **Drag & Drop Plywood Assignment**: Assign components to different plywood thicknesses and materials
+- **Mobile Responsive**: Fully optimized for desktop, tablet, and mobile devices
 
-## Configuration Files
+## Data Model Architecture
 
-### `equations.json` - Calculation Engine
+Cabinet Maker Pro uses a **separation of concerns** architecture with 4 core data files:
 
-Defines all panel dimensions, BOM data, and 3D visualization properties:
+```
+User Input (backing_style)
+    ↓
+cabinet_styles.json → Defines active panels and material defaults
+    ↓
+panels.json → Panel metadata (dimensions, viz3d)
+    ↓
+variables.json → Calculations and expressions
+    ↓
+BOM + 3D Rendering + Cut Optimization
+```
+
+### Data Flow
+
+1. **User selects backing style** (full, inlay, stretcher, none)
+2. **cabinet_styles.json** defines which panels are used
+3. **panels.json** provides panel dimensions and 3D properties
+4. **variables.json** evaluates expressions using user inputs
+5. **Application** generates BOM, 3D view, and cut layouts
+
+## Configuration Files (js/ folder)
+
+### 1. `panels.json` - Panel Metadata
+
+Defines all physical panels with dimensions, quantities, and 3D visualization properties:
 
 ```json
 {
-  "panels": {
-    "carcass_sides": {
-      "dimensions": {
-        "width": "dim_d",
-        "height": "dim_h - ply_carcass",
-        "thickness": "ply_carcass"
-      },
-      "bom": {
-        "item": "Carcass sides",
-        "quantity": 2
-      },
-      "viz3d": {
-        "color": 0xD2B48C,
-        "orientation": "rotated",
-        "instances": [...]
-      }
+  "carcass_sides": {
+    "key": "carcass_sides",
+    "name": "Carcass sides",
+    "dimensions": {
+      "width": "dim_d",
+      "height": "dim_h - ply_carcass",
+      "thickness": "ply_carcass"
+    },
+    "quantity": 2,
+    "viz3d": {
+      "color": 13808780,
+      "orientation": "rotated",
+      "instances": [
+        {"x": "0", "y": "0", "z": "0"},
+        {"x": "dim_w - ply_carcass", "y": "0", "z": "0"}
+      ]
     }
-  },
+  }
+}
+```
+
+**Schema Fields:**
+- `key` - Unique identifier
+- `name` - Display name for BOM
+- `dimensions` - Width, height, thickness (expressions)
+- `quantity` - Number of pieces (number or expression)
+- `applies_to` - Optional array of style IDs (if panel is style-specific)
+- `viz3d` - 3D visualization properties:
+  - `color` - Hex color code
+  - `orientation` - `horizontal`, `vertical`, or `rotated`
+  - `instances` - Array of `{x, y, z}` positions (expressions)
+  - `loop` - Optional: repeat instances (e.g., `"num_drawers"`)
+  - `condition` - Optional: visibility condition
+
+**3D Coordinate System:**
+- **(0, 0, 0)** = front-left-bottom corner of the cabinet
+- **X axis** = Width (left → right)
+- **Y axis** = Height (floor → up)
+- **Z axis** = Depth (front → back)
+- All `(x, y, z)` represent the **front-left-bottom corner** of each panel
+
+**3D Orientations:**
+- `horizontal`: Lying flat - BOM(W,H,T) → 3D(X=W, Y=T, Z=H)
+- `vertical`: Standing upright - BOM(W,H,T) → 3D(X=W, Y=H, Z=T)
+- `rotated`: 90° rotation - BOM(W,H,T) → 3D(X=T, Y=H, Z=W)
+
+### 2. `cabinet_styles.json` - Style Definitions
+
+Defines cabinet styles with panel lists and material assignments:
+
+```json
+{
+  "styles": [
+    {
+      "id": "full",
+      "label": "Full Plywood",
+      "description": "Solid plywood back panel for maximum rigidity",
+      "panels": [
+        "carcass_sides",
+        "carcass_top",
+        "carcass_back",
+        "drawer_stretcher",
+        ...
+      ],
+      "material_defaults": [
+        {
+          "thickness": 0.75,
+          "components": ["carcass_sides", "carcass_top", "drawer_stretcher"]
+        },
+        {
+          "thickness": 0.5,
+          "components": ["drawer_sides", "carcass_back"]
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Schema Fields:**
+- `id` - Unique style identifier
+- `label` - Display name
+- `description` - User-friendly explanation
+- `panels` - Array of panel keys (strings) or panel overrides (objects)
+- `material_defaults` - Default plywood assignments per thickness
+
+**Panel Override Example:**
+```json
+{
+  "key": "carcass_back",
+  "dimensions": {
+    "width": "dim_w - 2 * ply_carcass - 0.25",
+    "height": "dim_h - 2 * ply_carcass - 0.25"
+  }
+}
+```
+
+### 3. `variables.json` - Variables & Calculations
+
+Defines all variables: inputs, plywood thicknesses, and calculated values:
+
+```json
+{
+  "variables": [
+    {
+      "id": "dim_w",
+      "label": "Width",
+      "type": "input",
+      "value": 25.00,
+      "unit": "inch"
+    },
+    {
+      "id": "ply_carcass",
+      "label": "Carcass Plywood Thickness",
+      "type": "plywood",
+      "value": 0.75,
+      "unit": "inch"
+    },
+    {
+      "id": "drawer_width",
+      "label": "Drawer Width",
+      "type": "calculated",
+      "value": "dim_w - 2 * (ply_carcass + dim_railing_w)",
+      "unit": "inch"
+    }
+  ]
+}
+```
+
+**Variable Types:**
+- `input` - User-editable values (dimensions, counts)
+- `plywood` - Thickness values from material assignments
+- `calculated` - Computed from expressions
+
+### 4. `inputs.json` - UI Configuration
+
+Defines UI sections, input fields, layouts, and conditional visibility:
+
+```json
+{
+  "sections": [
+    {
+      "title": "Cabinet Dimensions",
+      "inputs": [
+        {
+          "variable_id": "dim_w",
+          "step": 0.125,
+          "layout": "row3"
+        },
+        {
+          "variable_id": "dim_back_stretcher",
+          "step": 0.125,
+          "condition": "backing_style === 'stretcher'"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### 5. `equations.json` - Calculated Dimensions (Legacy)
+
+Still contains the calculated dimensions array:
+
+```json
+{
   "calculated": [
     {
       "key": "overall",
@@ -80,43 +254,7 @@ Defines all panel dimensions, BOM data, and 3D visualization properties:
 }
 ```
 
-**3D Coordinate System:**
-- **(0, 0, 0)** = front-left-bottom corner of the cabinet
-- **X axis** = Width (left → right)
-- **Y axis** = Height (floor → up)
-- **Z axis** = Depth (front → back)
-- All `(x, y, z)` in `instances` represent the **front-left-bottom corner** of each panel
-
-**3D Orientations:**
-- `horizontal`: Components lying flat (carcass_top, drawer_bottom, drawer_stretchers)
-- `vertical`: Components standing upright (back_stretchers, drawer_front_back, carcass_back)
-- `rotated`: Components rotated 90° (carcass_sides, drawer_sides)
-
-### `inputs.json` - UI Configuration
-
-Defines all input fields, labels, defaults, and layout:
-
-```json
-{
-  "sections": [
-    {
-      "title": "Cabinet Dimensions",
-      "inputs": [
-        {
-          "id": "dim_w",
-          "label": "Width (in)",
-          "type": "number",
-          "value": 25.00,
-          "step": 0.125,
-          "layout": "row3"
-        }
-      ]
-    }
-  ]
-}
-```
-
-### `test_configs.json` - Test Scenarios
+### 6. `test_configs.json` - Test Scenarios
 
 Multiple test configurations:
 - **default**: Standard cabinet (25×37×21, 3 drawers)
@@ -125,43 +263,89 @@ Multiple test configurations:
 
 ## Adding New Panels
 
-Edit `equations.json` to add a new panel:
+**Step 1:** Add panel to `js/panels.json`:
 
 ```json
 {
-  "panels": {
-    "my_new_panel": {
-      "dimensions": {
-        "width": "dim_w - 2",
-        "height": "dim_h / 2",
-        "thickness": "ply_carcass"
-      },
-      "bom": {
-        "item": "My Panel",
-        "quantity": 2
-      },
-      "viz3d": {
-        "color": 0xD2B48C,
-        "orientation": "vertical",
-        "instances": [
-          {
-            "x": "ply_carcass",
-            "y": "0",
-            "z": "0"
-          }
-        ]
-      }
+  "my_new_panel": {
+    "key": "my_new_panel",
+    "name": "My Panel",
+    "dimensions": {
+      "width": "dim_w - 2",
+      "height": "dim_h / 2",
+      "thickness": "ply_carcass"
+    },
+    "quantity": 2,
+    "viz3d": {
+      "color": 0xD2B48C,
+      "orientation": "vertical",
+      "instances": [
+        {"x": "ply_carcass", "y": "0", "z": "0"}
+      ]
     }
   }
 }
 ```
 
+**Step 2:** Add to desired styles in `js/cabinet_styles.json`:
+
+```json
+{
+  "id": "full",
+  "panels": [
+    "carcass_sides",
+    "my_new_panel",
+    ...
+  ],
+  "material_defaults": [
+    {
+      "thickness": 0.75,
+      "components": ["carcass_sides", "my_new_panel"]
+    }
+  ]
+}
+```
+
 The UI will automatically:
-- Calculate dimensions
-- Add to BOM
-- Render in 3D
+- Calculate dimensions from expressions
+- Add to BOM with proper quantity
+- Render in 3D with correct position/orientation
 - Include in cut optimization
-- Show in plywood assignment
+- Show in plywood assignment table
+
+## Adding New Cabinet Styles
+
+Edit `js/cabinet_styles.json`:
+
+```json
+{
+  "id": "my_custom_style",
+  "label": "My Custom Style",
+  "description": "Description of what this style does",
+  "panels": [
+    "carcass_sides",
+    "carcass_top",
+    ...
+  ],
+  "material_defaults": [
+    {"thickness": 0.75, "components": ["carcass_sides", "carcass_top"]},
+    {"thickness": 0.5, "components": ["drawer_sides"]}
+  ]
+}
+```
+
+Then add option to `js/inputs.json`:
+
+```json
+{
+  "variable_id": "backing_style",
+  "type": "select",
+  "options": [
+    {"value": "my_custom_style", "label": "My Custom Style"},
+    ...
+  ]
+}
+```
 
 ## Testing
 
@@ -210,25 +394,34 @@ Validates all JSON files and checks for:
 
 ### Core Application
 - `index.html` - Main application (HTML + CSS + JavaScript)
-- `equations.json` - Calculation engine (panels, dimensions, formulas)
-- `inputs.json` - UI configuration (input definitions, labels, defaults)
 
-### Configuration & Tests
-- `test_configs.json` - Multiple test scenarios (default, large, compact)
-- `test_3d_positions.py` - Python 3D visualization test script
+### Data Model (`js/` folder)
+- `panels.json` - Panel metadata (dimensions, quantities, 3D properties)
+- `cabinet_styles.json` - Style definitions (panel lists, material defaults)
+- `variables.json` - All variables (inputs, plywood, calculated)
+- `inputs.json` - UI configuration (sections, layouts, conditional visibility)
+- `equations.json` - Calculated dimensions array (legacy)
+- `test_configs.json` - Test scenarios (default, large, compact)
+- `tests.js` - Test suite placeholder
+
+### Python Tools
+- `test_3d_positions.py` - 3D visualization test script
+- `validate_config.py` - JSON validator with circular dependency check
 
 ### Build & Utilities
 - `serve.sh` - HTTP server startup script
-- `validate_config.py` - JSON configuration validator with circular dependency check
 - `Makefile` - Test automation
+- `CLAUDE.md` - Comprehensive developer documentation
+- `README.md` - This file
 
 ## Troubleshooting
 
 ### "Failed to load configuration files" error
 
 - Make sure you're accessing via HTTP (`http://localhost:8000`)
-- Check that `equations.json` and `inputs.json` exist in the directory
+- Check that the `js/` folder exists with all JSON files
 - Check browser console (F12) for specific error details
+- Verify file paths in browser network tab
 
 ### Port already in use
 

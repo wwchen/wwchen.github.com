@@ -89,56 +89,49 @@
       "label": "Carcass Plywood Thickness",
       "type": "plywood",
       "value": 0.75,
-      "unit": "inch",
-      "component": "carcass_sides"
+      "unit": "inch"
     },
     {
       "id": "ply_carcass_back",
       "label": "Carcass Back Thickness",
       "type": "plywood",
       "value": 0.5,
-      "unit": "inch",
-      "component": "carcass_back"
+      "unit": "inch"
     },
     {
       "id": "ply_back_stretcher",
       "label": "Back Stretcher Thickness",
       "type": "plywood",
       "value": 0.75,
-      "unit": "inch",
-      "component": "back_stretcher"
+      "unit": "inch"
     },
     {
       "id": "ply_drawer",
       "label": "Drawer Sides Thickness",
       "type": "plywood",
       "value": 0.5,
-      "unit": "inch",
-      "component": "drawer_sides"
+      "unit": "inch"
     },
     {
       "id": "ply_bottom",
       "label": "Drawer Bottom Thickness",
       "type": "plywood",
       "value": 0.25,
-      "unit": "inch",
-      "component": "drawer_bottom"
+      "unit": "inch"
     },
     {
       "id": "ply_drawer_face",
       "label": "Drawer Face Thickness",
       "type": "plywood",
       "value": 0,
-      "unit": "inch",
-      "component": "drawer_face"
+      "unit": "inch"
     },
     {
       "id": "ply_drawer_stretcher",
       "label": "Drawer Stretcher Thickness",
       "type": "plywood",
       "value": 0.75,
-      "unit": "inch",
-      "component": "drawer_stretcher"
+      "unit": "inch"
     },
     {
       "id": "ply_back_thickness",

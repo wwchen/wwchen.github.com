@@ -6,7 +6,7 @@
     <title>Cabinet Maker Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="tests.js"></script>
+    <script src="js/tests.js"></script>
     <style>
         * {
             margin: 0;
@@ -268,9 +268,152 @@
             margin-top: 10px;
         }
 
-        @media (max-width: 1400px) {
+        /* Tablet and below */
+        @media (max-width: 1024px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                max-height: none;
+                margin-bottom: 20px;
+            }
+
+            .main-content {
+                max-height: none;
+            }
+
             .calculated-dims {
                 grid-template-columns: 1fr;
+            }
+        }
+
+        /* Mobile landscape */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 24px;
+                margin-bottom: 15px;
+            }
+
+            .panel {
+                padding: 15px;
+            }
+
+            .sidebar {
+                padding: 15px;
+            }
+
+            .input-row {
+                grid-template-columns: 1fr;
+            }
+
+            .input-row-2 {
+                grid-template-columns: 1fr;
+            }
+
+            #canvas-container {
+                height: 300px !important;
+            }
+
+            table {
+                font-size: 14px;
+            }
+
+            th, td {
+                padding: 8px 4px;
+            }
+
+            .nav-menu {
+                padding: 10px;
+            }
+
+            .nav-menu h3 {
+                font-size: 12px;
+                margin-bottom: 8px;
+            }
+
+            .nav-link {
+                padding: 4px 8px;
+                font-size: 12px;
+            }
+        }
+
+        /* Mobile portrait */
+        @media (max-width: 480px) {
+            .container {
+                padding: 5px;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+
+            .panel {
+                padding: 10px;
+                border-radius: 4px;
+            }
+
+            .sidebar {
+                padding: 10px;
+            }
+
+            .panel h2 {
+                font-size: 16px;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: 6px 2px;
+            }
+
+            .btn {
+                padding: 8px 12px;
+                font-size: 14px;
+            }
+
+            .btn-small {
+                padding: 4px 8px;
+                font-size: 12px;
+            }
+
+            .component-pill {
+                padding: 4px 8px;
+                font-size: 11px;
+                margin: 2px;
+            }
+
+            #canvas-container {
+                height: 250px !important;
+            }
+
+            #variables-values {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-menu {
+                padding: 8px;
+                margin-bottom: 10px;
+            }
+
+            .nav-menu h3 {
+                display: none; /* Hide "Jump to Section" on very small screens */
+            }
+
+            .nav-links {
+                justify-content: center;
+                gap: 4px;
+            }
+
+            .nav-link {
+                padding: 4px 6px;
+                font-size: 11px;
             }
         }
 
@@ -633,21 +776,27 @@
         // Equations structure - loaded from equations.json
         let equations = null;
 
+        // Panels configuration - loaded from panels.json
+        let panels = null;
+
+        // Cabinet styles - loaded from cabinet_styles.json
+        let cabinetStyles = null;
+
         // Variables configuration - loaded from variables.json
         let variablesConfig = null;
 
         // Load equations from JSON file
         async function loadEquations() {
             try {
-                const response = await fetch('equations.json');
+                const response = await fetch('js/equations.json');
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 equations = await response.json();
-                console.log('Loaded equations from equations.json');
+                console.log('Loaded equations from js/equations.json');
                 return equations;
             } catch (error) {
-                console.error('Failed to load equations.json:', error);
+                console.error('Failed to load js/equations.json:', error);
                 throw error;
             }
         }
@@ -658,15 +807,15 @@
         // Load inputs from JSON file
         async function loadInputs() {
             try {
-                const response = await fetch('inputs.json');
+                const response = await fetch('js/inputs.json');
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 inputsConfig = await response.json();
-                console.log('Loaded inputs from inputs.json');
+                console.log('Loaded inputs from js/inputs.json');
                 return inputsConfig;
             } catch (error) {
-                console.error('Failed to load inputs.json:', error);
+                console.error('Failed to load js/inputs.json:', error);
                 throw error;
             }
         }
@@ -674,15 +823,47 @@
         // Load variables from JSON file
         async function loadVariables() {
             try {
-                const response = await fetch('variables.json');
+                const response = await fetch('js/variables.json');
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 variablesConfig = await response.json();
-                console.log('Loaded variables from variables.json');
+                console.log('Loaded variables from js/variables.json');
                 return variablesConfig;
             } catch (error) {
-                console.error('Failed to load variables.json:', error);
+                console.error('Failed to load js/variables.json:', error);
+                throw error;
+            }
+        }
+
+        // Load panels from JSON file
+        async function loadPanels() {
+            try {
+                const response = await fetch('js/panels.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                panels = await response.json();
+                console.log('Loaded panels from js/panels.json');
+                return panels;
+            } catch (error) {
+                console.error('Failed to load js/panels.json:', error);
+                throw error;
+            }
+        }
+
+        // Load cabinet styles from JSON file
+        async function loadCabinetStyles() {
+            try {
+                const response = await fetch('js/cabinet_styles.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                cabinetStyles = await response.json();
+                console.log('Loaded cabinet styles from js/cabinet_styles.json');
+                return cabinetStyles;
+            } catch (error) {
+                console.error('Failed to load js/cabinet_styles.json:', error);
                 throw error;
             }
         }
@@ -707,6 +888,76 @@
                 return [];
             }
             return variablesConfig.variables.filter(v => v.type === type);
+        }
+
+        /**
+         * MODEL: Deep merge objects (for panel overrides)
+         * Creates a deep copy of base and applies override properties
+         */
+        function deepMerge(base, override) {
+            const result = JSON.parse(JSON.stringify(base)); // Deep clone
+
+            for (const key in override) {
+                if (key === 'key') continue; // Skip reference key
+
+                if (typeof override[key] === 'object' && !Array.isArray(override[key])) {
+                    result[key] = deepMerge(result[key] || {}, override[key]);
+                } else {
+                    result[key] = override[key];
+                }
+            }
+
+            return result;
+        }
+
+        /**
+         * MODEL: Get active panels for current backing style
+         * Returns object of panels based on selected cabinet style
+         */
+        function getActivePanels(backingStyle) {
+            if (!cabinetStyles || !panels) {
+                console.error('Cabinet styles or panels not loaded');
+                return {};
+            }
+
+            // Find style definition
+            const style = cabinetStyles.styles.find(s => s.id === backingStyle);
+            if (!style) {
+                console.error(`Style not found: ${backingStyle}`);
+                return {};
+            }
+
+            // Build active panels object
+            const activePanels = {};
+
+            for (const panelRef of style.panels) {
+                let panelKey, panelOverride;
+
+                // Handle string vs object format
+                if (typeof panelRef === 'string') {
+                    panelKey = panelRef;
+                    panelOverride = null;
+                } else {
+                    panelKey = panelRef.key;
+                    panelOverride = panelRef;
+                }
+
+                // Get base panel
+                const basePanel = panels[panelKey];
+                if (!basePanel) {
+                    console.warn(`Panel not found: ${panelKey}`);
+                    continue;
+                }
+
+                // Merge with override if present
+                const panel = panelOverride
+                    ? deepMerge(basePanel, panelOverride)
+                    : basePanel;
+
+                activePanels[panelKey] = panel;
+            }
+
+            return activePanels;
         }
 
         // ============================================
@@ -1579,8 +1830,17 @@
          * VIEW: Render 3D cabinet (Uses context + recursive getValue)
          */
         function render3DCabinet(context) {
-            if (!equations || !equations.calculated || !equations.panels) {
+            if (!equations || !equations.calculated) {
                 console.error('equations not loaded yet, skipping 3D render');
+                return;
+            }
+
+            // Get active panels based on backing style
+            const backingStyle = context.backing_style;
+            const activePanels = getActivePanels(backingStyle);
+
+            if (!activePanels || Object.keys(activePanels).length === 0) {
+                console.error('No active panels found for style:', backingStyle);
                 return;
             }
 
@@ -1589,8 +1849,8 @@
                 cabinetGroup.remove(cabinetGroup.children[0]);
             }
 
-            // Render all panels using data-driven approach
-            for (const [panelKey, panel] of Object.entries(equations.panels)) {
+            // Render all active panels using data-driven approach
+            for (const [panelKey, panel] of Object.entries(activePanels)) {
                 renderPanel3D(panelKey, panel, context);
             }
 
@@ -1603,40 +1863,25 @@
         let draggedComponent = null;
 
         function getAvailableComponents(backingStyle) {
-            if (!equations || !equations.panels) {
-                console.error('equations.panels not loaded');
+            // Get active panels based on backing style
+            const activePanels = getActivePanels(backingStyle);
+
+            if (!activePanels || Object.keys(activePanels).length === 0) {
+                console.error('No active panels found for style:', backingStyle);
                 return [];
             }
 
             const components = [];
-            const seenComponents = new Set();
 
-            // Generate components from equations.panels
-            for (const [panelKey, panel] of Object.entries(equations.panels)) {
-                if (!panel.bom) continue; // Skip panels without BOM (like railings)
+            // Generate components from active panels
+            for (const [panelKey, panel] of Object.entries(activePanels)) {
+                // Skip panels without quantity (e.g., drawer_railings for visualization only)
+                if (panel.quantity === undefined || panel.quantity === null) continue;
 
-                // Check if panel has a condition
-                if (panel.bom.condition) {
-                    // Simple condition parsing for backing_style
-                    const conditionMatch = panel.bom.condition.match(/backing_style === "(\w+)"/);
-                    if (conditionMatch) {
-                        const requiredStyle = conditionMatch[1];
-                        if (backingStyle !== requiredStyle) {
-                            continue; // Skip if condition not met
-                        }
-                    }
-                }
-
-                // Avoid duplicates
-                if (seenComponents.has(panelKey)) {
-                    continue;
-                }
-                seenComponents.add(panelKey);
-
-                // Use panel key directly as component name
+                // Return object with value and label for UI compatibility
                 components.push({
                     value: panelKey,
-                    label: panel.bom.item
+                    label: panel.name
                 });
             }
 
@@ -1646,23 +1891,21 @@
         function initPlywoodTable() {
             const backingStyle = document.getElementById('backing_style').value;
 
-            // Get initial state from config
-            const plywoodSection = inputsConfig.sections.find(s => s.type === 'plywood_table');
-            if (!plywoodSection || !plywoodSection.initial_state) {
-                console.error('Plywood table config not found');
+            // Find style definition in cabinet_styles.json
+            if (!cabinetStyles || !cabinetStyles.styles) {
+                console.error('Cabinet styles not loaded');
                 plywoodData = [];
                 renderPlywoodTable();
                 return;
             }
 
-            // Load initial state for the current backing style
-            const initialState = plywoodSection.initial_state[backingStyle];
-            if (!initialState) {
-                console.error(`No initial plywood data for backing style: ${backingStyle}`);
+            const style = cabinetStyles.styles.find(s => s.id === backingStyle);
+            if (!style || !style.material_defaults) {
+                console.error(`Style not found or missing material_defaults: ${backingStyle}`);
                 plywoodData = [];
             } else {
-                // Deep copy to avoid mutating the config
-                plywoodData = JSON.parse(JSON.stringify(initialState));
+                // Deep copy material defaults to avoid mutating the config
+                plywoodData = JSON.parse(JSON.stringify(style.material_defaults));
             }
 
             renderPlywoodTable();
@@ -1908,23 +2151,22 @@
          * Uses recursive getValue() for all expressions
          */
         function generateBOM(context, equations, variablesList) {
-            if (!equations || !equations.panels) {
-                console.error('equations.panels not loaded');
+            // Get active panels based on backing style
+            const backingStyle = context.backing_style;
+            const activePanels = getActivePanels(backingStyle);
+
+            if (!activePanels || Object.keys(activePanels).length === 0) {
+                console.error('No active panels found for style:', backingStyle);
                 return [];
             }
 
             const bom = [];
             let id = 1;
 
-            // Iterate through panels and generate BOM entries
-            for (const [panelKey, panel] of Object.entries(equations.panels)) {
-                if (!panel.bom) continue;
-
-                // Check condition if present (use recursive getValue)
-                if (panel.bom.condition) {
-                    const conditionMet = evaluateExprRecursive(panel.bom.condition, variablesList, context, new Set());
-                    if (!conditionMet) continue;
-                }
+            // Iterate through active panels and generate BOM entries
+            for (const [panelKey, panel] of Object.entries(activePanels)) {
+                // Skip panels without quantity (e.g., drawer_railings for visualization only)
+                if (panel.quantity === undefined || panel.quantity === null) continue;
 
                 // Evaluate dimensions using recursive tree search
                 const width = evaluateExprRecursive(panel.dimensions.width, variablesList, context, new Set());
@@ -1932,9 +2174,9 @@
                 const thickness = evaluateExprRecursive(panel.dimensions.thickness, variablesList, context, new Set());
 
                 // Evaluate quantity
-                const quantity = typeof panel.bom.quantity === 'number' ?
-                    panel.bom.quantity :
-                    evaluateExprRecursive(panel.bom.quantity, variablesList, context, new Set());
+                const quantity = typeof panel.quantity === 'number' ?
+                    panel.quantity :
+                    evaluateExprRecursive(panel.quantity, variablesList, context, new Set());
 
                 // Build equation strings for display
                 const widthEq = buildEquationString(panel.dimensions.width, context);
@@ -1943,7 +2185,7 @@
 
                 bom.push({
                     id: id++,
-                    item: panel.bom.item,
+                    item: panel.name,
                     width,
                     height,
                     thickness,
@@ -2238,6 +2480,8 @@
                 await loadEquations();
                 await loadInputs();
                 await loadVariables();
+                await loadPanels();
+                await loadCabinetStyles();
 
                 // Test for circular dependencies (MODEL layer validation)
                 testCircularDependencies(variablesConfig);
@@ -2247,7 +2491,7 @@
                     <div style="padding: 40px; max-width: 800px; margin: 0 auto; font-family: system-ui;">
                         <h1 style="color: #c00;">⚠️ Configuration Error</h1>
                         <p style="font-size: 16px; line-height: 1.6;">
-                            Failed to load configuration files (equations.json, inputs.json, variables.json).
+                            Failed to load configuration files from js/ folder (equations.json, inputs.json, variables.json, panels.json, cabinet_styles.json).
                         </p>
                         <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
                             <strong>📌 Important:</strong> This application must be served via HTTP, not opened directly as a file.

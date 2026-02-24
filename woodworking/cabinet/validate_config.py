@@ -102,6 +102,114 @@ def has_cycle(var_id, visited, path, dependencies_map):
     return False, None
 
 
+def check_panels_structure(filepath):
+    """Check that required fields exist in panels.json"""
+    try:
+        with open(filepath, 'r') as f:
+            data = json.load(f)
+
+        all_ok = True
+        required_fields = ['key', 'name', 'dimensions', 'viz3d']
+
+        for panel_key, panel in data.items():
+            # Check required fields
+            for field in required_fields:
+                if field not in panel:
+                    print(f"❌ Panel '{panel_key}' missing field '{field}'")
+                    all_ok = False
+
+            # Check dimensions structure
+            if 'dimensions' in panel:
+                dim_fields = ['width', 'height', 'thickness']
+                for dim in dim_fields:
+                    if dim not in panel['dimensions']:
+                        print(f"❌ Panel '{panel_key}' missing dimension '{dim}'")
+                        all_ok = False
+
+            # Check viz3d structure
+            if 'viz3d' in panel:
+                viz_fields = ['color', 'orientation', 'instances']
+                for viz in viz_fields:
+                    if viz not in panel['viz3d']:
+                        print(f"❌ Panel '{panel_key}' missing viz3d field '{viz}'")
+                        all_ok = False
+
+        if all_ok:
+            print(f"✅ All panels have required fields")
+
+        return all_ok
+    except FileNotFoundError:
+        print(f"❌ {filepath} not found")
+        return False
+    except json.JSONDecodeError as e:
+        print(f"❌ {filepath} invalid JSON: {e}")
+        return False
+
+
+def check_cabinet_styles_structure(filepath, panels_filepath):
+    """Check that required fields exist in cabinet_styles.json and references are valid"""
+    try:
+        with open(filepath, 'r') as f:
+            data = json.load(f)
+
+        with open(panels_filepath, 'r') as f:
+            panels = json.load(f)
+
+        all_ok = True
+
+        if 'styles' not in data:
+            print(f"❌ Missing 'styles' array")
+            return False
+
+        for style in data['styles']:
+            style_id = style.get('id', 'UNKNOWN')
+
+            # Check required style fields
+            required_fields = ['id', 'label', 'description', 'panels', 'material_defaults']
+            for field in required_fields:
+                if field not in style:
+                    print(f"❌ Style '{style_id}' missing field '{field}'")
+                    all_ok = False
+
+            # Check panel references
+            if 'panels' in style:
+                for panel_ref in style['panels']:
+                    # Extract panel key (handle both string and object format)
+                    panel_key = panel_ref if isinstance(panel_ref, str) else panel_ref.get('key')
+
+                    if panel_key not in panels:
+                        print(f"❌ Style '{style_id}' references unknown panel '{panel_key}'")
+                        all_ok = False
+
+            # Check material_defaults references
+            if 'material_defaults' in style:
+                for mat_def in style['material_defaults']:
+                    if 'thickness' not in mat_def:
+                        print(f"❌ Style '{style_id}' material_default missing 'thickness'")
+                        all_ok = False
+
+                    if 'components' not in mat_def:
+                        print(f"❌ Style '{style_id}' material_default missing 'components'")
+                        all_ok = False
+                    else:
+                        # Check that all components reference valid panels
+                        for component in mat_def['components']:
+                            if component not in panels:
+                                print(f"❌ Style '{style_id}' material_default references unknown panel '{component}'")
+                                all_ok = False
+
+        if all_ok:
+            print(f"✅ All styles have required fields and valid references")
+
+        return all_ok
+    except FileNotFoundError:
+        print(f"❌ {filepath} or {panels_filepath} not found")
+        return False
+    except json.JSONDecodeError as e:
+        print(f"❌ Invalid JSON: {e}")
+        return False
+
+
 def check_circular_dependencies(filepath):
     """Check for circular dependencies in variables.json"""
     try:
@@ -150,8 +258,15 @@ def main():
     print("Validating configuration files...")
     print()
 
-    # Validate JSON files
-    json_files = ['equations.json', 'inputs.json', 'test_configs.json']
+    # Validate JSON files in js/ folder
+    json_files = [
+        'js/equations.json',
+        'js/inputs.json',
+        'js/variables.json',
+        'js/panels.json',
+        'js/cabinet_styles.json',
+        'js/test_configs.json'
+    ]
     json_valid = all(validate_json_file(f) for f in json_files)
 
     if not json_valid:
@@ -162,22 +277,32 @@ def main():
     # Check inputs.json structure
     print()
     print("Checking inputs.json structure...")
-    inputs_ok = check_required_inputs('inputs.json')
+    inputs_ok = check_required_inputs('js/inputs.json')
 
     # Check equations.json structure
     print()
     print("Checking equations.json structure...")
-    equations_ok = check_equations_structure('equations.json')
+    equations_ok = check_equations_structure('js/equations.json')
+
+    # Check panels.json structure
+    print()
+    print("Checking panels.json structure...")
+    panels_ok = check_panels_structure('js/panels.json')
+
+    # Check cabinet_styles.json structure and references
+    print()
+    print("Checking cabinet_styles.json structure...")
+    styles_ok = check_cabinet_styles_structure('js/cabinet_styles.json', 'js/panels.json')
 
     # Check for circular dependencies
     print()
     print("Checking for circular dependencies...")
-    circular_ok = check_circular_dependencies('variables.json')
+    circular_ok = check_circular_dependencies('js/variables.json')
 
     # Final result
     print()
-    if json_valid and inputs_ok and equations_ok and circular_ok:
-        print("Validation complete!")
+    if json_valid and inputs_ok and equations_ok and panels_ok and styles_ok and circular_ok:
+        print("✅ Validation complete!")
         return 0
     else:
         print("❌ Validation failed")
