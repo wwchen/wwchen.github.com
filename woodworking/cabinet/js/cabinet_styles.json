@@ -22,15 +22,11 @@
         },
         {
           "thickness": 0.5,
-          "components": ["drawer_sides", "carcass_back"]
+          "components": ["drawer_sides", "drawer_front_back", "carcass_back", "drawer_face"]
         },
         {
           "thickness": 0.25,
           "components": ["drawer_bottom"]
-        },
-        {
-          "thickness": 0,
-          "components": ["drawer_face"]
         }
       ]
     },
@@ -44,8 +40,17 @@
         {
           "key": "carcass_back",
           "dimensions": {
-            "width": "dim_w - 2 * ply_carcass - 0.25",
-            "height": "dim_h - 2 * ply_carcass - 0.25"
+            "width": "dim_w - ply_carcass",
+            "height": "dim_h - ply_carcass"
+          },
+          "viz3d": {
+            "instances": [
+              {
+                "x": "ply_carcass / 2",
+                "y": "ply_carcass / 2",
+                "z": "dim_d - ply_carcass_back"
+              }
+            ]
           }
         },
         "drawer_stretcher",
@@ -62,15 +67,11 @@
         },
         {
           "thickness": 0.5,
-          "components": ["drawer_sides"]
+          "components": ["drawer_sides", "drawer_front_back", "drawer_face"]
         },
         {
           "thickness": 0.25,
           "components": ["drawer_bottom", "carcass_back"]
-        },
-        {
-          "thickness": 0,
-          "components": ["drawer_face"]
         }
       ]
     },
@@ -96,15 +97,11 @@
         },
         {
           "thickness": 0.5,
-          "components": ["drawer_sides"]
+          "components": ["drawer_sides", "drawer_front_back", "drawer_face"]
         },
         {
           "thickness": 0.25,
           "components": ["drawer_bottom"]
-        },
-        {
-          "thickness": 0,
-          "components": ["drawer_face"]
         }
       ]
     },
@@ -129,15 +126,11 @@
         },
         {
           "thickness": 0.5,
-          "components": ["drawer_sides"]
+          "components": ["drawer_sides", "drawer_front_back", "drawer_face"]
         },
         {
           "thickness": 0.25,
           "components": ["drawer_bottom"]
-        },
-        {
-          "thickness": 0,
-          "components": ["drawer_face"]
         }
       ]
     }

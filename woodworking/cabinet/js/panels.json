@@ -51,7 +51,7 @@
     "name": "Carcass back",
     "dimensions": {
       "width": "dim_w - 2 * ply_carcass",
-      "height": "dim_h - 2 * ply_carcass",
+      "height": "dim_h - ply_carcass",
       "thickness": "ply_carcass_back"
     },
     "quantity": 1,
@@ -62,7 +62,7 @@
       "instances": [
         {
           "x": "ply_carcass",
-          "y": "ply_carcass",
+          "y": "0",
           "z": "dim_d - ply_carcass_back"
         }
       ]
@@ -118,7 +118,7 @@
         {
           "x": "ply_carcass",
           "y": "i * (drawer_height + ply_drawer_stretcher)",
-          "z": "dim_d - dim_drawer_stretcher"
+          "z": "dim_d - dim_drawer_stretcher - ply_carcass_back"
         }
       ]
     }

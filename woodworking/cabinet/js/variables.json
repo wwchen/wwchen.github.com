@@ -60,7 +60,7 @@
       "id": "backing_style",
       "label": "Carcass Backing",
       "type": "input",
-      "value": "stretcher",
+      "value": "full",
       "unit": "none"
     },
     {

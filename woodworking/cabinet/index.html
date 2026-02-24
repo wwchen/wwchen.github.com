@@ -2470,47 +2470,15 @@
             renderDebugSection(context);
         }
 
-        // Toggle back stretcher input based on backing style
+        // Handle backing style changes - reinitialize plywood table from style defaults
         function setupBackingStyleHandler() {
             const backingSelect = document.getElementById('backing_style');
 
-            function updateBackingComponents(newStyle) {
-                // Remove all backing-related components from all rows
-                plywoodData.forEach(row => {
-                    row.components = row.components.filter(c =>
-                        c !== 'carcass_back' && c !== 'back_stretcher'
-                    );
-                });
-
-                // Add appropriate backing component based on style
-                if (newStyle === 'stretcher') {
-                    // Add back_stretcher to 3/4" row
-                    const row34 = plywoodData.find(r => r.thickness === 0.75);
-                    if (row34 && !row34.components.includes('back_stretcher')) {
-                        row34.components.push('back_stretcher');
-                    }
-                } else if (newStyle === 'full') {
-                    // Add carcass_back to 1/2" row
-                    const row12 = plywoodData.find(r => r.thickness === 0.5);
-                    if (row12 && !row12.components.includes('carcass_back')) {
-                        row12.components.push('carcass_back');
-                    }
-                } else if (newStyle === 'inlay') {
-                    // Add carcass_back to 1/4" row
-                    const row14 = plywoodData.find(r => r.thickness === 0.25);
-                    if (row14 && !row14.components.includes('carcass_back')) {
-                        row14.components.push('carcass_back');
-                    }
-                }
-            }
-
             backingSelect.addEventListener('change', () => {
-                updateBackingComponents(backingSelect.value);
-                renderPlywoodTable(); // Re-render to update available components
+                // Reinitialize plywood table with new style's material_defaults
+                initPlywoodTable();
                 calculate();
             });
-
-            updateBackingComponents(backingSelect.value); // Initialize on load
         }
 
         // Export config to JSON
