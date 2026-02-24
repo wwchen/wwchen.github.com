@@ -67,25 +67,25 @@
       "type": "plywood_table",
       "initial_state": {
         "full": [
-          {"thickness": 0.75, "components": ["carcass_sides", "carcass_top", "drawer_support"]},
+          {"thickness": 0.75, "components": ["carcass_sides", "carcass_top", "drawer_dividers"]},
           {"thickness": 0.5, "components": ["drawer_sides", "carcass_back"]},
           {"thickness": 0.25, "components": ["drawer_bottom"]},
           {"thickness": 0, "components": ["drawer_face"]}
         ],
         "inlay": [
-          {"thickness": 0.75, "components": ["carcass_sides", "carcass_top", "drawer_support"]},
+          {"thickness": 0.75, "components": ["carcass_sides", "carcass_top", "drawer_dividers"]},
           {"thickness": 0.5, "components": ["drawer_sides"]},
           {"thickness": 0.25, "components": ["drawer_bottom", "carcass_back"]},
           {"thickness": 0, "components": ["drawer_face"]}
         ],
         "stretcher": [
-          {"thickness": 0.75, "components": ["carcass_sides", "carcass_top", "drawer_support", "back_stretcher"]},
+          {"thickness": 0.75, "components": ["carcass_sides", "carcass_top", "drawer_dividers", "back_stretcher"]},
           {"thickness": 0.5, "components": ["drawer_sides"]},
           {"thickness": 0.25, "components": ["drawer_bottom"]},
           {"thickness": 0, "components": ["drawer_face"]}
         ],
         "none": [
-          {"thickness": 0.75, "components": ["carcass_sides", "carcass_top", "drawer_support"]},
+          {"thickness": 0.75, "components": ["carcass_sides", "carcass_top", "drawer_dividers"]},
           {"thickness": 0.5, "components": ["drawer_sides"]},
           {"thickness": 0.25, "components": ["drawer_bottom"]},
           {"thickness": 0, "components": ["drawer_face"]}

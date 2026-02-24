@@ -8,7 +8,7 @@
         "carcass_sides",
         "carcass_top",
         "carcass_back",
-        "drawer_support",
+        "drawer_dividers",
         "drawer_sides",
         "drawer_front_back",
         "drawer_bottom",
@@ -18,7 +18,7 @@
       "material_defaults": [
         {
           "thickness": 0.75,
-          "components": ["carcass_sides", "carcass_top", "drawer_support"]
+          "components": ["carcass_sides", "carcass_top", "drawer_dividers"]
         },
         {
           "thickness": 0.5,
@@ -53,7 +53,7 @@
             ]
           }
         },
-        "drawer_support",
+        "drawer_dividers",
         "drawer_sides",
         "drawer_front_back",
         "drawer_bottom",
@@ -63,7 +63,7 @@
       "material_defaults": [
         {
           "thickness": 0.75,
-          "components": ["carcass_sides", "carcass_top", "drawer_support"]
+          "components": ["carcass_sides", "carcass_top", "drawer_dividers"]
         },
         {
           "thickness": 0.5,
@@ -83,7 +83,7 @@
         "carcass_sides",
         "carcass_top",
         "back_stretcher",
-        "drawer_support",
+        "drawer_dividers",
         "drawer_sides",
         "drawer_front_back",
         "drawer_bottom",
@@ -93,7 +93,7 @@
       "material_defaults": [
         {
           "thickness": 0.75,
-          "components": ["carcass_sides", "carcass_top", "drawer_support", "back_stretcher"]
+          "components": ["carcass_sides", "carcass_top", "drawer_dividers", "back_stretcher"]
         },
         {
           "thickness": 0.5,
@@ -112,7 +112,7 @@
       "panels": [
         "carcass_sides",
         "carcass_top",
-        "drawer_support",
+        "drawer_dividers",
         "drawer_sides",
         "drawer_front_back",
         "drawer_bottom",
@@ -122,7 +122,7 @@
       "material_defaults": [
         {
           "thickness": 0.75,
-          "components": ["carcass_sides", "carcass_top", "drawer_support"]
+          "components": ["carcass_sides", "carcass_top", "drawer_dividers"]
         },
         {
           "thickness": 0.5,

@@ -95,8 +95,8 @@
       ]
     }
   },
-  "drawer_support": {
-    "key": "drawer_support",
+  "drawer_dividers": {
+    "key": "drawer_dividers",
     "name": "Drawer dividers",
     "dimensions": {
       "width": "dim_w - 2 * ply_carcass",
