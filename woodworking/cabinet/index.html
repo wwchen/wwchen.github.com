@@ -1881,6 +1881,13 @@
         /**
          * VIEW: Render 3D cabinet (Uses context + recursive getValue)
          */
+        /**
+         * Check if a panel component is assigned to any plywood row
+         */
+        function isPanelAssigned(panelKey) {
+            return plywoodData.some(row => row.components.includes(panelKey));
+        }
+
         function render3DCabinet(context) {
             if (!equations || !equations.calculated) {
                 console.error('equations not loaded yet, skipping 3D render');
@@ -1901,8 +1908,14 @@
                 cabinetGroup.remove(cabinetGroup.children[0]);
             }
 
-            // Render all active panels using data-driven approach
+            // Render only assigned panels
             for (const [panelKey, panel] of Object.entries(activePanels)) {
+                // Skip panels that aren't assigned to any plywood row
+                if (!isPanelAssigned(panelKey)) {
+                    console.log(`Skipping unassigned panel: ${panelKey}`);
+                    continue;
+                }
+
                 renderPanel3D(panelKey, panel, context);
             }
 
@@ -2219,6 +2232,12 @@
             for (const [panelKey, panel] of Object.entries(activePanels)) {
                 // Skip panels without quantity (e.g., drawer_railings for visualization only)
                 if (panel.quantity === undefined || panel.quantity === null) continue;
+
+                // Skip panels that aren't assigned to any plywood row
+                if (!isPanelAssigned(panelKey)) {
+                    console.log(`Skipping unassigned panel in BOM: ${panelKey}`);
+                    continue;
+                }
 
                 // Evaluate dimensions using recursive tree search
                 const width = evaluateExprRecursive(panel.dimensions.width, variablesList, context, new Set());
