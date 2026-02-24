@@ -1542,6 +1542,52 @@
         }
 
         /**
+         * CONTROLLER: Export BOM to CSV for cutlist optimizer (single thickness)
+         * @param {number} thickness - Filter BOM by this thickness
+         */
+        function exportBOMToCSV(bom, context, thickness) {
+            let csv = '';
+
+            // Filter BOM for this thickness only
+            const filteredBOM = bom.filter(item => Math.abs(item.thickness - thickness) < 0.001);
+
+            if (filteredBOM.length === 0) {
+                alert('No items found for this thickness');
+                return;
+            }
+
+            // Calculate total area for this thickness
+            const totalArea = filteredBOM.reduce((sum, item) =>
+                sum + (item.width * item.height * item.quantity), 0
+            );
+
+            // Stock section (plywood sheets)
+            csv += '@,Length,Width,Quantity,Grain direction\n';
+            const sheetArea = context.sheet_w * context.sheet_h;
+            const sheetsNeeded = Math.ceil(totalArea / sheetArea);
+            csv += `S,${context.sheet_w.toFixed(2)}″,${context.sheet_h.toFixed(2)}″,${sheetsNeeded},\n`;
+
+            // Panel section (cuts)
+            csv += '@,Length,Width,Quantity,Grain direction,Label\n';
+            filteredBOM.forEach(item => {
+                const label = item.item.replace(/,/g, ';'); // Escape commas
+                csv += `P,${item.width.toFixed(2)}″,${item.height.toFixed(2)}″,${item.quantity},,${label}\n`;
+            });
+
+            // Download CSV
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            const thicknessStr = thickness.toFixed(2).replace('.', '_');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `cutlist_${thicknessStr}in.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        /**
          * VIEW: Render BOM section (Updates DOM)
          */
         function renderBOMSection(bom, context) {
@@ -1608,13 +1654,14 @@
                                 <th>Thickness</th>
                                 <th>Total Area</th>
                                 <th>Sheets Needed (${context.sheet_w/12}'×${context.sheet_h/12}')</th>
+                                <th>Export to <a href="https://www.opticutter.com/cut-list-optimizer" target="_blank">Cutlist</a></th>
                             </tr>
                         </thead>
                         <tbody>
             `;
 
             const sheetArea = context.sheet_w * context.sheet_h;
-            Object.keys(materialSummary).sort().forEach(key => {
+            Object.keys(materialSummary).forEach(key => {
                 const summary = materialSummary[key];
                 const sheetsNeeded = Math.ceil(summary.area / sheetArea);
                 const efficiency = ((summary.area / (sheetsNeeded * sheetArea)) * 100).toFixed(1);
@@ -1623,6 +1670,13 @@
                         <td><strong>${summary.thickness.toFixed(2)}"</strong></td>
                         <td>${summary.area.toFixed(2)} sq in <span style="color: #666;">(${(summary.area / 144).toFixed(2)} sq ft)</span></td>
                         <td><strong style="color: #3498db;">${sheetsNeeded}</strong> <span style="color: #666; font-size: 12px;">(${efficiency}% utilization)</span></td>
+                        <td>
+                            <button onclick="exportBOMToCSV(window.lastBOM, window.lastContext, ${summary.thickness})"
+                                    style="padding: 4px 12px; background: #3498db; color: white; border: none;
+                                           border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                📥 CSV
+                            </button>
+                        </td>
                     </tr>
                 `;
             });
@@ -2513,6 +2567,10 @@
             //    getValue() will recursively evaluate calculated vars as needed
             const bom = generateBOM(context, equations, variablesConfig.variables);
             const optimizedSheets = optimizeCuts(bom, context);
+
+            // Store for export functionality
+            window.lastBOM = bom;
+            window.lastContext = context;
 
             // 3. Update VIEW layer
             render3DCabinet(context);
