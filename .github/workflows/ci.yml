@@ -1,10 +1,16 @@
-name: CI/CD Pipeline
+name: Cabinet CI/CD Pipeline
 
 on:
   push:
     branches: [main, master]
+    paths:
+      - 'woodworking/cabinet/**'
+      - '.github/workflows/ci.yml'
   pull_request:
     branches: [main, master]
+    paths:
+      - 'woodworking/cabinet/**'
+      - '.github/workflows/ci.yml'
 
 permissions:
   contents: read
@@ -15,6 +21,9 @@ jobs:
   test:
     name: Test & Lint
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: woodworking/cabinet
     steps:
       - uses: actions/checkout@v4
 
@@ -23,6 +32,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+          cache-dependency-path: 'woodworking/cabinet/package-lock.json'
 
       - name: Install dependencies
         run: npm ci
@@ -40,6 +50,9 @@ jobs:
     name: Build & Deploy to GitHub Pages
     needs: test
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: woodworking/cabinet
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     steps:
       - uses: actions/checkout@v4
@@ -49,6 +62,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+          cache-dependency-path: 'woodworking/cabinet/package-lock.json'
 
       - name: Install dependencies
         run: npm ci
@@ -62,7 +76,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './dist'
+          path: 'woodworking/cabinet/dist'
 
       - name: Deploy to GitHub Pages
         id: deployment
