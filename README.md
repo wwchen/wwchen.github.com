@@ -3,9 +3,10 @@ wwchen.github.com
 
 Personal website and project portfolio hosted on GitHub Pages.
 
-Multi-page Vite application with two separate Vue apps:
+Multi-page Vite application with three separate Vue apps:
 - **Homepage**: Personal landing page with social links
 - **Cabinet Maker Pro**: Full-featured cabinet design tool with 3D visualization
+- **Cutting Board Designer**: Interactive face-grain and end-grain cutting board calculator
 
 ## Repository Structure
 
@@ -14,11 +15,16 @@ Multi-page Vite application with two separate Vue apps:
 ├── index.html                      # Homepage entry point
 ├── woodworking/cabinet/
 │   └── index.html                  # Cabinet app entry point
+├── woodworking/cutting-board/
+│   ├── index.html                  # Cutting Board Designer entry point
+│   └── tests.html                  # Unit tests page
 │
 ├── src/                            # Shared source code
 │   ├── views/
 │   │   ├── Home.vue                # Homepage component
-│   │   └── Cabinet.vue             # Cabinet app component
+│   │   ├── Cabinet.vue             # Cabinet app component
+│   │   ├── CuttingBoard.vue        # Cutting Board Designer component
+│   │   └── CuttingBoardTests.vue   # Unit tests component
 │   ├── components/                 # Shared Vue components
 │   ├── composables/                # Vue composables (Cabinet app)
 │   ├── data/                       # JSON configuration files
@@ -26,6 +32,8 @@ Multi-page Vite application with two separate Vue apps:
 │   ├── types/                      # TypeScript type definitions
 │   ├── main.ts                     # Homepage bootstrap
 │   ├── cabinet.ts                  # Cabinet app bootstrap
+│   ├── cuttingboard.ts             # Cutting Board Designer bootstrap
+│   ├── cuttingboardtests.ts        # Cutting Board tests bootstrap
 │   └── style.css                   # Shared styles
 │
 ├── tests/                          # Test files
@@ -55,9 +63,14 @@ dist/ (deployed to gh-pages branch):
 ├── index.html                      # Homepage
 ├── woodworking/cabinet/
 │   └── index.html                  # Cabinet app
+├── woodworking/cutting-board/
+│   ├── index.html                  # Cutting Board Designer
+│   └── tests.html                  # Unit tests
 └── assets/                         # Shared JS/CSS bundles
     ├── main-*.js                   # Homepage bundle
     ├── cabinet-*.js                # Cabinet app bundle
+    ├── cuttingboard-*.js           # Cutting Board Designer bundle
+    ├── cuttingboardtests-*.js      # Cutting Board tests bundle
     └── *.css                       # Stylesheets
 ```
 
@@ -66,12 +79,16 @@ dist/ (deployed to gh-pages branch):
   - Personal homepage with GitHub and LinkedIn links
 - `https://will.iamchen.com/woodworking/cabinet/`
   - Cabinet Maker Pro application
+- `https://will.iamchen.com/woodworking/cutting-board/`
+  - Cutting Board Designer application
+- `https://will.iamchen.com/woodworking/cutting-board/tests/`
+  - Cutting Board unit tests
 
 ## Architecture
 
 ### Multi-Page Vite Setup
 
-This project uses Vite's multi-page app configuration with two separate entry points:
+This project uses Vite's multi-page app configuration with multiple separate entry points:
 
 1. **Homepage** (`index.html` → `src/main.ts` → `Home.vue`)
    - Minimal Vue app
@@ -83,6 +100,12 @@ This project uses Vite's multi-page app configuration with two separate entry po
    - PrimeVue UI components
    - Three.js 3D visualization
    - Complex state management with composables
+
+3. **Cutting Board Designer** (`woodworking/cutting-board/index.html` → `src/cuttingboard.ts` → `CuttingBoard.vue`)
+   - Vue 3 Composition API
+   - Face-grain and end-grain cutting board calculations
+   - Interactive strip ripping and crosscut visualization
+   - Material optimization with kerf calculations
 
 **Benefits:**
 - Each page gets its own `index.html` (proper server-side routing)
@@ -132,6 +155,8 @@ make dev
 # Visit pages:
 # - http://localhost:5173/ → Homepage
 # - http://localhost:5173/woodworking/cabinet/ → Cabinet app
+# - http://localhost:5173/woodworking/cutting-board/ → Cutting Board Designer
+# - http://localhost:5173/woodworking/cutting-board/tests/ → Cutting Board tests
 ```
 
 ## CI/CD Pipeline
@@ -144,7 +169,7 @@ The GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push to `
    - Vitest unit tests
 
 2. **Build & Deploy** (on master branch only)
-   - Build both apps with Vite multi-page config
+   - Build all apps with Vite multi-page config
    - Deploy `dist/` to `gh-pages` branch
    - GitHub Pages serves from `gh-pages` branch
 
@@ -252,3 +277,21 @@ The Cabinet Maker Pro app is a fully data-driven cabinet design tool:
 - Vitest for unit testing
 
 See `CLAUDE.md` for detailed architecture documentation.
+
+## Project: Cutting Board Designer
+
+Interactive cutting board calculator for face-grain and end-grain designs:
+
+**Features:**
+- 🪵 Board dimension calculations with kerf accounting
+- 📏 Automatic strip count from board width
+- 🎨 Visual strip layout preview
+- 🔄 Interactive crosscut strip manipulation (rotate, reorder)
+- 📊 Final cutting board dimensions
+- ✅ Comprehensive unit test suite
+- 🎯 Custom strip width mixing
+
+**Tech Stack:**
+- TypeScript + Vue 3 Composition API
+- Tailwind CSS (via CDN in existing HTML, inline styles in Vue)
+- Vite build system

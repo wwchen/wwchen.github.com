@@ -14,6 +14,8 @@ export default defineConfig({
       input: {
         main: fileURLToPath(new URL('./index.html', import.meta.url)),
         cabinet: fileURLToPath(new URL('./woodworking/cabinet/index.html', import.meta.url)),
+        cuttingboard: fileURLToPath(new URL('./woodworking/cutting-board/index.html', import.meta.url)),
+        cuttingboardtests: fileURLToPath(new URL('./woodworking/cutting-board/tests.html', import.meta.url)),
       },
     },
   },
