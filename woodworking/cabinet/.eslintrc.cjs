@@ -19,7 +19,7 @@ module.exports = {
   },
   rules: {
     '@typescript-eslint/no-explicit-any': 'error',
-    '@typescript-eslint/explicit-function-return-type': 'warn',
+    '@typescript-eslint/explicit-function-return-type': 'off', // Allow inferred return types
     'vue/multi-word-component-names': 'off',
     'vue/require-default-prop': 'off',
   },
