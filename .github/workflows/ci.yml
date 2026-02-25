@@ -60,10 +60,24 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Prepare deployment directory
+        run: |
+          mkdir -p deploy/woodworking/cabinet
+          # Copy static site files to deploy root
+          cp index-static.html deploy/index.html
+          cp *.html deploy/ 2>/dev/null || true
+          cp *.pdf deploy/ 2>/dev/null || true
+          cp -r css deploy/ 2>/dev/null || true
+          cp -r img deploy/ 2>/dev/null || true
+          cp -r js deploy/ 2>/dev/null || true
+          # Don't copy the Vite index.html to root
+          rm -f deploy/index-static.html
+          # Copy Vite build to subdirectory
+          cp -r dist/* deploy/woodworking/cabinet/
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          destination_dir: woodworking/cabinet
-          keep_files: true
+          publish_dir: ./deploy
+          keep_files: false
