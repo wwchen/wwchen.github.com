@@ -143,12 +143,12 @@
         "instances": [
           {
             "x": "ply_carcass",
-            "y": "i * (drawer_height + ply_drawer_divider)",
+            "y": "drawer_y_offsets[i]",
             "z": "ply_drawer_face"
           },
           {
             "x": "ply_carcass",
-            "y": "i * (drawer_height + ply_drawer_divider)",
+            "y": "drawer_y_offsets[i]",
             "z": "dim_d - dim_drawer_divider"
           }
         ]
@@ -157,7 +157,7 @@
     "drawer_sides": {
       "dimensions": {
         "width": "drawer_depth",
-        "height": "drawer_height - ply_bottom - 2 * drawer_clearance",
+        "height": "drawer_heights[i] - ply_bottom - 2 * drawer_clearance",
         "thickness": "ply_drawer"
       },
       "bom": {
@@ -171,12 +171,12 @@
         "instances": [
           {
             "x": "ply_carcass + dim_slides_w",
-            "y": "i * (drawer_height + ply_drawer_divider) + ply_drawer_divider + ply_bottom + drawer_clearance",
+            "y": "drawer_y_offsets[i] + ply_drawer_divider + ply_bottom + drawer_clearance",
             "z": "ply_drawer_face"
           },
           {
             "x": "dim_w - ply_carcass - dim_slides_w - ply_drawer",
-            "y": "i * (drawer_height + ply_drawer_divider) + ply_drawer_divider + ply_bottom + drawer_clearance",
+            "y": "drawer_y_offsets[i] + ply_drawer_divider + ply_bottom + drawer_clearance",
             "z": "ply_drawer_face"
           }
         ]
@@ -185,7 +185,7 @@
     "drawer_front_back": {
       "dimensions": {
         "width": "drawer_width - 2 * ply_drawer",
-        "height": "drawer_height - ply_bottom - 2 * drawer_clearance",
+        "height": "drawer_heights[i] - ply_bottom - 2 * drawer_clearance",
         "thickness": "ply_drawer"
       },
       "bom": {
@@ -199,12 +199,12 @@
         "instances": [
           {
             "x": "ply_carcass + dim_slides_w + ply_drawer",
-            "y": "i * (drawer_height + ply_drawer_divider) + ply_drawer_divider + ply_bottom + drawer_clearance",
+            "y": "drawer_y_offsets[i] + ply_drawer_divider + ply_bottom + drawer_clearance",
             "z": "ply_drawer_face"
           },
           {
             "x": "ply_carcass + dim_slides_w + ply_drawer",
-            "y": "i * (drawer_height + ply_drawer_divider) + ply_drawer_divider + ply_bottom + drawer_clearance",
+            "y": "drawer_y_offsets[i] + ply_drawer_divider + ply_bottom + drawer_clearance",
             "z": "ply_drawer_face + drawer_depth - ply_drawer"
           }
         ]
@@ -227,7 +227,7 @@
         "instances": [
           {
             "x": "ply_carcass + dim_slides_w",
-            "y": "i * (drawer_height + ply_drawer_divider) + ply_drawer_divider + drawer_clearance",
+            "y": "drawer_y_offsets[i] + ply_drawer_divider + drawer_clearance",
             "z": "ply_drawer_face"
           }
         ]
@@ -236,7 +236,7 @@
     "drawer_face": {
       "dimensions": {
         "width": "dim_w - 2 * ply_carcass - 2 * drawer_clearance",
-        "height": "drawer_height - 2 * drawer_clearance",
+        "height": "drawer_heights[i] - 2 * drawer_clearance",
         "thickness": "ply_drawer_face"
       },
       "bom": {
@@ -251,7 +251,7 @@
         "instances": [
           {
             "x": "ply_carcass + drawer_clearance",
-            "y": "i * (drawer_height + ply_drawer_divider) + ply_drawer_divider + drawer_clearance",
+            "y": "drawer_y_offsets[i] + ply_drawer_divider + drawer_clearance",
             "z": "0"
           }
         ]
@@ -269,12 +269,12 @@
         "instances": [
           {
             "x": "ply_carcass",
-            "y": "i * (drawer_height + ply_drawer_divider) + ply_drawer_divider + 1.0",
+            "y": "drawer_y_offsets[i] + ply_drawer_divider + 1.0",
             "z": "ply_drawer_face"
           },
           {
             "x": "dim_w - ply_carcass - dim_slides_w",
-            "y": "i * (drawer_height + ply_drawer_divider) + ply_drawer_divider + 1.0",
+            "y": "drawer_y_offsets[i] + ply_drawer_divider + 1.0",
             "z": "ply_drawer_face"
           }
         ]
@@ -300,7 +300,7 @@
       "key": "drawer",
       "label": "Drawer Box (W×H×D)",
       "width": "dim_w - 2 * (ply_carcass + dim_slides_w)",
-      "height": "(dim_h - ply_carcass - num_drawers * ply_drawer_divider) / num_drawers",
+      "height": "drawer_heights[0]",
       "depth": "dim_d - ply_drawer_face - ply_back_thickness"
     }
   ]

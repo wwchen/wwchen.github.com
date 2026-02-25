@@ -48,6 +48,12 @@
       ]
     },
     {
+      "title": "Drawer Heights",
+      "type": "drawer_heights",
+      "step": 0.125,
+      "min": 1.0
+    },
+    {
       "title": "Cabinet Style",
       "inputs": [
         {

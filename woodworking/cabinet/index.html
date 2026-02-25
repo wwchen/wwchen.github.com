@@ -1048,6 +1048,14 @@
         // ============================================
 
         /**
+         * STATIC: Convert a value to its eval()-safe string replacement
+         */
+        function toEvalReplacement(value) {
+            return Array.isArray(value) ? JSON.stringify(value)
+                : typeof value === 'number' ? value : `"${value}"`;
+        }
+
+        /**
          * STATIC: Recursive value lookup with tree search
          * No caching - re-evaluates each time for correctness
          */
@@ -1103,15 +1111,11 @@
 
                 // Check if variable exists in context (for loop vars like 'i') or in variablesList
                 if (varName in context) {
-                    // Direct context value (e.g., loop variable 'i')
                     const value = context[varName];
-                    const replacement = typeof value === 'number' ? value : `"${value}"`;
-                    evalStr = evalStr.replace(new RegExp(`\\b${varName}\\b`, 'g'), replacement);
+                    evalStr = evalStr.replace(new RegExp(`\\b${varName}\\b`, 'g'), toEvalReplacement(value));
                 } else if (allVarIds.includes(varName)) {
-                    // Known variable - recursively resolve
                     const value = getValue(varName, variablesList, context, visited);
-                    const replacement = typeof value === 'number' ? value : `"${value}"`;
-                    evalStr = evalStr.replace(new RegExp(`\\b${varName}\\b`, 'g'), replacement);
+                    evalStr = evalStr.replace(new RegExp(`\\b${varName}\\b`, 'g'), toEvalReplacement(value));
                 }
                 // Otherwise skip (string literals like 'full', 'stretcher', etc.)
             }
@@ -1286,6 +1290,8 @@
             variablesConfig.variables.forEach(v => {
                 if (v.type === 'input') {
                     context[v.id] = getDOMValue(v.id);
+                } else if (v.type === 'array') {
+                    context[v.id] = v.value;
                 }
             });
 
@@ -1323,7 +1329,9 @@
             for (const section of inputsConfig.sections) {
                 html += `<h2>${section.title}</h2>\n`;
 
-                if (section.type === 'plywood_table') {
+                if (section.type === 'drawer_heights') {
+                    html += `<div id="drawer-heights-container" data-step="${section.step || 0.125}" data-min="${section.min || 1.0}"></div>\n`;
+                } else if (section.type === 'plywood_table') {
                     // Special handling for plywood table
                     html += `
                 <table class="plywood-table" id="plywood-table">
@@ -1463,6 +1471,88 @@
             }
         }
 
+        /**
+         * VIEW: Render per-drawer height inputs
+         */
+        function renderDrawerHeightInputs(context) {
+            const container = document.getElementById('drawer-heights-container');
+            if (!container) return;
+
+            const drawerHeights = context.drawer_heights;
+            if (!drawerHeights || !Array.isArray(drawerHeights)) return;
+
+            const step = parseFloat(container.dataset.step) || 0.125;
+            const min = parseFloat(container.dataset.min) || 1.0;
+            const numDrawers = drawerHeights.length;
+            const plyDivider = getValue('ply_drawer_divider', variablesConfig.variables, context);
+            const plyCarcass = getValue('ply_carcass', variablesConfig.variables, context);
+
+            const totalUsed = drawerHeights.reduce((s, h) => s + h, 0);
+            const available = context.dim_h - plyCarcass - numDrawers * plyDivider;
+            const diff = Math.abs(totalUsed - available);
+            const mismatch = diff > 0.01;
+
+            // Check if we need a full re-render (drawer count changed) or just an update
+            const existingInputs = container.querySelectorAll('.drawer-height-input');
+            const needsFullRender = existingInputs.length !== numDrawers;
+
+            if (needsFullRender) {
+                let html = '';
+                for (let i = 0; i < numDrawers; i++) {
+                    html += `<div class="input-group" style="margin-bottom: 8px;">`;
+                    html += `<label>Drawer ${i + 1} Height</label>`;
+                    html += `<input type="number" class="drawer-height-input" data-index="${i}" `;
+                    html += `value="${drawerHeights[i]}" step="${step}" min="${min}">`;
+                    html += `</div>`;
+                }
+
+                html += `<div id="drawer-heights-summary" style="font-size: 12px; margin-top: 4px;"></div>`;
+                html += `<button class="button btn-small" style="margin-top: 8px;" onclick="equalizeDrawerHeights()">Equalize</button>`;
+
+                container.innerHTML = html;
+
+                // Add listeners
+                container.querySelectorAll('.drawer-height-input').forEach(input => {
+                    const handler = () => {
+                        const idx = parseInt(input.dataset.index);
+                        const val = parseFloat(input.value);
+                        if (!isNaN(val) && val > 0) {
+                            const drawerHeightsVar = variablesConfig.variables.find(v => v.id === 'drawer_heights');
+                            if (drawerHeightsVar) {
+                                drawerHeightsVar.value[idx] = val;
+                            }
+                            calculate();
+                        }
+                    };
+                    input.addEventListener('change', handler);
+                    input.addEventListener('input', handler);
+                });
+            }
+
+            // Update summary text (always)
+            const summary = container.querySelector('#drawer-heights-summary');
+            if (summary) {
+                let text = `Total: ${totalUsed.toFixed(2)}" / Available: ${available.toFixed(2)}"`;
+                if (mismatch) {
+                    text += ` (${totalUsed > available ? '+' : ''}${(totalUsed - available).toFixed(2)}")`;
+                }
+                summary.style.color = mismatch ? '#c00' : '#666';
+                summary.textContent = text;
+            }
+        }
+
+        function equalizeDrawerHeights() {
+            const context = mergeInputsWithVariables(variablesConfig, plywoodData);
+            const numDrawers = context.num_drawers || 3;
+            const eh = getValue('drawer_height_equal', variablesConfig.variables, context);
+
+            const drawerHeightsVar = variablesConfig.variables.find(v => v.id === 'drawer_heights');
+            if (drawerHeightsVar) {
+                drawerHeightsVar.value = Array(numDrawers).fill(parseFloat(eh.toFixed(4)));
+            }
+            calculate();
+        }
+
                 // Render debug output showing all variables
         /**
          * VIEW: Render debug section (Updates DOM)
@@ -1500,10 +1590,11 @@
 
             sortedKeys.forEach(key => {
                 const value = context[key];
-                // Skip objects
-                if (typeof value === 'object') return;
+                // Skip objects (but allow arrays)
+                if (typeof value === 'object' && !Array.isArray(value)) return;
 
-                const displayValue = typeof value === 'number' ? value.toFixed(3) :
+                const displayValue = Array.isArray(value) ? '[' + value.map(v => typeof v === 'number' ? v.toFixed(3) : v).join(', ') + ']' :
+                                   typeof value === 'number' ? value.toFixed(3) :
                                    typeof value === 'boolean' ? value.toString() :
                                    value;
                 html += `<div class="debug-var">
@@ -1838,7 +1929,10 @@
                     continue; // Skip string literals
                 }
 
-                if (typeof value === 'number') {
+                if (Array.isArray(value)) {
+                    // For array values like drawer_heights[i], substitute the array
+                    displayExpr = displayExpr.replace(new RegExp(`\\b${varName}\\b`, 'g'), JSON.stringify(value));
+                } else if (typeof value === 'number') {
                     const formatted = varName.includes('clearance') ? value.toFixed(3) : value.toFixed(2);
                     displayExpr = displayExpr.replace(new RegExp(`\\b${varName}\\b`, 'g'), formatted);
                 }
@@ -1990,23 +2084,30 @@
                 return;
             }
 
-            // Evaluate dimensions using recursive evaluation
-            const width = evaluateExprRecursive(panel.dimensions.width, variablesConfig.variables, context, new Set());
-            const height = evaluateExprRecursive(panel.dimensions.height, variablesConfig.variables, context, new Set());
-            const depth = evaluateExprRecursive(panel.dimensions.thickness, variablesConfig.variables, context, new Set());
-
-            console.log(`[${panelKey}] w=${width.toFixed(1)}, h=${height.toFixed(1)}, d=${depth.toFixed(1)}, loop=${viz.loop}, instances=${viz.instances?.length}`);
-
             // Handle loop or static instances
             if (viz.loop) {
                 const loopCount = getValue(viz.loop, variablesConfig.variables, context);
                 for (let i = 0; i < loopCount; i++) {
                     const loopContext = { ...context, i };
+                    // Evaluate dimensions per-iteration (for drawer_heights[i] etc.)
+                    const width = evaluateExprRecursive(panel.dimensions.width, variablesConfig.variables, loopContext, new Set());
+                    const height = evaluateExprRecursive(panel.dimensions.height, variablesConfig.variables, loopContext, new Set());
+                    const depth = evaluateExprRecursive(panel.dimensions.thickness, variablesConfig.variables, loopContext, new Set());
+
+                    console.log(`[${panelKey}][${i}] w=${width.toFixed(1)}, h=${height.toFixed(1)}, d=${depth.toFixed(1)}`);
+
                     viz.instances.forEach(inst => {
                         renderInstance(inst, width, height, depth, viz.color, loopContext, panelKey, viz.orientation);
                     });
                 }
             } else if (viz.instances) {
+                // Non-looped panels: evaluate dimensions once
+                const width = evaluateExprRecursive(panel.dimensions.width, variablesConfig.variables, context, new Set());
+                const height = evaluateExprRecursive(panel.dimensions.height, variablesConfig.variables, context, new Set());
+                const depth = evaluateExprRecursive(panel.dimensions.thickness, variablesConfig.variables, context, new Set());
+
+                console.log(`[${panelKey}] w=${width.toFixed(1)}, h=${height.toFixed(1)}, d=${depth.toFixed(1)}`);
+
                 viz.instances.forEach(inst => {
                     renderInstance(inst, width, height, depth, viz.color, context, panelKey, viz.orientation);
                 });
@@ -2492,30 +2593,78 @@
                     continue;
                 }
 
-                // Evaluate dimensions using recursive tree search
-                const width = evaluateExprRecursive(panel.dimensions.width, variablesList, context, new Set());
-                const height = evaluateExprRecursive(panel.dimensions.height, variablesList, context, new Set());
-                const thickness = evaluateExprRecursive(panel.dimensions.thickness, variablesList, context, new Set());
+                const viz = panel.viz3d;
+                const hasLoop = viz && viz.loop;
 
-                // Evaluate quantity
-                const quantity = typeof panel.quantity === 'number' ?
-                    panel.quantity :
-                    evaluateExprRecursive(panel.quantity, variablesList, context, new Set());
+                if (hasLoop) {
+                    // Per-iteration eval for looped panels (drawer_heights[i] varies per drawer)
+                    const loopCount = getValue(viz.loop, variablesList, context);
+                    const instancesPerIteration = typeof panel.quantity === 'number'
+                        ? panel.quantity
+                        : evaluateExprRecursive(panel.quantity, variablesList, context, new Set());
+                    const qtyPerDrawer = Math.round(instancesPerIteration / loopCount);
 
-                // Build equation strings for display
-                const widthEq = buildEquationString(panel.dimensions.width, context);
-                const heightEq = buildEquationString(panel.dimensions.height, context);
-                const equation = `W: ${widthEq}"<br>H: ${heightEq}"`;
+                    // Evaluate dimensions per iteration and group by size
+                    const sizeGroups = {};
+                    for (let i = 0; i < loopCount; i++) {
+                        const loopContext = { ...context, i };
+                        const width = evaluateExprRecursive(panel.dimensions.width, variablesList, loopContext, new Set());
+                        const height = evaluateExprRecursive(panel.dimensions.height, variablesList, loopContext, new Set());
+                        const thickness = evaluateExprRecursive(panel.dimensions.thickness, variablesList, loopContext, new Set());
 
-                bom.push({
-                    id: id++,
-                    item: panel.name,
-                    width,
-                    height,
-                    thickness,
-                    quantity,
-                    equation
-                });
+                        const sizeKey = `${width.toFixed(4)}_${height.toFixed(4)}_${thickness.toFixed(4)}`;
+                        if (!sizeGroups[sizeKey]) {
+                            sizeGroups[sizeKey] = { width, height, thickness, drawerIndices: [], loopContext };
+                        }
+                        sizeGroups[sizeKey].drawerIndices.push(i);
+                    }
+
+                    // Emit one BOM line per unique size group
+                    for (const [, group] of Object.entries(sizeGroups)) {
+                        const quantity = qtyPerDrawer * group.drawerIndices.length;
+                        const drawerLabel = group.drawerIndices.length === loopCount
+                            ? '' // All drawers same size — no suffix
+                            : ` (drawer${group.drawerIndices.length > 1 ? 's' : ''} ${group.drawerIndices.map(i => i + 1).join(', ')})`;
+
+                        // Build equation strings using the first drawer's context
+                        const widthEq = buildEquationString(panel.dimensions.width, group.loopContext);
+                        const heightEq = buildEquationString(panel.dimensions.height, group.loopContext);
+                        const equation = `W: ${widthEq}"<br>H: ${heightEq}"`;
+
+                        bom.push({
+                            id: id++,
+                            item: panel.name + drawerLabel,
+                            width: group.width,
+                            height: group.height,
+                            thickness: group.thickness,
+                            quantity,
+                            equation
+                        });
+                    }
+                } else {
+                    // Non-looped panels: evaluate once
+                    const width = evaluateExprRecursive(panel.dimensions.width, variablesList, context, new Set());
+                    const height = evaluateExprRecursive(panel.dimensions.height, variablesList, context, new Set());
+                    const thickness = evaluateExprRecursive(panel.dimensions.thickness, variablesList, context, new Set());
+
+                    const quantity = typeof panel.quantity === 'number' ?
+                        panel.quantity :
+                        evaluateExprRecursive(panel.quantity, variablesList, context, new Set());
+
+                    const widthEq = buildEquationString(panel.dimensions.width, context);
+                    const heightEq = buildEquationString(panel.dimensions.height, context);
+                    const equation = `W: ${widthEq}"<br>H: ${heightEq}"`;
+
+                    bom.push({
+                        id: id++,
+                        item: panel.name,
+                        width,
+                        height,
+                        thickness,
+                        quantity,
+                        equation
+                    });
+                }
             }
 
             return bom;
@@ -2729,7 +2878,40 @@
             // 1. Build base context (input + plywood only) - CONTROLLER
             const context = mergeInputsWithVariables(variablesConfig, plywoodData);
 
-            // 2. Generate derived data using MODEL layer
+            // 2. Handle drawer_heights array: resize and compute offsets
+            const drawerHeightsVar = variablesConfig.variables.find(v => v.id === 'drawer_heights');
+            if (drawerHeightsVar) {
+                const numDrawers = context.num_drawers || 3;
+                const plyDivider = getValue('ply_drawer_divider', variablesConfig.variables, context);
+
+                // Resize array if num_drawers changed
+                const drawerInputs = document.querySelectorAll('.drawer-height-input');
+                if (drawerHeightsVar.value.length !== numDrawers || drawerInputs.length !== numDrawers) {
+                    const eh = getValue('drawer_height_equal', variablesConfig.variables, context);
+                    drawerHeightsVar.value = Array(numDrawers).fill(parseFloat(eh.toFixed(4)));
+                    context.drawer_heights = drawerHeightsVar.value;
+                }
+
+                // Read per-drawer height overrides from DOM inputs
+                if (drawerInputs.length === numDrawers) {
+                    for (let i = 0; i < numDrawers; i++) {
+                        const val = parseFloat(drawerInputs[i].value);
+                        if (!isNaN(val) && val > 0) {
+                            drawerHeightsVar.value[i] = val;
+                        }
+                    }
+                    context.drawer_heights = drawerHeightsVar.value;
+                }
+
+                // Compute drawer_y_offsets (cumulative sum, bottom-up)
+                const offsets = [0];
+                for (let i = 1; i < numDrawers; i++) {
+                    offsets[i] = offsets[i - 1] + context.drawer_heights[i - 1] + plyDivider;
+                }
+                context.drawer_y_offsets = offsets;
+            }
+
+            // 3. Generate derived data using MODEL layer
             //    getValue() will recursively evaluate calculated vars as needed
             const bom = generateBOM(context, equations, variablesConfig.variables);
             const optimizedSheets = optimizeCuts(bom, context);
@@ -2738,11 +2920,12 @@
             window.lastBOM = bom;
             window.lastContext = context;
 
-            // 3. Update VIEW layer
+            // 4. Update VIEW layer
             render3DCabinet(context);
             renderDimensionsSection(context);
             renderBOMSection(bom, context);
             renderCutOptimizerSection(optimizedSheets, context);
+            renderDrawerHeightInputs(context);
             renderDebugSection(context);
         }
 
@@ -2888,6 +3071,8 @@
 
             // Add input listeners for auto-update (excluding plywood table inputs which have their own handlers)
             document.querySelectorAll('.sidebar .input-group input, .sidebar .input-group select').forEach(input => {
+                // Skip drawer height inputs - they have their own listeners
+                if (input.classList.contains('drawer-height-input')) return;
                 input.addEventListener('input', calculate);
                 input.addEventListener('change', calculate);
             });

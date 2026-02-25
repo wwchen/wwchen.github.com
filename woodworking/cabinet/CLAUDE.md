@@ -93,7 +93,7 @@ interface Panel {
     condition?: string;     // Optional: "drawer_face_enabled" - visibility
     instances: Array<{
       x: string;            // Expression: "ply_carcass"
-      y: string;            // Expression: "i * drawer_height"
+      y: string;            // Expression: "drawer_y_offsets[i]"
       z: string;            // Expression: "dim_d - ply_back"
       condition?: string;   // Optional: "i > 0" - per-instance condition
     }>;
@@ -208,8 +208,8 @@ interface VariablesConfig {
 interface Variable {
   id: string;               // Unique identifier: "dim_w", "ply_carcass"
   label: string;            // Display name: "Width", "Carcass Plywood Thickness"
-  type: "input" | "plywood" | "calculated";
-  value: number | string;   // Default value or expression
+  type: "input" | "plywood" | "calculated" | "array";
+  value: number | string | number[];  // Default value, expression, or array
   unit: "inch" | "count" | "boolean" | "none";
 }
 ```
@@ -220,7 +220,8 @@ interface Variable {
 |------|-------------|---------|
 | `input` | User-editable values | `dim_w`, `num_drawers`, `backing_style` |
 | `plywood` | Thickness values from material table | `ply_carcass`, `ply_drawer` |
-| `calculated` | Computed from expressions | `drawer_width`, `drawer_height` |
+| `calculated` | Computed from expressions | `drawer_width`, `drawer_height_equal` |
+| `array` | Per-element values (e.g., per-drawer) | `drawer_heights` |
 
 **Example:**
 ```json
@@ -246,6 +247,13 @@ interface Variable {
       "type": "calculated",
       "value": "dim_w - 2 * (ply_carcass + dim_railing_w)",
       "unit": "inch"
+    },
+    {
+      "id": "drawer_heights",
+      "label": "Drawer Heights",
+      "type": "array",
+      "value": [8.5, 8.5, 8.5],
+      "unit": "inch"
     }
   ]
 }
@@ -263,7 +271,9 @@ interface InputsConfig {
 
 interface Section {
   title: string;            // Section heading: "Cabinet Dimensions"
-  type?: "plywood_table";   // Special type for plywood table section
+  type?: "plywood_table" | "drawer_heights";  // Special section types
+  step?: number;            // For drawer_heights: numeric step (0.125)
+  min?: number;             // For drawer_heights: min value (1.0)
   inputs?: Array<Input>;    // Input field definitions
 }
 
@@ -378,11 +388,18 @@ Dimensions in `panels.json` and `variables.json` are **string expressions** eval
 "width": "dim_w - 2 * ply_carcass"
 ```
 
-**Functions:**
-- `evaluateExpr(expr, user_inputs)` - Evaluates expression, returns number
-- `buildEquationString(expr, user_inputs)` - Builds display string with substituted values
+**Array indexing** is supported — array variables are substituted as JSON and `eval()` handles `[i]` indexing natively:
+```json
+"height": "drawer_heights[i] - ply_bottom - 2 * drawer_clearance"
+```
+When evaluated: `drawer_heights` → `[8.5,8.5,8.5]`, `i` → `0`, so `[8.5,8.5,8.5][0]` → `8.5`.
 
-**Important:** All expressions are evaluated AFTER `user_inputs` is built with config + calc + plywood data.
+**Functions:**
+- `evaluateExprRecursive(expr, variablesList, context, visited)` - Evaluates expression with recursive dependency resolution
+- `buildEquationString(expr, context)` - Builds display string with substituted values
+- `toEvalReplacement(value)` - Converts a value to its eval()-safe string (handles arrays, numbers, strings)
+
+**Important:** All expressions are evaluated AFTER context is built with config + calc + plywood + array data.
 
 ### 4. Calculated Dimensions
 
@@ -398,16 +415,31 @@ Dimensions in `panels.json` and `variables.json` are **string expressions** eval
 }
 ```
 
-Results stored as **nested objects** in `user_inputs`:
-- `user_inputs.overall.width`
-- `user_inputs.interior.height`
-- `user_inputs.drawer.depth`
+Displayed in the Calculated Dimensions section of the UI. The drawer box height shows `drawer_heights[0]` (first drawer's height as reference).
 
-Plus **flat aliases** for backwards compatibility:
-- `user_inputs.overall_width`
-- `user_inputs.drawer_height`
+### 5. Unequal Drawer Heights
 
-### 5. Plywood Table Data Structure
+Drawers can have different heights via the `drawer_heights` array variable (type `"array"` in `variables.json`).
+
+**Key variables:**
+- `drawer_heights[]` — per-drawer absolute heights (user-editable via sidebar UI)
+- `drawer_y_offsets[]` — cumulative Y positions (computed in `calculate()`, not stored in JSON)
+- `drawer_height_equal` — calculated variable for equal distribution formula
+
+**How it works:**
+1. `calculate()` checks if `drawer_heights` array length matches `num_drawers`; if not, resets to equal distribution using `drawer_height_equal`
+2. Per-drawer height inputs in the sidebar let users override individual heights
+3. `drawer_y_offsets[]` is computed as a cumulative sum: `offsets[i] = offsets[i-1] + drawer_heights[i-1] + ply_drawer_divider`
+4. Panel expressions use `drawer_heights[i]` for dimensions and `drawer_y_offsets[i]` for Y positioning
+5. `renderPanel3D()` evaluates dimensions **inside** the loop so `drawer_heights[i]` resolves per-iteration
+6. `generateBOM()` evaluates per-iteration and groups identical sizes into single BOM lines; unequal sizes produce grouped entries like "Drawer sides (drawers 1, 3)"
+
+**UI:** The "Drawer Heights" section (type `"drawer_heights"` in `inputs.json`) shows:
+- One number input per drawer
+- Total vs available height with mismatch warning
+- "Equalize" button to reset all to equal distribution
+
+### 6. Plywood Table Data Structure
 
 ```javascript
 plywoodData = [
@@ -611,21 +643,21 @@ Already wired up for:
 - ✅ Plywood drag/drop (`handleDrop`, `handleDropToAvailable`)
 - ✅ Plywood thickness/material changes (`updatePlywoodRow`)
 - ✅ Backing style changes (triggers plywood table update)
+- ✅ Drawer height changes (per-drawer inputs in `renderDrawerHeightInputs`)
 
 ### 3. Expression Evaluation Timing
 
-Expressions reference variables in `user_inputs`, which is built from:
-1. Config values (from input fields)
-2. Calculated dimensions (from `calculateDimensions()`)
+Expressions reference variables in context, which is built from:
+1. Input values (from DOM fields)
+2. Array variables (e.g., `drawer_heights`)
 3. Plywood thicknesses (from `plywoodData[]`)
+4. Computed arrays (e.g., `drawer_y_offsets`)
 
 **Must evaluate in order:**
 ```javascript
-const config = getInputValues();
-const calc = calculateDimensions(config);
-const user_inputs = buildUserInputs(config, calc);
-evaluateCalculatedValues(equations.calculated, user_inputs);
-// Now user_inputs is complete
+const context = mergeInputsWithVariables(variablesConfig, plywoodData);
+// Handle drawer_heights resize + compute drawer_y_offsets
+// Now context is complete — getValue() resolves calculated vars on demand
 ```
 
 ### 4. Three.js Cabinet Positioning
@@ -656,13 +688,14 @@ If configs don't load, user gets clear error message with instructions.
 ### Core Functions
 
 **`calculate()`** - Main orchestrator, calls everything in order
-- `getInputValues()` → get form data
-- `calculateDimensions(config)` → compute dimensions
-- `generateBOM(config, calc)` → build bill of materials
-- `optimizeCuts(bom, config)` → layout cuts on sheets
-- `render3DCabinet(config)` → update 3D view
-- `renderDimensionsDisplay(user_inputs)` → update dimensions section
-- `generateDebugOutput()` → update debug section
+- `mergeInputsWithVariables()` → build base context (inputs + plywood + arrays)
+- Handle `drawer_heights` array (resize on `num_drawers` change, read DOM overrides, compute `drawer_y_offsets`)
+- `generateBOM(context, equations, variablesList)` → build bill of materials
+- `optimizeCuts(bom, context)` → layout cuts on sheets
+- `render3DCabinet(context)` → update 3D view
+- `renderDimensionsSection(context)` → update dimensions section
+- `renderDrawerHeightInputs(context)` → update per-drawer height UI
+- `renderDebugSection(context)` → update debug section
 
 **`getActivePanels(backingStyle)`** - Returns active panels for current cabinet style
 - Looks up style in `cabinet_styles.json`
@@ -678,7 +711,8 @@ If configs don't load, user gets clear error message with instructions.
 
 **`generateBOM(context, equations, variablesList)`** - Builds bill of materials
 - Calls `getActivePanels()` to get panels for current style
-- Evaluates dimensions using recursive expression evaluation
+- For looped panels: evaluates dimensions per-iteration, groups identical sizes into single BOM lines
+- For non-looped panels: evaluates dimensions once
 - Returns array of BOM entries with dimensions and quantities
 
 **`render3DCabinet(context)`** - Renders 3D visualization
@@ -686,10 +720,10 @@ If configs don't load, user gets clear error message with instructions.
 - Iterates through active panels and calls `renderPanel3D()` for each
 - Positions cabinet at origin (0,0,0)
 
-**`renderPanel3D(panelKey, panel, user_inputs)`** - Renders one panel type
-- Evaluates dimensions from expressions
-- Loops through instances (including `loop` if present)
-- Calls `renderInstance()` for each
+**`renderPanel3D(panelKey, panel, context)`** - Renders one panel type
+- For looped panels: evaluates dimensions per-iteration inside the loop (required for `drawer_heights[i]`)
+- For non-looped panels: evaluates dimensions once
+- Calls `renderInstance()` for each instance
 
 **`renderInstance(inst, width, height, depth, color, user_inputs, panelKey, orientation)`**
 - Maps BOM dimensions to 3D based on orientation
@@ -702,16 +736,30 @@ If configs don't load, user gets clear error message with instructions.
 
 ### Helper Functions
 
-**`evaluateExpr(expr, vars)`** - Evaluates string expression
+**`evaluateExprRecursive(expr, variablesList, context, visited)`** - Evaluates string expression with recursive dependency resolution
 ```javascript
-evaluateExpr("dim_w - 2", {dim_w: 25}) // → 23
+evaluateExprRecursive("dim_w - 2", vars, {dim_w: 25}, new Set()) // → 23
 ```
 
-**`buildEquationString(expr, vars)`** - Builds display string
+**`toEvalReplacement(value)`** - Converts a value to its eval()-safe string
+```javascript
+toEvalReplacement([8.5, 10]) // → "[8.5,10]"
+toEvalReplacement(25)         // → 25
+toEvalReplacement("full")     // → '"full"'
+```
+
+**`buildEquationString(expr, context)`** - Builds display string
 ```javascript
 buildEquationString("dim_w - 2", {dim_w: 25})
 // → "dim_w - 2 = 25 - 2 = 23.00"
 ```
+
+**`renderDrawerHeightInputs(context)`** - Renders per-drawer height inputs in sidebar
+- Creates/updates number inputs for each drawer
+- Shows total vs available height with mismatch warning
+- Avoids full re-render when only values change (preserves focus)
+
+**`equalizeDrawerHeights()`** - Resets all drawer heights to equal distribution using `drawer_height_equal`
 
 **`getPlywoodForComponent(component)`** - Finds plywood row for component
 ```javascript
@@ -740,6 +788,10 @@ make test-viz
 - [ ] 3D viz updates when inputs change
 - [ ] Calculated dimensions update
 - [ ] Cut optimizer shows updated layouts
+- [ ] Change num_drawers → drawer heights reset to equal, UI re-renders
+- [ ] Set unequal drawer heights → 3D shows correct sizing, BOM shows grouped entries
+- [ ] Change dim_h with custom heights → warning shows mismatch
+- [ ] Click Equalize → all heights reset to equal distribution
 
 ## Future Improvements (Optional)
 
@@ -762,12 +814,6 @@ make test-viz
 - Side-mount: slides mount on carcass sides, drawer width reduced by 2× slide width (current behavior)
 - Affects: `drawer_width` calculation, `drawer_slides` 3D positioning, `dim_slides_w` usage
 - May need new slide panel orientations/positions for under-mount visualization
-
-**Unequal drawer sizes:**
-- Currently all drawers share the same height (`drawer_height` = evenly divided)
-- Allow per-drawer height overrides (e.g., one deep bottom drawer, smaller upper drawers)
-- Implementation options: array of heights in inputs, or ratio-based splits
-- Affects: drawer_height calculation (per-drawer instead of uniform), 3D viz loop positioning (cumulative Y offsets instead of `i * drawer_height`), BOM (multiple drawer size groups), cut optimizer (different cut sizes)
 
 ## Tips for Claude
 

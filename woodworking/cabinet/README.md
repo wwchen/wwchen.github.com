@@ -13,6 +13,7 @@ Then open **http://localhost:8000** in your browser.
 ## Features
 
 - **Parametric Design**: Define cabinet dimensions and automatically calculate all component sizes
+- **Unequal Drawer Heights**: Per-drawer height inputs with total/available tracking and equalize button
 - **Style-Driven Architecture**: Cabinet styles define which panels are used and their material assignments
 - **Data-Driven Configuration**: All data in JSON files - clean separation of concerns
 - **3D Visualization**: Real-time Three.js rendering with proper component orientations
@@ -186,6 +187,7 @@ Defines all variables: inputs, plywood thicknesses, and calculated values:
 - `input` - User-editable values (dimensions, counts)
 - `plywood` - Thickness values from material assignments
 - `calculated` - Computed from expressions
+- `array` - Per-element values (e.g., per-drawer heights)
 
 ### 4. `inputs.json` - UI Configuration
 

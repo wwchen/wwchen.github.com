@@ -155,10 +155,17 @@
       "unit": "inch"
     },
     {
-      "id": "drawer_height",
-      "label": "Drawer Height",
+      "id": "drawer_height_equal",
+      "label": "Equal Drawer Height",
       "type": "calculated",
       "value": "(dim_h - ply_carcass - num_drawers * ply_drawer_divider) / num_drawers",
+      "unit": "inch"
+    },
+    {
+      "id": "drawer_heights",
+      "label": "Drawer Heights",
+      "type": "array",
+      "value": [8.5, 8.5, 8.5],
       "unit": "inch"
     },
     {
