@@ -1,0 +1,138 @@
+{
+  "styles": [
+    {
+      "id": "full",
+      "label": "Full Plywood",
+      "description": "Solid plywood back panel for maximum rigidity",
+      "panels": [
+        "carcass_sides",
+        "carcass_top",
+        "carcass_back",
+        "drawer_dividers",
+        "drawer_sides",
+        "drawer_front_back",
+        "drawer_bottom",
+        "drawer_face"
+      ],
+      "hidden_panels": ["drawer_slides"],
+      "material_defaults": [
+        {
+          "thickness": 0.75,
+          "components": ["carcass_sides", "carcass_top", "drawer_dividers"]
+        },
+        {
+          "thickness": 0.5,
+          "components": ["drawer_sides", "drawer_front_back", "carcass_back", "drawer_face"]
+        },
+        {
+          "thickness": 0.25,
+          "components": ["drawer_bottom"]
+        }
+      ]
+    },
+    {
+      "id": "inlay",
+      "label": "Routed Inlay",
+      "description": "Thin back panel set in routed groove",
+      "panels": [
+        "carcass_sides",
+        "carcass_top",
+        {
+          "key": "carcass_back",
+          "dimensions": {
+            "width": "dim_w - ply_carcass",
+            "height": "dim_h - ply_carcass"
+          },
+          "viz3d": {
+            "instances": [
+              {
+                "x": "ply_carcass / 2",
+                "y": "ply_carcass / 2",
+                "z": "dim_d - ply_carcass_back"
+              }
+            ]
+          }
+        },
+        "drawer_dividers",
+        "drawer_sides",
+        "drawer_front_back",
+        "drawer_bottom",
+        "drawer_face"
+      ],
+      "hidden_panels": ["drawer_slides"],
+      "material_defaults": [
+        {
+          "thickness": 0.75,
+          "components": ["carcass_sides", "carcass_top", "drawer_dividers"]
+        },
+        {
+          "thickness": 0.5,
+          "components": ["drawer_sides", "drawer_front_back", "drawer_face"]
+        },
+        {
+          "thickness": 0.25,
+          "components": ["drawer_bottom", "carcass_back"]
+        }
+      ]
+    },
+    {
+      "id": "stretcher",
+      "label": "Stretcher Only",
+      "description": "Top and bottom stretchers without full back panel",
+      "panels": [
+        "carcass_sides",
+        "carcass_top",
+        "back_stretcher",
+        "drawer_dividers",
+        "drawer_sides",
+        "drawer_front_back",
+        "drawer_bottom",
+        "drawer_face"
+      ],
+      "hidden_panels": ["drawer_slides"],
+      "material_defaults": [
+        {
+          "thickness": 0.75,
+          "components": ["carcass_sides", "carcass_top", "drawer_dividers", "back_stretcher"]
+        },
+        {
+          "thickness": 0.5,
+          "components": ["drawer_sides", "drawer_front_back", "drawer_face"]
+        },
+        {
+          "thickness": 0.25,
+          "components": ["drawer_bottom"]
+        }
+      ]
+    },
+    {
+      "id": "none",
+      "label": "None",
+      "description": "No backing - open back cabinet",
+      "panels": [
+        "carcass_sides",
+        "carcass_top",
+        "drawer_dividers",
+        "drawer_sides",
+        "drawer_front_back",
+        "drawer_bottom",
+        "drawer_face"
+      ],
+      "hidden_panels": ["drawer_slides"],
+      "material_defaults": [
+        {
+          "thickness": 0.75,
+          "components": ["carcass_sides", "carcass_top", "drawer_dividers"]
+        },
+        {
+          "thickness": 0.5,
+          "components": ["drawer_sides", "drawer_front_back", "drawer_face"]
+        },
+        {
+          "thickness": 0.25,
+          "components": ["drawer_bottom"]
+        }
+      ]
+    }
+  ]
+}

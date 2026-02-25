@@ -1,0 +1,9 @@
+dist
+node_modules
+*.local
+.vite
+*.tsbuildinfo
+coverage
+js/
+tests/*.py
+legacy/

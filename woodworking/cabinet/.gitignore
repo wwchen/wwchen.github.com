@@ -1,10 +1,32 @@
-# Python virtual environment
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Vite
+.vite/
+
+# TypeScript
+*.tsbuildinfo
+
+# Build outputs
+dist/
+dist-ssr/
+*.local
+
+# Test coverage
+coverage/
+
+# Python virtual environment (keeping for transition)
 venv/
 env/
 ENV/
 .venv
 
-# Python cache
+# Python cache (keeping for transition)
 __pycache__/
 *.py[cod]
 *$py.class
@@ -13,7 +35,6 @@ __pycache__/
 
 # Distribution / packaging
 build/
-dist/
 *.egg-info/
 
 # Generated outputs
