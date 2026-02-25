@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cutting Board Calculator - Unit Tests</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+        }
+        .test-suite {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test {
+            padding: 10px;
+            margin: 5px 0;
+            border-left: 4px solid #ccc;
+            background: #f9f9f9;
+        }
+        .test.pass {
+            border-left-color: #4caf50;
+            background: #f1f8f4;
+        }
+        .test.fail {
+            border-left-color: #f44336;
+            background: #fef1f0;
+        }
+        .test-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .test-error {
+            color: #f44336;
+            font-family: monospace;
+            margin-top: 5px;
+            padding: 10px;
+            background: #ffebee;
+            border-radius: 4px;
+        }
+        .summary {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 18px;
+        }
+        .pass-count {
+            color: #4caf50;
+            font-weight: bold;
+        }
+        .fail-count {
+            color: #f44336;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Cutting Board Calculator - Unit Tests</h1>
+    <div id="test-results"></div>
+
+    <script>
+        // Test framework
+        const TestRunner = {
+            results: [],
+            currentSuite: '',
+
+            suite(name, tests) {
+                this.currentSuite = name;
+                console.log(`\n=== ${name} ===`);
+                tests();
+            },
+
+            test(name, fn) {
+                try {
+                    fn();
+                    this.results.push({ suite: this.currentSuite, name, passed: true });
+                    console.log(`✓ ${name}`);
+                } catch (error) {
+                    this.results.push({ suite: this.currentSuite, name, passed: false, error: error.message });
+                    console.error(`✗ ${name}:`, error.message);
+                }
+            },
+
+            assertEqual(actual, expected, message = '') {
+                if (actual !== expected) {
+                    throw new Error(`${message}\nExpected: ${expected}\nActual: ${actual}`);
+                }
+            },
+
+            assertClose(actual, expected, tolerance = 0.01, message = '') {
+                if (Math.abs(actual - expected) > tolerance) {
+                    throw new Error(`${message}\nExpected: ${expected} (±${tolerance})\nActual: ${actual}`);
+                }
+            },
+
+            assertTrue(value, message = '') {
+                if (!value) {
+                    throw new Error(message || 'Expected true, got false');
+                }
+            },
+
+            assertFalse(value, message = '') {
+                if (value) {
+                    throw new Error(message || 'Expected false, got true');
+                }
+            },
+
+            render() {
+                const container = document.getElementById('test-results');
+                const passed = this.results.filter(r => r.passed).length;
+                const failed = this.results.filter(r => !r.passed).length;
+
+                let html = `
+                    <div class="summary">
+                        <span class="pass-count">${passed} passed</span>,
+                        <span class="fail-count">${failed} failed</span>,
+                        ${this.results.length} total
+                    </div>
+                `;
+
+                const suites = [...new Set(this.results.map(r => r.suite))];
+                suites.forEach(suite => {
+                    html += `<div class="test-suite"><h2>${suite}</h2>`;
+                    const suiteTests = this.results.filter(r => r.suite === suite);
+                    suiteTests.forEach(test => {
+                        html += `
+                            <div class="test ${test.passed ? 'pass' : 'fail'}">
+                                <div class="test-name">${test.passed ? '✓' : '✗'} ${test.name}</div>
+                                ${test.error ? `<div class="test-error">${test.error}</div>` : ''}
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                });
+
+                container.innerHTML = html;
+            }
+        };
+
+        // Constants
+        const KERF_WIDTH = 0.125;
+
+        // Helper functions from the calculator
+        function calculateStripCount(boardWidth, stripWidth) {
+            let count = 0;
+            let remaining = boardWidth;
+            while (remaining >= stripWidth) {
+                remaining -= (stripWidth + KERF_WIDTH);
+                count++;
+            }
+            return count;
+        }
+
+        function calculateTotalWidthNeeded(stripWidth, stripCount) {
+            if (stripCount === 0) return 0;
+            // Total = (n * width) + ((n-1) * kerf)
+            return (stripCount * stripWidth) + ((stripCount - 1) * KERF_WIDTH);
+        }
+
+        function calculateBoardRemaining(boardWidth, customStrips) {
+            if (!customStrips || customStrips.length === 0) {
+                return { remaining: boardWidth, status: 'ok' };
+            }
+
+            let used = 0;
+            customStrips.forEach(strip => {
+                used += (strip.width * strip.quantity) + (KERF_WIDTH * strip.quantity);
+            });
+            // Remove one extra kerf (we don't cut after the last strip)
+            used -= KERF_WIDTH;
+
+            const remaining = boardWidth - used;
+
+            if (remaining < 0) {
+                return { remaining, status: 'insufficient' };
+            } else if (remaining < 0.125) {
+                return { remaining, status: 'ok' };
+            } else {
+                return { remaining, status: 'waste' };
+            }
+        }
+
+        function calculateFinalDimensions(finalStrips, grainOrientation, crosscutWidth, rippedStrips) {
+            if (finalStrips.length === 0) return { width: 0, length: 0, thickness: 0 };
+
+            let width, length, thickness;
+            const boardThickness = rippedStrips.length > 0 ? rippedStrips[0].thickness : 0;
+            const panelWidth = finalStrips[0].segments.reduce((sum, seg) => sum + seg.width, 0);
+
+            if (grainOrientation === 'end-grain') {
+                // End-grain: strips rotated 90°
+                // Width = number of strips × board thickness (NO KERFS)
+                width = finalStrips.length * boardThickness;
+                // Length = panel width (NO KERFS)
+                length = panelWidth;
+                // Thickness = crosscut width
+                thickness = parseFloat(crosscutWidth);
+            } else {
+                // Face-grain: no rotation
+                // Width = panel width (NO KERFS)
+                width = panelWidth;
+                // Length = number of strips × crosscut width (NO KERFS)
+                length = finalStrips.length * parseFloat(crosscutWidth);
+                // Thickness = board thickness
+                thickness = boardThickness;
+            }
+
+            return {
+                width: parseFloat(width.toFixed(2)),
+                length: parseFloat(length.toFixed(2)),
+                thickness: parseFloat(thickness.toFixed(2))
+            };
+        }
+
+        // Run tests
+        TestRunner.suite('Kerf Calculations', () => {
+            TestRunner.test('Single strip requires no kerf', () => {
+                const width = calculateTotalWidthNeeded(1.5, 1);
+                TestRunner.assertEqual(width, 1.5, 'Single strip should equal strip width');
+            });
+
+            TestRunner.test('Two strips require one kerf', () => {
+                const width = calculateTotalWidthNeeded(1.5, 2);
+                TestRunner.assertClose(width, 1.5 * 2 + KERF_WIDTH, 0.001);
+            });
+
+            TestRunner.test('Three strips require two kerfs', () => {
+                const width = calculateTotalWidthNeeded(1.5, 3);
+                TestRunner.assertClose(width, 1.5 * 3 + 2 * KERF_WIDTH, 0.001);
+            });
+
+            TestRunner.test('Zero strips equals zero width', () => {
+                const width = calculateTotalWidthNeeded(1.5, 0);
+                TestRunner.assertEqual(width, 0);
+            });
+        });
+
+        TestRunner.suite('Strip Count Calculations', () => {
+            TestRunner.test('Calculate strips from 6" board with 0.75" strips', () => {
+                const count = calculateStripCount(6.0, 0.75);
+                // 7 strips: 7*0.75 + 6*0.125 = 5.25 + 0.75 = 6.0 (perfect fit)
+                TestRunner.assertEqual(count, 7, 'Should fit 7 strips');
+            });
+
+            TestRunner.test('Calculate strips with exact fit', () => {
+                // 2 strips: 1.5 + 0.125 + 1.5 = 3.125
+                const count = calculateStripCount(3.125, 1.5);
+                TestRunner.assertEqual(count, 2, 'Should fit exactly 2 strips');
+            });
+
+            TestRunner.test('Calculate strips with minimal waste', () => {
+                const count = calculateStripCount(4.0, 0.75);
+                // 4" / 0.875 = 4.57, so 4 strips
+                TestRunner.assertEqual(count, 4);
+            });
+
+            TestRunner.test('Board too narrow for strip returns 0', () => {
+                const count = calculateStripCount(0.5, 0.75);
+                TestRunner.assertEqual(count, 0, 'No strips should fit');
+            });
+        });
+
+        TestRunner.suite('Board Remaining Calculations', () => {
+            TestRunner.test('Empty custom strips returns full board width', () => {
+                const result = calculateBoardRemaining(6.0, []);
+                TestRunner.assertEqual(result.remaining, 6.0);
+                TestRunner.assertEqual(result.status, 'ok');
+            });
+
+            TestRunner.test('Perfect fit with single strip type', () => {
+                // 8 strips of 0.75": 8*0.75 + 7*0.125 = 6.0 + 0.875 = 6.875
+                const result = calculateBoardRemaining(6.875, [{ width: 0.75, quantity: 8 }]);
+                TestRunner.assertClose(result.remaining, 0, 0.001);
+                TestRunner.assertEqual(result.status, 'ok');
+            });
+
+            TestRunner.test('Insufficient board width', () => {
+                const result = calculateBoardRemaining(5.0, [{ width: 0.75, quantity: 8 }]);
+                TestRunner.assertTrue(result.remaining < 0);
+                TestRunner.assertEqual(result.status, 'insufficient');
+            });
+
+            TestRunner.test('Board with waste', () => {
+                const result = calculateBoardRemaining(7.0, [{ width: 0.75, quantity: 6 }]);
+                TestRunner.assertTrue(result.remaining > 0.125);
+                TestRunner.assertEqual(result.status, 'waste');
+            });
+
+            TestRunner.test('Multiple strip widths', () => {
+                // 4*0.75 + 2*1.5 = 3.0 + 3.0 = 6.0
+                // Plus kerfs: 5*0.125 = 0.625
+                // Total: 6.625
+                const result = calculateBoardRemaining(7.0, [
+                    { width: 0.75, quantity: 4 },
+                    { width: 1.5, quantity: 2 }
+                ]);
+                TestRunner.assertClose(result.remaining, 0.375, 0.001);
+                TestRunner.assertEqual(result.status, 'waste');
+            });
+        });
+
+        TestRunner.suite('Final Dimensions - End Grain', () => {
+            TestRunner.test('Dimensions change with number of crosscut strips', () => {
+                const crosscutWidth = 0.75;
+                const boardThickness = 1.5;
+                const segmentWidths = [{ width: 1.0 }, { width: 1.0 }];
+
+                // Test with 5 crosscut strips
+                const strips5 = Array(5).fill().map(() => ({
+                    width: crosscutWidth,
+                    segments: segmentWidths
+                }));
+
+                const result5 = calculateFinalDimensions(
+                    strips5,
+                    'end-grain',
+                    '0.75',
+                    [{ thickness: boardThickness }]
+                );
+
+                // End-grain width = strips × thickness (NO KERFS)
+                // Width with 5 strips: 5 × 1.5 = 7.5"
+                TestRunner.assertClose(result5.width, 7.5, 0.01);
+
+                // Test with 10 crosscut strips
+                const strips10 = Array(10).fill().map(() => ({
+                    width: crosscutWidth,
+                    segments: segmentWidths
+                }));
+
+                const result10 = calculateFinalDimensions(
+                    strips10,
+                    'end-grain',
+                    '0.75',
+                    [{ thickness: boardThickness }]
+                );
+
+                // Width with 10 strips: 10 × 1.5 = 15.0"
+                TestRunner.assertClose(result10.width, 15.0, 0.01);
+
+                // Verify width increases with more strips
+                TestRunner.assertTrue(result10.width > result5.width,
+                    'Width should increase with more strips');
+            });
+
+            TestRunner.test('Dimensions change with crosscut strip width', () => {
+                const numStrips = 8;
+                const boardThickness = 1.5;
+                const segmentWidths = [{ width: 1.0 }, { width: 1.0 }];
+
+                // Test with 0.5" crosscut width
+                const strips_half = Array(numStrips).fill().map(() => ({
+                    width: 0.5,
+                    segments: segmentWidths
+                }));
+
+                const result_half = calculateFinalDimensions(
+                    strips_half,
+                    'end-grain',
+                    '0.5',
+                    [{ thickness: boardThickness }]
+                );
+
+                // End-grain: Width = strips × thickness (doesn't change with crosscut width)
+                // Width: 8 × 1.5 = 12.0"
+                TestRunner.assertClose(result_half.width, 12.0, 0.01);
+                // Thickness: crosscut width
+                TestRunner.assertEqual(result_half.thickness, 0.5);
+
+                // Test with 1.0" crosscut width
+                const strips_one = Array(numStrips).fill().map(() => ({
+                    width: 1.0,
+                    segments: segmentWidths
+                }));
+
+                const result_one = calculateFinalDimensions(
+                    strips_one,
+                    'end-grain',
+                    '1.0',
+                    [{ thickness: boardThickness }]
+                );
+
+                // Width stays same: 8 × 1.5 = 12.0"
+                TestRunner.assertClose(result_one.width, 12.0, 0.01);
+                // Thickness changes: crosscut width
+                TestRunner.assertEqual(result_one.thickness, 1.0);
+
+                // Verify thickness increases with wider crosscut strips (not width!)
+                TestRunner.assertTrue(result_one.thickness > result_half.thickness,
+                    'Thickness should increase with wider crosscut strips');
+            });
+
+            TestRunner.test('Calculate end-grain cutting board dimensions', () => {
+                const boardThickness = 1.5;
+                const finalStrips = [
+                    {
+                        width: 0.75,
+                        segments: [
+                            { width: 0.75 },
+                            { width: 0.75 }
+                        ]
+                    },
+                    {
+                        width: 0.75,
+                        segments: [
+                            { width: 0.75 },
+                            { width: 0.75 }
+                        ]
+                    }
+                ];
+
+                const result = calculateFinalDimensions(
+                    finalStrips,
+                    'end-grain',
+                    '0.75',
+                    [{ thickness: boardThickness }]
+                );
+
+                // End-grain: Width = strips × thickness (NO KERFS)
+                // Width: 2 × 1.5 = 3.0"
+                TestRunner.assertClose(result.width, 3.0, 0.01);
+                // Length: 2 segments × 0.75 = 1.5" (NO KERFS)
+                TestRunner.assertClose(result.length, 1.5, 0.01);
+                // Thickness: crosscut width for end-grain
+                TestRunner.assertEqual(result.thickness, 0.75);
+            });
+
+            TestRunner.test('End-grain thickness equals crosscut width', () => {
+                const finalStrips = [
+                    { width: 1.0, segments: [{ width: 1.0 }] }
+                ];
+
+                const result = calculateFinalDimensions(
+                    finalStrips,
+                    'end-grain',
+                    '1.25',
+                    [{ thickness: 1.5 }]
+                );
+
+                TestRunner.assertEqual(result.thickness, 1.25);
+            });
+        });
+
+        TestRunner.suite('Final Dimensions - Face Grain', () => {
+            TestRunner.test('Calculate face-grain cutting board dimensions', () => {
+                const finalStrips = [
+                    {
+                        width: 0.75,
+                        segments: [
+                            { width: 0.75 },
+                            { width: 0.75 }
+                        ]
+                    }
+                ];
+
+                const result = calculateFinalDimensions(
+                    finalStrips,
+                    'face-grain',
+                    '0.75',
+                    [{ thickness: 1.5 }]
+                );
+
+                // Thickness: original board thickness for face-grain
+                TestRunner.assertEqual(result.thickness, 1.5);
+            });
+
+            TestRunner.test('Face-grain thickness equals original thickness', () => {
+                const finalStrips = [
+                    { width: 1.0, segments: [{ width: 1.0 }] }
+                ];
+
+                const result = calculateFinalDimensions(
+                    finalStrips,
+                    'face-grain',
+                    '0.75',
+                    [{ thickness: 2.0 }]
+                );
+
+                TestRunner.assertEqual(result.thickness, 2.0);
+            });
+        });
+
+        TestRunner.suite('Edge Cases', () => {
+            TestRunner.test('Empty final strips returns zero dimensions', () => {
+                const result = calculateFinalDimensions([], 'end-grain', '0.75', []);
+                TestRunner.assertEqual(result.width, 0);
+                TestRunner.assertEqual(result.length, 0);
+                TestRunner.assertEqual(result.thickness, 0);
+            });
+
+            TestRunner.test('Single segment strip', () => {
+                const boardThickness = 1.5;
+                const finalStrips = [
+                    { width: 1.0, segments: [{ width: 2.0 }] }
+                ];
+
+                const result = calculateFinalDimensions(
+                    finalStrips,
+                    'end-grain',
+                    '1.0',
+                    [{ thickness: boardThickness }]
+                );
+
+                // End-grain: Width = 1 strip × thickness = 1.5"
+                TestRunner.assertEqual(result.width, 1.5);
+                // Length: 1 segment = 2.0" (no kerfs)
+                TestRunner.assertEqual(result.length, 2.0);
+            });
+
+            TestRunner.test('Very small kerf accumulation over many strips', () => {
+                const boardThickness = 1.5;
+                const strips = Array(20).fill().map(() => ({
+                    width: 0.5,
+                    segments: [{ width: 0.5 }]
+                }));
+
+                const result = calculateFinalDimensions(
+                    strips,
+                    'end-grain',
+                    '0.5',
+                    [{ thickness: boardThickness }]
+                );
+
+                // End-grain: Width = 20 strips × 1.5" = 30.0" (NO KERFS)
+                TestRunner.assertClose(result.width, 30.0, 0.01);
+                // Length: 1 segment × 0.5" = 0.5"
+                TestRunner.assertClose(result.length, 0.5, 0.01);
+            });
+        });
+
+        TestRunner.suite('Final Dimensions - No Kerfs', () => {
+            TestRunner.test('End-grain final dimensions exclude kerfs', () => {
+                const numStrips = 10;
+                const crosscutWidth = 0.75;
+                const boardThickness = 1.5;
+                const panelWidth = 12.0;
+
+                // Simulate end-grain board
+                const finalStrips = Array(numStrips).fill().map(() => ({
+                    width: crosscutWidth,
+                    segments: Array(16).fill().map(() => ({ width: 0.75 }))
+                }));
+
+                const result = calculateFinalDimensions(
+                    finalStrips,
+                    'end-grain',
+                    crosscutWidth.toString(),
+                    [{ thickness: boardThickness }]
+                );
+
+                // Width = numStrips × boardThickness (NO KERFS)
+                const expectedWidth = numStrips * boardThickness;
+                TestRunner.assertClose(result.width, expectedWidth, 0.01,
+                    'End-grain width should be strips × thickness without kerfs');
+
+                // Material needed would be: 10*1.5 + 9*0.125 = 16.125"
+                const materialNeeded = numStrips * boardThickness + (numStrips - 1) * KERF_WIDTH;
+                TestRunner.assertTrue(result.width < materialNeeded,
+                    'Final dimension should be less than material needed (kerfs removed)');
+            });
+
+            TestRunner.test('Face-grain final dimensions exclude kerfs', () => {
+                const numStrips = 15;
+                const crosscutWidth = 1.0;
+                const segments = Array(10).fill().map(() => ({ width: 1.5 }));
+
+                const finalStrips = Array(numStrips).fill().map(() => ({
+                    width: crosscutWidth,
+                    segments: segments
+                }));
+
+                const result = calculateFinalDimensions(
+                    finalStrips,
+                    'face-grain',
+                    crosscutWidth.toString(),
+                    [{ thickness: 1.5 }]
+                );
+
+                // Length = numStrips × crosscutWidth (NO KERFS)
+                const expectedLength = numStrips * crosscutWidth;
+                TestRunner.assertClose(result.length, expectedLength, 0.01,
+                    'Face-grain length should be strips × crosscut width without kerfs');
+
+                // Material needed would be: 15*1.0 + 14*0.125 = 16.75"
+                const materialNeeded = numStrips * crosscutWidth + (numStrips - 1) * KERF_WIDTH;
+                TestRunner.assertTrue(result.length < materialNeeded,
+                    'Final dimension should be less than material needed (kerfs removed)');
+            });
+
+            TestRunner.test('Material calculation includes kerfs', () => {
+                const numStrips = 20;
+                const stripWidth = 0.5;
+
+                // Final dimension (no kerfs)
+                const finalDimension = numStrips * stripWidth; // 10.0"
+
+                // Material needed (with kerfs)
+                const materialNeeded = numStrips * stripWidth + (numStrips - 1) * KERF_WIDTH;
+                // 20*0.5 + 19*0.125 = 10.0 + 2.375 = 12.375"
+
+                TestRunner.assertClose(materialNeeded, 12.375, 0.01);
+                TestRunner.assertClose(finalDimension, 10.0, 0.01);
+                TestRunner.assertClose(materialNeeded - finalDimension, 2.375, 0.01,
+                    'Material waste should equal total kerfs');
+            });
+        });
+
+        TestRunner.suite('Material Optimization', () => {
+            TestRunner.test('Checkered pattern uses alternating strips efficiently', () => {
+                // Simulate checkered pattern with 2 wood types
+                const board1Width = 6.0;
+                const board2Width = 6.0;
+                const stripWidth = 0.75;
+
+                const count1 = calculateStripCount(board1Width, stripWidth);
+                const count2 = calculateStripCount(board2Width, stripWidth);
+
+                // Both should produce 7 strips
+                TestRunner.assertEqual(count1, 7);
+                TestRunner.assertEqual(count2, 7);
+
+                // Total of 14 alternating strips for checkered pattern
+                const totalStrips = count1 + count2;
+                TestRunner.assertEqual(totalStrips, 14);
+            });
+
+            TestRunner.test('Calculate minimum length needed for crosscuts', () => {
+                const numCrosscutStrips = 10;
+                const stripWidth = 0.75;
+
+                // Length = n*width + (n-1)*kerf
+                const lengthNeeded = (numCrosscutStrips * stripWidth) +
+                                   ((numCrosscutStrips - 1) * KERF_WIDTH);
+
+                // 10*0.75 + 9*0.125 = 7.5 + 1.125 = 8.625"
+                TestRunner.assertClose(lengthNeeded, 8.625, 0.001);
+            });
+
+            TestRunner.test('Waste calculation for non-perfect fit', () => {
+                const boardWidth = 6.5;
+                const stripWidth = 0.75;
+                const stripCount = calculateStripCount(boardWidth, stripWidth);
+                const widthUsed = calculateTotalWidthNeeded(stripWidth, stripCount);
+                const waste = boardWidth - widthUsed;
+
+                TestRunner.assertTrue(waste >= 0, 'Waste should not be negative');
+                TestRunner.assertTrue(waste < (stripWidth + KERF_WIDTH),
+                    'Waste should be less than one strip + kerf');
+            });
+        });
+
+        // Run all tests and render results
+        TestRunner.render();
+    </script>
+</body>
+</html>
