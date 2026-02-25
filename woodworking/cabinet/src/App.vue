@@ -3,6 +3,8 @@ import { useCabinetCalculation } from '@/composables/useCabinetCalculation'
 import CabinetViewer from '@/components/CabinetViewer.vue'
 import BOMTable from '@/components/BOMTable.vue'
 import PlywoodTable from '@/components/PlywoodTable.vue'
+import InputSection from '@/components/InputSection.vue'
+import { DataLoader } from '@/services/dataLoader'
 
 const {
   userInputs,
@@ -17,6 +19,13 @@ const {
   equalizeDrawerHeights,
   variablesConfig,
 } = useCabinetCalculation()
+
+const inputsConfig = DataLoader.getInputs()
+
+// Helper function to get variable by ID
+function getVariable(variableId: string) {
+  return variablesConfig.variables.find((v) => v.id === variableId)
+}
 </script>
 
 <template>
@@ -29,75 +38,37 @@ const {
       <aside class="sidebar">
         <h2>Cabinet Settings</h2>
 
-        <!-- Cabinet Dimensions -->
-        <section class="input-section">
-          <h3>Dimensions</h3>
-          <div class="input-group">
-            <label>
-              Width (in)
-              <input v-model.number="userInputs.dim_w" type="number" step="0.125" />
-            </label>
-          </div>
-          <div class="input-group">
-            <label>
-              Height (in)
-              <input v-model.number="userInputs.dim_h" type="number" step="0.125" />
-            </label>
-          </div>
-          <div class="input-group">
-            <label>
-              Depth (in)
-              <input v-model.number="userInputs.dim_d" type="number" step="0.125" />
-            </label>
-          </div>
-        </section>
+        <!-- Render sections dynamically from inputs.json -->
+        <section
+          v-for="(section, sectionIndex) in inputsConfig.sections"
+          :key="sectionIndex"
+          class="input-section"
+        >
+          <h3>{{ section.title }}</h3>
 
-        <!-- Cabinet Style -->
-        <section class="input-section">
-          <h3>Cabinet Style</h3>
-          <div class="input-group">
-            <label>
-              Backing Style
-              <select v-model="userInputs.backing_style">
-                <option value="none">None</option>
-                <option value="stretcher">Stretcher Only</option>
-                <option value="inlay">Routed Inlay</option>
-                <option value="full">Full Plywood</option>
-              </select>
-            </label>
-          </div>
-        </section>
+          <!-- Regular inputs -->
+          <template v-if="section.inputs">
+            <InputSection
+              v-for="input in section.inputs"
+              :key="input.variable_id"
+              v-model="userInputs[input.variable_id]"
+              :input="input"
+              :variable="getVariable(input.variable_id)!"
+              :context="context"
+            />
+          </template>
 
-        <!-- Plywood Materials -->
-        <section class="input-section">
-          <h3>Plywood Materials</h3>
+          <!-- Plywood table (special type) -->
           <PlywoodTable
+            v-else-if="section.type === 'plywood_table'"
             v-model:plywood-data="plywoodData"
             :available-components="availableComponents"
           />
-        </section>
 
-        <!-- Drawers -->
-        <section class="input-section">
-          <h3>Drawers</h3>
-          <div class="input-group">
-            <label>
-              Number of Drawers
-              <input v-model.number="userInputs.num_drawers" type="number" min="1" max="10" />
-            </label>
-          </div>
-
-          <div class="input-group">
-            <label>
-              <input v-model="userInputs.drawer_face_enabled" type="checkbox" />
-              Enable Drawer Faces
-            </label>
-          </div>
-
-          <!-- Drawer Heights -->
-          <div class="drawer-heights">
+          <!-- Drawer heights (special type) -->
+          <div v-else-if="section.type === 'drawer_heights'" class="drawer-heights">
             <div class="drawer-heights-header">
-              <span>Drawer Heights (in)</span>
+              <span>Per-Drawer Heights (in)</span>
               <button class="btn-small" @click="equalizeDrawerHeights">Equalize</button>
             </div>
             <div
@@ -107,7 +78,12 @@ const {
             >
               <label>
                 Drawer {{ index + 1 }}
-                <input v-model.number="drawerHeights[index]" type="number" step="0.125" />
+                <input
+                  v-model.number="drawerHeights[index]"
+                  type="number"
+                  :step="section.step || 0.125"
+                  :min="section.min || 1"
+                />
               </label>
             </div>
             <div v-if="drawerHeightMismatch" class="warning">
