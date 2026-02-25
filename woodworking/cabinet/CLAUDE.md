@@ -815,6 +815,15 @@ make test-viz
 - Affects: `drawer_width` calculation, `drawer_slides` 3D positioning, `dim_slides_w` usage
 - May need new slide panel orientations/positions for under-mount visualization
 
+**Cabinet construction style (frameless vs face frame):**
+- Frameless (European style): no face frame, doors/drawers attach directly to cabinet box
+- Face frame (American style): solid wood frame attached to front of cabinet box (typical 1.5-2" rails/stiles)
+- Affects: interior dimensions, door/drawer mounting, 3D visualization of front face
+
+**Toe kick (optional base feature):**
+- Recessed base at bottom of cabinet for toe clearance (typical: 3.5" height, 3" depth recess)
+- Affects: overall height calculations, carcass Y positioning, base panel structure
+
 ## Tips for Claude
 
 When resuming work on this project:
