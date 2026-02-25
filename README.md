@@ -155,6 +155,83 @@ The GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push to `
 - **Branch**: `gh-pages`
 - **Folder**: `/ (root)`
 
+## Adding a New Vue App
+
+To add a new page/app to the multi-page setup:
+
+### 1. Create Entry Point HTML
+
+```bash
+mkdir -p my-app
+cat > my-app/index.html <<EOF
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My App</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/myapp.ts"></script>
+  </body>
+</html>
+EOF
+```
+
+### 2. Create Bootstrap File
+
+```typescript
+// src/myapp.ts
+import { createApp } from 'vue'
+import MyApp from './views/MyApp.vue'
+import './style.css'
+
+const app = createApp(MyApp)
+app.mount('#app')
+```
+
+### 3. Create Vue Component
+
+```vue
+<!-- src/views/MyApp.vue -->
+<template>
+  <div>
+    <h1>My New App</h1>
+  </div>
+</template>
+```
+
+### 4. Update Vite Config
+
+```typescript
+// vite.config.ts
+export default defineConfig({
+  // ...
+  build: {
+    rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        cabinet: fileURLToPath(new URL('./woodworking/cabinet/index.html', import.meta.url)),
+        myapp: fileURLToPath(new URL('./my-app/index.html', import.meta.url)), // Add this
+      },
+    },
+  },
+})
+```
+
+### 5. Build and Test
+
+```bash
+make build
+# Output: dist/my-app/index.html
+
+make dev
+# Visit: http://localhost:5173/my-app/
+```
+
+The new app will be deployed automatically to `https://will.iamchen.com/my-app/`
+
 ## Project: Cabinet Maker Pro
 
 The Cabinet Maker Pro app is a fully data-driven cabinet design tool:
