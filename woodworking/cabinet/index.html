@@ -182,78 +182,6 @@
             background: #f8f9fa;
         }
 
-        .cut-sheet {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-
-        .sheet {
-            border: 2px solid #3498db;
-            padding: 15px;
-            border-radius: 8px;
-            background: #f8f9fa;
-        }
-
-        .sheet h3 {
-            margin-bottom: 10px;
-            color: #2c3e50;
-            font-size: 16px;
-        }
-
-        .sheet {
-            margin-bottom: 30px;
-        }
-
-        .sheet-visual {
-            background: #f8f8f8;
-            border: 2px solid #333;
-            margin: 20px auto 20px 10px;
-            position: relative;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            max-width: 600px;
-            max-height: 600px;
-        }
-
-        .cut-piece {
-            position: absolute;
-            border: 2px solid #2c3e50;
-            background: rgba(52, 152, 219, 0.4);
-            font-size: 9px;
-            padding: 2px;
-            overflow: hidden;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            line-height: 1.2;
-            transition: all 0.2s;
-            cursor: pointer;
-        }
-
-        .cut-piece:hover {
-            background: rgba(52, 152, 219, 0.6);
-            z-index: 10;
-            transform: scale(1.02);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-        }
-
-        .cut-piece.rotated {
-            background: rgba(231, 76, 60, 0.4);
-            border-color: #c0392b;
-        }
-
-        .cut-piece.rotated:hover {
-            background: rgba(231, 76, 60, 0.6);
-        }
-
-        .cut-piece small {
-            font-size: 8px;
-            opacity: 0.8;
-        }
-
         .assembly-step {
             padding: 15px;
             margin: 10px 0;
@@ -799,7 +727,6 @@
                         <a class="nav-link" href="#section-3d">3D View</a>
                         <a class="nav-link" href="#section-dimensions">Dimensions</a>
                         <a class="nav-link" href="#section-bom">BOM</a>
-                        <a class="nav-link" href="#section-optimizer">Optimizer</a>
                         <a class="nav-link" href="#section-debug">Debug</a>
                     </div>
                 </div>
@@ -823,13 +750,6 @@
                     <div id="bom-table"></div>
                 </div>
 
-                <div class="panel" id="section-optimizer">
-                    <h2>Cut Optimizer</h2>
-                    <div class="warning">
-                        <strong>⚠️ WIP feature:</strong> Use <a href="https://www.opticutter.com/cut-list-optimizer" target="_blank">https://www.opticutter.com/cut-list-optimizer</a> instead
-                    </div>
-                    <div id="cut-optimizer"></div>
-                </div>
 
                 <div class="panel" id="section-debug">
                     <h2>Debug Information</h2>
@@ -1272,8 +1192,7 @@
         //   1. render3DCabinet() - 3D visualization
         //   2. renderDimensionsSection() - Calculated dimensions
         //   3. renderBOMSection() - Bill of materials table
-        //   4. renderCutOptimizerSection() - Cut layout optimizer
-        //   5. renderDebugSection() - Debug output
+        //   4. renderDebugSection() - Debug output
 
         // ============================================
         // CONTROLLER - Orchestration functions
@@ -1529,6 +1448,14 @@
                 });
             }
 
+            // Sync DOM input values with array (always, handles equalize + external changes)
+            const currentInputs = container.querySelectorAll('.drawer-height-input');
+            currentInputs.forEach((input, i) => {
+                if (i < drawerHeights.length && parseFloat(input.value) !== drawerHeights[i]) {
+                    input.value = drawerHeights[i];
+                }
+            });
+
             // Update summary text (always)
             const summary = container.querySelector('#drawer-heights-summary');
             if (summary) {
@@ -1558,72 +1485,29 @@
          * VIEW: Render debug section (Updates DOM)
          */
         function renderDebugSection(context) {
-            if (!equations || !equations.calculated) {
-                console.error('equations not loaded yet');
-                return;
-            }
-
             const debugDiv = document.getElementById('debug-output');
-            if (!debugDiv) {
-                console.error('debug-output div not found');
-                return;
+            if (!debugDiv) return;
+
+            // Build config JSON and update textarea (auto-export on every change)
+            const config = { ...context, plywoodData };
+            const configJson = JSON.stringify(config, null, 2);
+
+            // Only create the structure once, then just update the textarea value
+            let textarea = document.getElementById('config-json-textarea');
+            if (!textarea) {
+                let html = '<div class="debug-section">';
+                html += '<div class="config-json">';
+                html += '<textarea id="config-json-textarea"></textarea>';
+                html += '<div class="config-actions">';
+                html += '<button class="config-btn" onclick="importConfig()">Import Config</button>';
+                html += '<button class="config-btn secondary" onclick="copyConfigToClipboard()">Copy to Clipboard</button>';
+                html += '</div>';
+                html += '</div>';
+                html += '</div>';
+                debugDiv.innerHTML = html;
+                textarea = document.getElementById('config-json-textarea');
             }
-
-            // Build debug HTML
-            const sortedKeys = Object.keys(context).sort();
-
-            let html = '<div class="debug-section">';
-
-            // JSON Config Export/Import
-            html += '<h3>Configuration & Variables</h3>';
-            html += '<div class="config-json">';
-            html += '<textarea id="config-json-textarea" placeholder="Paste JSON configuration here..."></textarea>';
-            html += '<div class="config-actions">';
-            html += '<button class="config-btn" onclick="exportConfig()">Export Config</button>';
-            html += '<button class="config-btn" onclick="importConfig()">Import Config</button>';
-            html += '<button class="config-btn secondary" onclick="copyConfigToClipboard()">Copy to Clipboard</button>';
-            html += '</div>';
-            html += '</div>';
-
-            html += '<h4 style="margin-top: 20px; margin-bottom: 10px;">All Variables (Base Context)</h4>';
-            html += '<div class="debug-group">';
-
-            sortedKeys.forEach(key => {
-                const value = context[key];
-                // Skip objects (but allow arrays)
-                if (typeof value === 'object' && !Array.isArray(value)) return;
-
-                const displayValue = Array.isArray(value) ? '[' + value.map(v => typeof v === 'number' ? v.toFixed(3) : v).join(', ') + ']' :
-                                   typeof value === 'number' ? value.toFixed(3) :
-                                   typeof value === 'boolean' ? value.toString() :
-                                   value;
-                html += `<div class="debug-var">
-                    <span class="debug-var-name">${key}:</span>
-                    <span class="debug-var-value">${displayValue}</span>
-                </div>`;
-            });
-
-            html += '</div>';
-
-            // Add plywood data structure
-            html += '<h3>Plywood Data Structure</h3>';
-            html += '<div class="debug-group">';
-            plywoodData.forEach((row, idx) => {
-                html += `<h4>Row ${idx + 1}</h4>`;
-                html += `<div class="debug-var">
-                    <span class="debug-var-name">thickness:</span>
-                    <span class="debug-var-value">${row.thickness}"</span>
-                </div>`;
-                html += `<div class="debug-var">
-                    <span class="debug-var-name">components:</span>
-                    <span class="debug-var-value">[${row.components.join(', ')}]</span>
-                </div>`;
-            });
-            html += '</div>';
-
-            html += '</div>';
-
-            debugDiv.innerHTML = html;
+            textarea.value = configJson;
         }
         /**
          * VIEW: Render dimensions display (Uses context + recursive getValue)
@@ -1678,52 +1562,6 @@
             }
 
             calcDiv.innerHTML = renderDimensionsDisplay(context);
-        }
-
-        /**
-         * CONTROLLER: Export BOM to CSV for cutlist optimizer (single thickness)
-         * @param {number} thickness - Filter BOM by this thickness
-         */
-        function exportBOMToCSV(bom, context, thickness) {
-            let csv = '';
-
-            // Filter BOM for this thickness only
-            const filteredBOM = bom.filter(item => Math.abs(item.thickness - thickness) < 0.001);
-
-            if (filteredBOM.length === 0) {
-                alert('No items found for this thickness');
-                return;
-            }
-
-            // Calculate total area for this thickness
-            const totalArea = filteredBOM.reduce((sum, item) =>
-                sum + (item.width * item.height * item.quantity), 0
-            );
-
-            // Stock section (plywood sheets)
-            csv += '@,Length,Width,Quantity,Grain direction\n';
-            const sheetArea = context.sheet_w * context.sheet_h;
-            const sheetsNeeded = Math.ceil(totalArea / sheetArea);
-            csv += `S,${context.sheet_w}″,${context.sheet_h}″,${sheetsNeeded},\n`;
-
-            // Panel section (cuts)
-            csv += '@,Length,Width,Quantity,Grain direction,Label\n';
-            filteredBOM.forEach(item => {
-                const label = item.item.replace(/,/g, ';'); // Escape commas
-                csv += `P,${item.width}″,${item.height}″,${item.quantity},,${label}\n`;
-            });
-
-            // Download CSV
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            const thicknessStr = thickness.toFixed(2).replace('.', '_');
-            link.setAttribute('href', url);
-            link.setAttribute('download', `cutlist_${thicknessStr}in.csv`);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
         }
 
         /**
@@ -1792,14 +1630,14 @@
                             <tr style="background: #e3f2fd;">
                                 <th>Thickness</th>
                                 <th>Total Area</th>
-                                <th>Sheets Needed (${context.sheet_w/12}'×${context.sheet_h/12}')</th>
+                                <th>Sheets Needed (4'×8')</th>
                                 <th>Export to <a href="https://www.opticutter.com/cut-list-optimizer" target="_blank">Cutlist</a></th>
                             </tr>
                         </thead>
                         <tbody>
             `;
 
-            const sheetArea = context.sheet_w * context.sheet_h;
+            const sheetArea = 48 * 96; // 4'×8' sheet in sq inches
             Object.keys(materialSummary).forEach(key => {
                 const summary = materialSummary[key];
                 const sheetsNeeded = Math.ceil(summary.area / sheetArea);
@@ -1810,7 +1648,7 @@
                         <td>${summary.area.toFixed(2)} sq in <span style="color: #666;">(${(summary.area / 144).toFixed(2)} sq ft)</span></td>
                         <td><strong style="color: #3498db;">${sheetsNeeded}</strong> <span style="color: #666; font-size: 12px;">(${efficiency}% utilization)</span></td>
                         <td>
-                            <button onclick="exportBOMToCSV(window.lastBOM, window.lastContext, ${summary.thickness})"
+                            <button onclick="exportBOMToCSV(${summary.thickness})"
                                     style="padding: 4px 12px; background: #3498db; color: white; border: none;
                                            border-radius: 4px; cursor: pointer; font-size: 12px;">
                                 📥 CSV
@@ -1827,71 +1665,6 @@
             `;
 
             bomDiv.innerHTML = bomHTML;
-        }
-
-        /**
-         * VIEW: Render cut optimizer section (Updates DOM)
-         */
-        function renderCutOptimizerSection(optimizedSheets, context) {
-            const cutDiv = document.getElementById('cut-optimizer');
-            if (!cutDiv) {
-                console.error('cut-optimizer div not found');
-                return;
-            }
-
-            let cutHTML = '<div class="cut-sheet">';
-
-            Object.keys(optimizedSheets).forEach(key => {
-                const sheet = optimizedSheets[key];
-                sheet.layouts.forEach((layout, idx) => {
-                    const sheetArea = context.sheet_w * context.sheet_h;
-                    const efficiency = ((1 - layout.waste / sheetArea) * 100).toFixed(1);
-                    const usedArea = (sheetArea - layout.waste).toFixed(1);
-
-                    // Calculate scale to fit within max dimensions while maintaining aspect ratio
-                    const maxVisualDim = 400; // Max size for visualization
-                    const scaleW = maxVisualDim / context.sheet_w;
-                    const scaleH = maxVisualDim / context.sheet_h;
-                    const scale = Math.min(scaleW, scaleH); // Use smaller scale to fit both dimensions
-
-                    const visualWidth = context.sheet_w * scale;
-                    const visualHeight = context.sheet_h * scale;
-
-                    cutHTML += `
-                        <div class="sheet">
-                            <h3>${sheet.thickness.toFixed(2)}" Plywood - Sheet ${idx + 1}</h3>
-                            <p><strong>Sheet Size:</strong> ${context.sheet_w}" × ${context.sheet_h}" (${sheetArea.toFixed(0)} sq in)</p>
-                            <p><strong>Efficiency:</strong> ${efficiency}% (${usedArea} sq in used, ${layout.waste.toFixed(1)} sq in waste)</p>
-                            <p><strong>Pieces:</strong> ${layout.pieces.length} | <strong>Scale:</strong> ${scale.toFixed(2)}px per inch</p>
-                            <div class="sheet-visual" style="width: ${visualWidth.toFixed(0)}px; height: ${visualHeight.toFixed(0)}px;">
-                                <div style="position: absolute; top: -20px; right: 0; font-size: 11px; color: #666;">${context.sheet_w}"</div>
-                                <div style="position: absolute; bottom: 0; right: -30px; font-size: 11px; color: #666; writing-mode: vertical-rl;">${context.sheet_h}"</div>
-                    `;
-                    layout.pieces.forEach(piece => {
-                        const rotationLabel = piece.rotated ? ' ↻' : '';
-                        const originalSize = `${piece.originalWidth.toFixed(1)}×${piece.originalHeight.toFixed(1)}`;
-                        const displaySize = `${piece.width.toFixed(1)}×${piece.height.toFixed(1)}`;
-                        const sizeLabel = piece.rotated ? `${displaySize}${rotationLabel}` : displaySize;
-
-                        cutHTML += `
-                            <div class="cut-piece ${piece.rotated ? 'rotated' : ''}" style="
-                                left: ${piece.x * scale}px;
-                                top: ${piece.y * scale}px;
-                                width: ${piece.width * scale}px;
-                                height: ${piece.height * scale}px;
-                            " title="${piece.name} - Original: ${originalSize}\", Placed: ${sizeLabel}\"">${piece.name}${rotationLabel}<br><small>${sizeLabel}"</small></div>
-                        `;
-                    });
-
-                    cutHTML += `
-                            </div>
-                        </div>
-                    `;
-                });
-            });
-
-            cutHTML += '</div>';
-            cutDiv.innerHTML = cutHTML;
         }
 
         /**
@@ -2671,198 +2444,39 @@
         }
 
         /**
-         * MODEL: Optimize cuts (Pure function)
+         * Export BOM to CSV for cutlist optimizer (single thickness)
          */
-        /**
-         * Improved cut optimizer with rotation support and better bin packing
-         * Uses shelf algorithm with first-fit decreasing and rotation
-         */
-        function optimizeCuts(bom, context) {
-            const { sheet_w, sheet_h, kerf } = context;
-            const sheets = {};
+        function exportBOMToCSV(thickness) {
+            const bom = window.lastBOM;
+            if (!bom) return;
 
-            // Group by thickness
-            bom.forEach(item => {
-                const key = `${item.thickness}`;
-                if (!sheets[key]) {
-                    sheets[key] = {
-                        thickness: item.thickness,
-                        pieces: [],
-                        layouts: []
-                    };
-                }
-
-                for (let i = 0; i < item.quantity; i++) {
-                    sheets[key].pieces.push({
-                        id: `${item.id}-${i+1}`,
-                        name: item.item,
-                        width: item.width,
-                        height: item.height,
-                        originalWidth: item.width,
-                        originalHeight: item.height,
-                        rotated: false
-                    });
-                }
-            });
-
-            // Pack each thickness
-            Object.keys(sheets).forEach(key => {
-                const sheet = sheets[key];
-
-                // Sort by area (largest first) for better packing
-                const pieces = [...sheet.pieces].sort((a, b) =>
-                    (b.width * b.height) - (a.width * a.height)
-                );
-
-                // Try to pack all pieces
-                const layouts = packPieces(pieces, sheet_w, sheet_h, kerf);
-                sheet.layouts = layouts;
-            });
-
-            return sheets;
-        }
-
-        /**
-         * Pack pieces using shelf algorithm with rotation
-         * Returns array of sheet layouts
-         */
-        function packPieces(pieces, sheetW, sheetH, kerf) {
-            const layouts = [];
-            const remainingPieces = [...pieces];
-
-            while (remainingPieces.length > 0) {
-                const layout = {
-                    pieces: [],
-                    waste: sheetW * sheetH
-                };
-
-                const shelves = []; // Array of {y, height, remainingWidth}
-                let currentY = 0;
-
-                // Pack pieces into this sheet
-                let i = 0;
-                while (i < remainingPieces.length && currentY < sheetH) {
-                    const piece = remainingPieces[i];
-                    let placed = false;
-
-                    // Try both orientations
-                    const orientations = [
-                        { w: piece.width, h: piece.height, rotated: false },
-                        { w: piece.height, h: piece.width, rotated: true }
-                    ];
-
-                    // Try to place in existing shelves first
-                    for (const shelf of shelves) {
-                        for (const orient of orientations) {
-                            // Check if piece fits in this shelf
-                            if (orient.w + kerf <= shelf.remainingWidth &&
-                                orient.h <= shelf.height) {
-
-                                const x = sheetW - shelf.remainingWidth;
-                                const y = shelf.y;
-
-                                layout.pieces.push({
-                                    ...piece,
-                                    width: orient.w,
-                                    height: orient.h,
-                                    x: x,
-                                    y: y,
-                                    rotated: orient.rotated
-                                });
-
-                                layout.waste -= piece.originalWidth * piece.originalHeight;
-                                shelf.remainingWidth -= orient.w + kerf;
-
-                                remainingPieces.splice(i, 1);
-                                placed = true;
-                                break;
-                            }
-                        }
-                        if (placed) break;
-                    }
-
-                    // If not placed, try creating a new shelf
-                    if (!placed) {
-                        for (const orient of orientations) {
-                            // Check if new shelf can be created
-                            if (currentY + orient.h + kerf <= sheetH &&
-                                orient.w + kerf <= sheetW) {
-
-                                // Create new shelf
-                                const newShelf = {
-                                    y: currentY,
-                                    height: orient.h,
-                                    remainingWidth: sheetW - orient.w - kerf
-                                };
-                                shelves.push(newShelf);
-
-                                layout.pieces.push({
-                                    ...piece,
-                                    width: orient.w,
-                                    height: orient.h,
-                                    x: 0,
-                                    y: currentY,
-                                    rotated: orient.rotated
-                                });
-
-                                layout.waste -= piece.originalWidth * piece.originalHeight;
-                                currentY += orient.h + kerf;
-
-                                remainingPieces.splice(i, 1);
-                                placed = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    // If still not placed, try next piece
-                    if (!placed) {
-                        i++;
-                    }
-                }
-
-                // Add this layout if it has any pieces
-                if (layout.pieces.length > 0) {
-                    layouts.push(layout);
-                } else {
-                    // Can't fit any more pieces, but still have pieces remaining
-                    // This means pieces are too large for the sheet
-                    console.warn('Some pieces too large for sheet:', remainingPieces);
-                    break;
-                }
+            const filteredBOM = bom.filter(item => Math.abs(item.thickness - thickness) < 0.001);
+            if (filteredBOM.length === 0) {
+                alert('No items found for this thickness');
+                return;
             }
 
-            return layouts;
-        }
+            const sheetW = 48, sheetH = 96;
+            const totalArea = filteredBOM.reduce((sum, item) =>
+                sum + (item.width * item.height * item.quantity), 0);
+            const sheetsNeeded = Math.ceil(totalArea / (sheetW * sheetH));
 
-        function generateCutOrder(optimizedSheets) {
-            const cutOrder = [];
-
-            Object.keys(optimizedSheets).forEach(key => {
-                const sheet = optimizedSheets[key];
-                sheet.layouts.forEach((layout, sheetNum) => {
-                    // Sort pieces by position for logical cutting order
-                    const sortedPieces = [...layout.pieces].sort((a, b) => {
-                        if (Math.abs(a.y - b.y) < 1) {
-                            return a.x - b.x;
-                        }
-                        return a.y - b.y;
-                    });
-
-                    sortedPieces.forEach((piece, idx) => {
-                        cutOrder.push({
-                            step: cutOrder.length + 1,
-                            sheet: `${sheet.thickness.toFixed(2)}" Plywood - Sheet ${sheetNum + 1}`,
-                            piece: piece.name,
-                            dimensions: `${piece.width.toFixed(2)}" × ${piece.height.toFixed(2)}"`,
-                            position: `X: ${piece.x.toFixed(1)}", Y: ${piece.y.toFixed(1)}"`,
-                            note: idx === 0 ? 'Start of new row' : ''
-                        });
-                    });
-                });
+            let csv = '@,Length,Width,Quantity,Grain direction\n';
+            csv += `S,${sheetW}″,${sheetH}″,${sheetsNeeded},\n`;
+            csv += '@,Length,Width,Quantity,Grain direction,Label\n';
+            filteredBOM.forEach(item => {
+                const label = item.item.replace(/,/g, ';');
+                csv += `P,${item.width}″,${item.height}″,${item.quantity},,${label}\n`;
             });
 
-            return cutOrder;
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.setAttribute('href', URL.createObjectURL(blob));
+            link.setAttribute('download', `cutlist_${thickness.toFixed(2).replace('.', '_')}in.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         /**
@@ -2884,24 +2498,13 @@
                 const numDrawers = context.num_drawers || 3;
                 const plyDivider = getValue('ply_drawer_divider', variablesConfig.variables, context);
 
-                // Resize array if num_drawers changed
-                const drawerInputs = document.querySelectorAll('.drawer-height-input');
-                if (drawerHeightsVar.value.length !== numDrawers || drawerInputs.length !== numDrawers) {
+                // Resize array if num_drawers changed or first load (resets to equal distribution)
+                if (drawerHeightsVar.value.length !== numDrawers || !drawerHeightsVar._initialized) {
+                    drawerHeightsVar._initialized = true;
                     const eh = getValue('drawer_height_equal', variablesConfig.variables, context);
                     drawerHeightsVar.value = Array(numDrawers).fill(parseFloat(eh.toFixed(4)));
-                    context.drawer_heights = drawerHeightsVar.value;
                 }
-
-                // Read per-drawer height overrides from DOM inputs
-                if (drawerInputs.length === numDrawers) {
-                    for (let i = 0; i < numDrawers; i++) {
-                        const val = parseFloat(drawerInputs[i].value);
-                        if (!isNaN(val) && val > 0) {
-                            drawerHeightsVar.value[i] = val;
-                        }
-                    }
-                    context.drawer_heights = drawerHeightsVar.value;
-                }
+                context.drawer_heights = drawerHeightsVar.value;
 
                 // Compute drawer_y_offsets (cumulative sum, bottom-up)
                 const offsets = [0];
@@ -2914,17 +2517,12 @@
             // 3. Generate derived data using MODEL layer
             //    getValue() will recursively evaluate calculated vars as needed
             const bom = generateBOM(context, equations, variablesConfig.variables);
-            const optimizedSheets = optimizeCuts(bom, context);
-
-            // Store for export functionality
             window.lastBOM = bom;
-            window.lastContext = context;
 
             // 4. Update VIEW layer
             render3DCabinet(context);
             renderDimensionsSection(context);
             renderBOMSection(bom, context);
-            renderCutOptimizerSection(optimizedSheets, context);
             renderDrawerHeightInputs(context);
             renderDebugSection(context);
         }
@@ -2938,13 +2536,6 @@
                 initPlywoodTable();
                 calculate();
             });
-        }
-
-        // Export config to JSON
-        function exportConfig() {
-            const config = getInputValues();
-            const configJson = JSON.stringify(config, null, 2);
-            document.getElementById('config-json-textarea').value = configJson;
         }
 
         // Import config from JSON
@@ -2963,9 +2554,14 @@
                 document.getElementById('dim_back_stretcher').value = config.dim_back_stretcher || 3;
                 document.getElementById('backing_style').value = config.backing_style || 'stretcher';
                 document.getElementById('drawer_clearance').value = config.drawer_clearance || 0.125;
-                document.getElementById('sheet_w').value = config.sheet_w || 48;
-                document.getElementById('sheet_h').value = config.sheet_h || 96;
-                document.getElementById('kerf').value = config.kerf || 0.125;
+
+                // Apply drawer heights
+                if (config.drawer_heights && Array.isArray(config.drawer_heights)) {
+                    const drawerHeightsVar = variablesConfig.variables.find(v => v.id === 'drawer_heights');
+                    if (drawerHeightsVar) {
+                        drawerHeightsVar.value = config.drawer_heights;
+                    }
+                }
 
                 // Apply plywood data
                 if (config.plywoodData) {

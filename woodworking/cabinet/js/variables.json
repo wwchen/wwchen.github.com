@@ -64,27 +64,6 @@
       "unit": "none"
     },
     {
-      "id": "sheet_w",
-      "label": "Sheet Width",
-      "type": "input",
-      "value": 48,
-      "unit": "inch"
-    },
-    {
-      "id": "sheet_h",
-      "label": "Sheet Height",
-      "type": "input",
-      "value": 96,
-      "unit": "inch"
-    },
-    {
-      "id": "kerf",
-      "label": "Kerf Width",
-      "type": "input",
-      "value": 0.125,
-      "unit": "inch"
-    },
-    {
       "id": "ply_carcass",
       "label": "Carcass Plywood Thickness",
       "type": "plywood",

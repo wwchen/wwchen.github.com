@@ -97,23 +97,6 @@
           {"thickness": 0, "components": ["drawer_face"]}
         ]
       }
-    },
-    {
-      "title": "Cut Settings",
-      "inputs": [
-        {
-          "variable_id": "sheet_w",
-          "step": 1
-        },
-        {
-          "variable_id": "sheet_h",
-          "step": 1
-        },
-        {
-          "variable_id": "kerf",
-          "step": 0.0625
-        }
-      ]
     }
   ]
 }
