@@ -1028,6 +1028,18 @@
                 activePanels[panelKey] = panel;
             }
 
+            // Add hidden panels (rendered in 3D viz only, excluded from BOM and plywood)
+            if (style.hidden_panels) {
+                for (const panelKey of style.hidden_panels) {
+                    const basePanel = panels[panelKey];
+                    if (!basePanel) {
+                        console.warn(`Hidden panel not found: ${panelKey}`);
+                        continue;
+                    }
+                    activePanels[panelKey] = { ...basePanel, hidden: true };
+                }
+            }
+
             return activePanels;
         }
 
@@ -2031,10 +2043,10 @@
                 cabinetGroup.remove(cabinetGroup.children[0]);
             }
 
-            // Render only assigned panels
+            // Render only assigned panels (and hidden panels like drawer_slides)
             for (const [panelKey, panel] of Object.entries(activePanels)) {
-                // Skip panels that aren't assigned to any plywood row
-                if (!isPanelAssigned(panelKey)) {
+                // Hidden panels always render (they're not in the plywood system)
+                if (!panel.hidden && !isPanelAssigned(panelKey)) {
                     console.log(`Skipping unassigned panel: ${panelKey}`);
                     continue;
                 }
@@ -2063,8 +2075,8 @@
 
             // Generate components from active panels
             for (const [panelKey, panel] of Object.entries(activePanels)) {
-                // Skip panels without quantity (e.g., drawer_slides for visualization only)
-                if (panel.quantity === undefined || panel.quantity === null) continue;
+                // Skip hidden panels (e.g., drawer_slides - rendered in 3D only)
+                if (panel.hidden) continue;
 
                 // Return object with value and label for UI compatibility
                 components.push({
@@ -2471,8 +2483,8 @@
 
             // Iterate through active panels and generate BOM entries
             for (const [panelKey, panel] of Object.entries(activePanels)) {
-                // Skip panels without quantity (e.g., drawer_slides for visualization only)
-                if (panel.quantity === undefined || panel.quantity === null) continue;
+                // Skip hidden panels (e.g., drawer_slides - not a plywood cut)
+                if (panel.hidden) continue;
 
                 // Skip panels that aren't assigned to any plywood row
                 if (!isPanelAssigned(panelKey)) {

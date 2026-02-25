@@ -5,33 +5,10 @@ A data-driven cabinet design and visualization tool with automated bill of mater
 ## Quick Start
 
 ```bash
-./serve.sh
+make serve
 ```
 
 Then open **http://localhost:8000** in your browser.
-
-### Why HTTP Server?
-
-This app loads configuration files from the `js/` folder using JavaScript fetch(), which requires HTTP protocol.
-
-- ❌ **Won't work:** Opening `index.html` directly (`file://`)
-- ✅ **Will work:** Serving via HTTP (`http://localhost:8000`)
-
-### Alternative Methods
-
-```bash
-# Python's built-in server
-python3 -m http.server 8000
-
-# Different port
-./serve.sh 3000
-
-# PHP (if installed)
-php -S localhost:8000
-
-# Node.js http-server (if installed)
-npx http-server -p 8000
-```
 
 ## Features
 

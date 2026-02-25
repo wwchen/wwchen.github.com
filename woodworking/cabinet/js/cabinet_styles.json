@@ -12,9 +12,9 @@
         "drawer_sides",
         "drawer_front_back",
         "drawer_bottom",
-        "drawer_face",
-        "drawer_slides"
+        "drawer_face"
       ],
+      "hidden_panels": ["drawer_slides"],
       "material_defaults": [
         {
           "thickness": 0.75,
@@ -57,9 +57,9 @@
         "drawer_sides",
         "drawer_front_back",
         "drawer_bottom",
-        "drawer_face",
-        "drawer_slides"
+        "drawer_face"
       ],
+      "hidden_panels": ["drawer_slides"],
       "material_defaults": [
         {
           "thickness": 0.75,
@@ -87,9 +87,9 @@
         "drawer_sides",
         "drawer_front_back",
         "drawer_bottom",
-        "drawer_face",
-        "drawer_slides"
+        "drawer_face"
       ],
+      "hidden_panels": ["drawer_slides"],
       "material_defaults": [
         {
           "thickness": 0.75,
@@ -116,9 +116,9 @@
         "drawer_sides",
         "drawer_front_back",
         "drawer_bottom",
-        "drawer_face",
-        "drawer_slides"
+        "drawer_face"
       ],
+      "hidden_panels": ["drawer_slides"],
       "material_defaults": [
         {
           "thickness": 0.75,
