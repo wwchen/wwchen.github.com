@@ -60,6 +60,11 @@ export class ExpressionEvaluator {
       const fn = new Function('Math', `'use strict'; return (${resolved})`)
       const result = fn(Math)
 
+      // Allow both numbers and booleans (for conditional expressions)
+      if (typeof result === 'boolean') {
+        return result ? 1 : 0
+      }
+
       if (typeof result !== 'number' || isNaN(result)) {
         throw new Error(`Expression did not evaluate to a number: ${resolved}`)
       }

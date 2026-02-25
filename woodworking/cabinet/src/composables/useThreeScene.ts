@@ -1,12 +1,13 @@
-import { ref, onMounted, onUnmounted, type Ref } from 'vue'
+import { ref, shallowRef, onMounted, onUnmounted, type Ref } from 'vue'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
 export function useThreeScene(containerRef: Ref<HTMLElement | null>) {
-  const scene = ref<THREE.Scene | null>(null)
-  const camera = ref<THREE.PerspectiveCamera | null>(null)
-  const renderer = ref<THREE.WebGLRenderer | null>(null)
-  const controls = ref<OrbitControls | null>(null)
+  // Use shallowRef for Three.js objects to avoid reactivity issues
+  const scene = shallowRef<THREE.Scene | null>(null)
+  const camera = shallowRef<THREE.PerspectiveCamera | null>(null)
+  const renderer = shallowRef<THREE.WebGLRenderer | null>(null)
+  const controls = shallowRef<OrbitControls | null>(null)
   const animationFrameId = ref<number | null>(null)
 
   function initScene(): void {
@@ -20,8 +21,10 @@ export function useThreeScene(containerRef: Ref<HTMLElement | null>) {
     const width = containerRef.value.clientWidth
     const height = containerRef.value.clientHeight
     camera.value = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000)
-    camera.value.position.set(40, 40, 40)
-    camera.value.lookAt(0, 0, 0)
+    // Position camera from top-right, zoomed out and looking higher
+    // Cabinet is at origin (0,0,0) with Z+ going towards back
+    camera.value.position.set(60, 60, -50)
+    camera.value.lookAt(12, 20, 10) // Look at upper-center of cabinet
 
     // Create renderer
     renderer.value = new THREE.WebGLRenderer({ antialias: true })
@@ -37,17 +40,16 @@ export function useThreeScene(containerRef: Ref<HTMLElement | null>) {
     controls.value.minDistance = 10
     controls.value.maxDistance = 200
 
-    // Add lights
+    // Add lights (matching old app)
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6)
     scene.value.add(ambientLight)
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8)
-    directionalLight.position.set(10, 20, 10)
-    directionalLight.castShadow = true
-    scene.value.add(directionalLight)
+    const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.5)
+    directionalLight1.position.set(10, 10, 10)
+    scene.value.add(directionalLight1)
 
-    const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.4)
-    directionalLight2.position.set(-10, 10, -10)
+    const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.3)
+    directionalLight2.position.set(-10, -10, -10)
     scene.value.add(directionalLight2)
 
     // Add grid

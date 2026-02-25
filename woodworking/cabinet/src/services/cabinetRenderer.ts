@@ -112,9 +112,10 @@ export class CabinetRenderer {
 
       // Create box
       const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth)
-      const material = new THREE.MeshLambertMaterial({
+      const material = new THREE.MeshPhongMaterial({
         color: viz.color,
-        transparent: false,
+        shininess: 10,
+        specular: 0x222222,
       })
       const box = new THREE.Mesh(geometry, material)
 

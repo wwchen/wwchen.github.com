@@ -22,15 +22,27 @@ const props = defineProps({
 const containerRef = ref<HTMLElement | null>(null)
 const { scene } = useThreeScene(containerRef)
 
+// Function to render cabinet
+const renderCabinet = (): void => {
+  if (scene.value) {
+    CabinetRenderer.render(scene.value, props.activePanels, props.context, props.variables)
+  }
+}
+
+// Watch for scene initialization
+watch(scene, (newScene) => {
+  if (newScene) {
+    renderCabinet()
+  }
+})
+
 // Re-render cabinet when panels or context change
 watch(
   [() => props.activePanels, () => props.context],
   () => {
-    if (scene.value) {
-      CabinetRenderer.render(scene.value, props.activePanels, props.context, props.variables)
-    }
+    renderCabinet()
   },
-  { deep: true, immediate: true }
+  { deep: true }
 )
 </script>
 

@@ -12,63 +12,71 @@ export function useCabinetCalculation() {
   const variablesConfig = DataLoader.getVariables()
   const equations = DataLoader.getEquations()
 
-  // Reactive state - user inputs
-  const userInputs: Ref<Record<string, number | string | boolean>> = ref({
-    dim_w: 25,
-    dim_h: 37,
-    dim_d: 21,
-    dim_railing_w: 0.5,
-    dim_back_stretcher: 2.0,
-    dim_slides_w: 0.5,
-    num_drawers: 3,
-    backing_style: 'full',
-    drawer_face_enabled: true,
-    drawer_clearance: 0.5,
+  // Reactive state - user inputs (initialize from variables.json defaults)
+  const userInputs: Ref<Record<string, number | string | boolean>> = ref({})
+
+  // Initialize userInputs from variablesConfig
+  variablesConfig.variables.forEach((v) => {
+    if (v.type === 'input') {
+      userInputs.value[v.id] = v.value as number | string | boolean
+    }
   })
 
-  // Reactive state - plywood assignments
-  const plywoodData: Ref<PlywoodAssignment[]> = ref([
-    {
-      thickness: 0.75,
-      material: 'birch',
-      components: ['carcass_sides', 'carcass_top', 'drawer_stretcher', 'back_stretcher'],
-    },
-    {
-      thickness: 0.5,
-      material: 'birch',
-      components: ['drawer_front_back', 'drawer_sides'],
-    },
-    {
-      thickness: 0.25,
-      material: 'birch',
-      components: ['drawer_bottom', 'carcass_back'],
-    },
-    {
-      thickness: 0,
-      material: 'none',
-      components: ['drawer_face'],
-    },
-  ])
+  // Reactive state - plywood assignments (initialize from full style defaults)
+  const fullStyle = cabinetStyles.find((s) => s.id === 'full')
+  const initialPlywoodData: PlywoodAssignment[] = fullStyle
+    ? fullStyle.material_defaults.map((md) => ({
+        thickness: md.thickness,
+        material: md.material || 'birch',
+        components: [...md.components],
+      }))
+    : []
 
-  // Reactive state - drawer heights
-  const drawerHeights: Ref<number[]> = ref([8.5, 8.5, 8.5])
+  const plywoodData: Ref<PlywoodAssignment[]> = ref(initialPlywoodData)
+
+  // Reactive state - drawer heights (loaded from config)
+  const drawerHeightsVar = variablesConfig.variables.find((v) => v.id === 'drawer_heights')
+  const drawerHeights: Ref<number[]> = ref(
+    drawerHeightsVar && Array.isArray(drawerHeightsVar.value)
+      ? (drawerHeightsVar.value as number[])
+      : []
+  )
 
   // Computed: plywood thickness map
   const plywoodThicknessMap = computed(() => {
     const map: Record<string, number> = {}
+
+    // For each plywood row, check which panels use it
+    // and map the panel's thickness variable to the plywood thickness
     plywoodData.value.forEach((ply) => {
-      ply.components.forEach((comp) => {
-        map[`ply_${comp}`] = ply.thickness
+      ply.components.forEach((panelKey) => {
+        const panel = panels[panelKey]
+        if (panel && panel.dimensions && panel.dimensions.thickness) {
+          const thicknessExpr = panel.dimensions.thickness
+          // Only map if it's a simple variable name (not an expression)
+          if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(thicknessExpr)) {
+            map[thicknessExpr] = ply.thickness
+          }
+        }
       })
     })
+
+    // Set defaults for any plywood variables not assigned
+    variablesConfig.variables.forEach((v) => {
+      if (v.type === 'plywood' && !(v.id in map)) {
+        map[v.id] = v.value as number
+      }
+    })
+
     return map
   })
 
   // Computed: drawer Y offsets
   const drawerYOffsets = computed(() => {
     const offsets: number[] = [0]
-    const plyDivider =
-      plywoodThicknessMap.value.ply_drawer_stretcher || plywoodThicknessMap.value.ply_carcass_top || 0.75
+    // Use drawer divider thickness for spacing between drawers
+    const plyDivider = plywoodThicknessMap.value.ply_drawer_divider ||
+                       plywoodThicknessMap.value.ply_carcass || 0.75
 
     for (let i = 1; i < drawerHeights.value.length; i++) {
       offsets.push(offsets[i - 1] + drawerHeights.value[i - 1] + plyDivider)
@@ -88,17 +96,22 @@ export function useCabinetCalculation() {
     ctx.drawer_heights = drawerHeights.value
     ctx.drawer_y_offsets = drawerYOffsets.value
 
-    // Compute drawer_height_equal (for equal distribution)
-    const numDrawers = userInputs.value.num_drawers as number
-    const dimH = userInputs.value.dim_h as number
-    const plyCarcass = plywoodThicknessMap.value.ply_carcass_sides || plywoodThicknessMap.value.ply_carcass_top || 0.75
-    const plyDivider =
-      plywoodThicknessMap.value.ply_drawer_stretcher || plywoodThicknessMap.value.ply_carcass_top || 0.75
-    const plyBottom = plywoodThicknessMap.value.ply_drawer_bottom || 0.25
-    const drawerClearance = (userInputs.value.drawer_clearance as number) || 0.5
-
-    ctx.drawer_height_equal =
-      (dimH - plyCarcass - plyDivider * numDrawers) / numDrawers - plyBottom - 2 * drawerClearance
+    // Evaluate all calculated variables from config (pure data-driven approach)
+    variablesConfig.variables.forEach((v) => {
+      if (v.type === 'calculated') {
+        try {
+          const value = ExpressionEvaluator.evaluate(
+            v.value as string,
+            variablesConfig.variables,
+            ctx
+          )
+          ctx[v.id] = value
+        } catch (error) {
+          // If evaluation fails, skip this variable
+          console.warn(`Failed to evaluate calculated variable ${v.id}:`, error)
+        }
+      }
+    })
 
     return ctx
   })
