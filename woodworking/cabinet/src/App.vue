@@ -2,12 +2,15 @@
 import { useCabinetCalculation } from '@/composables/useCabinetCalculation'
 import CabinetViewer from '@/components/CabinetViewer.vue'
 import BOMTable from '@/components/BOMTable.vue'
+import PlywoodTable from '@/components/PlywoodTable.vue'
 
 const {
   userInputs,
+  plywoodData,
   drawerHeights,
   context,
   activePanels,
+  availableComponents,
   bom,
   calculatedDimensions,
   drawerHeightMismatch,
@@ -63,6 +66,15 @@ const {
               </select>
             </label>
           </div>
+        </section>
+
+        <!-- Plywood Materials -->
+        <section class="input-section">
+          <h3>Plywood Materials</h3>
+          <PlywoodTable
+            v-model:plywood-data="plywoodData"
+            :available-components="availableComponents"
+          />
         </section>
 
         <!-- Drawers -->
