@@ -46,7 +46,7 @@ Updates: BOM → Cut Optimizer → 3D Viz → Calculated Dimensions → Debug
 - `js/variables.json` - All variables: inputs, plywood thicknesses, calculated values
 - `js/inputs.json` - UI configuration: input sections, layouts, conditional visibility
 - `js/equations.json` - (Legacy) Still contains calculated dimensions array
-- `js/test_configs.json` - Multiple test scenarios (default, large, compact)
+- `tests/test_configs.json` - Multiple test scenarios (default, large, compact)
 - `js/tests.js` - Test suite placeholder
 
 **Tests (`tests/` folder):**
@@ -140,6 +140,7 @@ interface CabinetStyle {
   label: string;            // Display name: "Full Plywood"
   description: string;      // User-friendly explanation
   panels: Array<string | PanelOverride>;
+  hidden_panels?: Array<string>;  // Panels rendered in 3D viz only, excluded from BOM and plywood assignment
   material_defaults: Array<MaterialDefault>;
 }
 
@@ -178,6 +179,7 @@ interface MaterialDefault {
         "drawer_stretcher",
         ...
       ],
+      "hidden_panels": ["drawer_slides"],
       "material_defaults": [
         {
           "thickness": 0.75,
@@ -248,8 +250,6 @@ interface Variable {
   ]
 }
 ```
-
-**Note:** Plywood variables no longer have a `component` field - material assignments come from `cabinet_styles.json`.
 
 ### Input Schema (`inputs.json`)
 
@@ -487,6 +487,7 @@ plywoodData = [
     "drawer_stretcher",
     ...
   ],
+  "hidden_panels": ["drawer_slides"],
   "material_defaults": [
     {"thickness": 0.75, "components": ["carcass_sides", "carcass_top"]},
     {"thickness": 0.5, "components": ["drawer_sides"]},
@@ -582,37 +583,6 @@ make test
 - Missing required fields
 - Circular dependencies in variables
 
-## Recent Refactoring History
-
-### Phase 1 - Data-Driven UI (Complete)
-
-1. **Removed hardcoded HTML inputs** → All generated from `inputs.json`
-2. **Extracted equations** → Moved to `equations.json` (was inline in HTML)
-3. **Made 3D rendering data-driven** → Replaced ~260 lines of procedural code
-4. **Config-driven components** → `getAvailableComponents()` reads from config
-5. **Removed assembly section** → Simplified UI
-6. **Removed test suite UI** → External tests only (tests.js placeholder exists)
-7. **Consolidated test configs** → Single `test_configs.json` with multiple scenarios
-8. **Unified naming** → Panel keys match component names directly (no mapping layer)
-
-### Phase 2 - Separation of Concerns (Latest)
-
-1. **Created panels.json** → Extracted panel definitions from equations.json
-2. **Created cabinet_styles.json** → Style-driven panel selection and material assignments
-3. **Updated variables.json** → Removed component field from plywood variables
-4. **Eliminated conditional logic** → Panels no longer have conditions, styles define what's active
-5. **Panel override system** → Styles can customize panels (e.g., inlay back is smaller)
-6. **Centralized material defaults** → Moved from inputs.json to cabinet_styles.json
-
-### Current State
-
-- **~2200 lines** in index.html (was ~2700+)
-- **Zero hardcoded component lists** - all config-driven
-- **Single source of truth** - panels.json + cabinet_styles.json + variables.json + inputs.json
-- **Clean separation of concerns** - Panels (what), Styles (when), Variables (how much)
-- **Style-driven architecture** - Easy to add new cabinet configurations
-- **Clean file structure** - Only 1 README, no redundant docs
-
 ## Known Gotchas
 
 ### 1. Panel Keys = Component Names
@@ -698,6 +668,7 @@ If configs don't load, user gets clear error message with instructions.
 - Looks up style in `cabinet_styles.json`
 - Retrieves panel definitions from `panels.json`
 - Applies style-specific overrides using `deepMerge()`
+- Adds `hidden_panels` with `hidden: true` flag (rendered in 3D only, excluded from BOM/plywood)
 - Returns object mapping panel keys to panel definitions
 
 **`deepMerge(base, override)`** - Deep merges panel override with base definition
@@ -726,7 +697,7 @@ If configs don't load, user gets clear error message with instructions.
 
 **`getAvailableComponents(backingStyle)`** - Returns component list for plywood table
 - Calls `getActivePanels()` to get panels for current style
-- Filters out panels without quantity (visualization-only)
+- Filters out hidden panels (3D viz only, not assignable to plywood)
 - Returns array of panel keys
 
 ### Helper Functions
@@ -778,6 +749,26 @@ make test-viz
 4. **Better error messages** - More specific validation errors
 5. **Component dependencies** - Auto-assign dependent components
 
+### Planned Features
+
+**Drawer face style (faceless vs face):**
+- Faceless: no drawer face panel, drawer front is visible (current `drawer_face_enabled = false`)
+- Face: separate drawer face panel overlays the drawer front (current `drawer_face_enabled = true`)
+- Should become a proper style/input option rather than a boolean toggle
+- Affects: drawer_face panel visibility, 3D viz positioning, BOM inclusion
+
+**Slide mounting style (under-mount vs side-mount):**
+- Under-mount: slides sit beneath the drawer, drawer width = interior width
+- Side-mount: slides mount on carcass sides, drawer width reduced by 2× slide width (current behavior)
+- Affects: `drawer_width` calculation, `drawer_slides` 3D positioning, `dim_slides_w` usage
+- May need new slide panel orientations/positions for under-mount visualization
+
+**Unequal drawer sizes:**
+- Currently all drawers share the same height (`drawer_height` = evenly divided)
+- Allow per-drawer height overrides (e.g., one deep bottom drawer, smaller upper drawers)
+- Implementation options: array of heights in inputs, or ratio-based splits
+- Affects: drawer_height calculation (per-drawer instead of uniform), 3D viz loop positioning (cumulative Y offsets instead of `i * drawer_height`), BOM (multiple drawer size groups), cut optimizer (different cut sizes)
+
 ## Tips for Claude
 
 When resuming work on this project:
@@ -799,23 +790,3 @@ When unclear about changes:
 - "What backing style should this apply to?" (stretcher / full / inlay)
 - "Should this be an expression (string) or a fixed value (number)?"
 
-## Project Status
-
-✅ **Complete & Working:**
-- Data-driven architecture
-- 3D visualization
-- BOM generation
-- Cut optimization
-- Plywood assignment (drag & drop)
-- Calculated dimensions
-- Config validation
-- HTTP server setup
-
-⚠️ **Placeholder:**
-- tests.js (external test suite not yet migrated)
-
-🎯 **Clean & Consolidated:**
-- Single README.md
-- Single test_configs.json
-- No redundant documentation
-- All hardcoded values eliminated

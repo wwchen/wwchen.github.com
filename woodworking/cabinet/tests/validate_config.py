@@ -268,7 +268,7 @@ def main():
         project_root / 'js/variables.json',
         project_root / 'js/panels.json',
         project_root / 'js/cabinet_styles.json',
-        project_root / 'js/test_configs.json'
+        project_root / 'tests/test_configs.json'
     ]
     json_valid = all(validate_json_file(str(f)) for f in json_files)
 
