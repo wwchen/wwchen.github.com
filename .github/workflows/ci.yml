@@ -1,4 +1,4 @@
-name: Cabinet CI/CD Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
@@ -62,7 +62,12 @@ jobs:
 
       - name: Prepare deployment directory
         run: |
-          mkdir -p deploy/woodworking/cabinet
+          # Extract base path from vite.config.ts (removes leading/trailing slashes)
+          BASE_PATH=$(grep -oP "base:\s*['\"]\/?\K[^'\"\/]+" vite.config.ts | sed 's/\/$//')
+
+          # Create deployment structure
+          mkdir -p "deploy/${BASE_PATH}"
+
           # Copy static site files to deploy root
           cp index-static.html deploy/index.html
           cp cutting-board-designer.html cutting-board-tests.html prime.html deploy/ 2>/dev/null || true
@@ -71,8 +76,9 @@ jobs:
           cp -r img deploy/ 2>/dev/null || true
           cp -r js deploy/ 2>/dev/null || true
           cp CNAME deploy/ 2>/dev/null || true
-          # Copy Vite build to subdirectory
-          cp -r dist/* deploy/woodworking/cabinet/
+
+          # Copy Vite build to subdirectory based on base path
+          cp -r dist/* "deploy/${BASE_PATH}/"
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3

@@ -62,18 +62,6 @@ format:
 check: type-check lint test
 	@echo "All quality checks passed! ✅"
 
-# Run 3D position visualization test (Python-based)
-test-viz:
-	@echo "Running 3D position visualization test..."
-	@if [ ! -d "venv" ]; then \
-		echo "Creating Python virtual environment..."; \
-		python3 -m venv venv; \
-		venv/bin/pip install --upgrade pip; \
-		venv/bin/pip install matplotlib numpy; \
-	fi
-	@venv/bin/python tests/test_3d_positions.py $(CONFIG)
-	@echo "Visualization saved to 3d_comparison.png"
-
 # Clean build artifacts and dependencies
 clean:
 	@echo "Cleaning build artifacts..."
@@ -104,8 +92,6 @@ help:
 	@echo "  make test                 - Run all tests once"
 	@echo "  make test-watch           - Run tests in watch mode"
 	@echo "  make test-coverage        - Run tests with coverage report"
-	@echo "  make test-viz             - Run 3D position visualization (Python)"
-	@echo "  make test-viz CONFIG=file - Run visualization with specific config"
 	@echo ""
 	@echo "Code Quality:"
 	@echo "  make lint                 - Run ESLint"
