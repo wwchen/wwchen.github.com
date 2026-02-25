@@ -5,7 +5,7 @@ import { fileURLToPath, URL } from 'node:url'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [vue()],
-  base: '/woodworking/cabinet/',
+  base: '/wwchen.github.com/',
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
