@@ -3,8 +3,17 @@ import { useCabinetCalculation } from '@/composables/useCabinetCalculation'
 import CabinetViewer from '@/components/CabinetViewer.vue'
 import BOMTable from '@/components/BOMTable.vue'
 import PlywoodTable from '@/components/PlywoodTable.vue'
+import PlywoodSummary from '@/components/PlywoodSummary.vue'
 import InputSection from '@/components/InputSection.vue'
 import { DataLoader } from '@/services/dataLoader'
+import InputNumber from 'primevue/inputnumber'
+import Button from 'primevue/button'
+import Message from 'primevue/message'
+import Fluid from 'primevue/fluid'
+import Panel from 'primevue/panel'
+import Card from 'primevue/card'
+import InputGroup from 'primevue/inputgroup'
+import InputGroupAddon from 'primevue/inputgroupaddon'
 
 const {
   userInputs,
@@ -16,6 +25,8 @@ const {
   bom,
   calculatedDimensions,
   drawerHeightMismatch,
+  totalDrawerHeight,
+  availableDrawerHeight,
   equalizeDrawerHeights,
   variablesConfig,
 } = useCabinetCalculation()
@@ -31,344 +42,220 @@ function getVariable(variableId: string) {
 <template>
   <div class="container">
     <h1>🪚 Cabinet Maker Pro</h1>
-    <p class="subtitle">TypeScript + Vue 3 + Vite Edition</p>
 
-    <div class="layout">
-      <!-- Sidebar with inputs -->
-      <aside class="sidebar">
-        <h2>Cabinet Settings</h2>
-
-        <!-- Render sections dynamically from inputs.json -->
-        <section
-          v-for="(section, sectionIndex) in inputsConfig.sections"
-          :key="sectionIndex"
-          class="input-section"
-        >
-          <h3>{{ section.title }}</h3>
-
-          <!-- Regular inputs -->
-          <template v-if="section.inputs">
-            <InputSection
+    <!-- Configuration Panels -->
+    <Panel
+      v-for="(section, sectionIndex) in inputsConfig.sections"
+      :key="sectionIndex"
+      :header="section.title"
+      toggleable
+      :collapsed="false"
+      class="mb-3"
+    >
+      <!-- Regular inputs -->
+      <div v-if="section.inputs">
+        <Fluid>
+          <div class="grid">
+            <div
               v-for="input in section.inputs"
               :key="input.variable_id"
-              v-model="userInputs[input.variable_id]"
-              :input="input"
-              :variable="getVariable(input.variable_id)!"
-              :context="context"
-            />
-          </template>
-
-          <!-- Plywood table (special type) -->
-          <PlywoodTable
-            v-else-if="section.type === 'plywood_table'"
-            v-model:plywood-data="plywoodData"
-            :available-components="availableComponents"
-          />
-
-          <!-- Drawer heights (special type) -->
-          <div v-else-if="section.type === 'drawer_heights'" class="drawer-heights">
-            <div class="drawer-heights-header">
-              <span>Per-Drawer Heights (in)</span>
-              <button class="btn-small" @click="equalizeDrawerHeights">Equalize</button>
-            </div>
-            <div
-              v-for="(_height, index) in drawerHeights"
-              :key="index"
-              class="drawer-height-input"
+              :class="{
+                'col-12': !input.layout,
+                'col-12 md:col-6': input.layout === 'row2',
+                'col-12 md:col-4': input.layout === 'row3'
+              }"
             >
-              <label>
-                Drawer {{ index + 1 }}
-                <input
-                  v-model.number="drawerHeights[index]"
-                  type="number"
-                  :step="section.step || 0.125"
-                  :min="section.min || 1"
-                />
-              </label>
-            </div>
-            <div v-if="drawerHeightMismatch" class="warning">
-              ⚠️ Height mismatch: drawer heights don't match available space
+              <InputSection
+                v-model="userInputs[input.variable_id]"
+                :input="input"
+                :variable="getVariable(input.variable_id)!"
+                :context="context"
+              />
             </div>
           </div>
-        </section>
-      </aside>
+        </Fluid>
 
-      <!-- Main content area -->
-      <main class="main-content">
-        <!-- 3D Visualization -->
-        <section class="section">
-          <h2>3D Visualization</h2>
-          <CabinetViewer
-            :active-panels="activePanels"
-            :context="context"
-            :variables="variablesConfig.variables"
-          />
-        </section>
+        <!-- Drawer heights (if configured in this section) -->
+        <div v-if="section.drawer_heights_config" class="drawer-heights mt-4">
+          <div class="drawer-heights-header">
+            <span>Per-Drawer Heights</span>
+          </div>
+          <InputGroup
+            v-for="(_height, index) in drawerHeights"
+            :key="index"
+            class="mb-3"
+          >
+            <InputGroupAddon>Drawer {{ index + 1 }}</InputGroupAddon>
+            <InputNumber
+              v-model="drawerHeights[index]"
+              :step="section.drawer_heights_config.step || 0.125"
+              :min="section.drawer_heights_config.min || 1"
+              :min-fraction-digits="0"
+              :max-fraction-digits="3"
+              :invalid="drawerHeightMismatch"
+              suffix=" in"
+            />
+          </InputGroup>
+          <div class="drawer-height-summary">
+            <Message v-if="drawerHeightMismatch" severity="warn" :closable="false">
+              Total: {{ totalDrawerHeight.toFixed(2) }}" / Available:
+              {{ availableDrawerHeight.toFixed(2) }}"
+            </Message>
+            <div v-else class="height-summary-text">
+              Total: {{ totalDrawerHeight.toFixed(2) }}" / Available:
+              {{ availableDrawerHeight.toFixed(2) }}"
+            </div>
+            <Button label="Equalize" size="small" @click="equalizeDrawerHeights" />
+          </div>
+        </div>
 
-        <!-- Bill of Materials -->
-        <section class="section">
-          <h2>Bill of Materials</h2>
-          <BOMTable :bom="bom" />
-        </section>
-
-        <!-- Calculated Dimensions -->
-        <section class="section">
-          <h2>Calculated Dimensions</h2>
-          <div class="dimensions-grid">
+        <!-- Additional inputs after drawer heights -->
+        <Fluid v-if="section.additional_inputs" class="mt-4">
+          <div class="grid">
             <div
-              v-for="calc in calculatedDimensions"
-              :key="calc.key"
-              class="dimension-card"
+              v-for="input in section.additional_inputs"
+              :key="input.variable_id"
+              :class="{
+                'col-12': !input.layout,
+                'col-12 md:col-6': input.layout === 'row2',
+                'col-12 md:col-4': input.layout === 'row3'
+              }"
             >
-              <div class="dimension-label">{{ calc.label }}</div>
+              <InputSection
+                v-model="userInputs[input.variable_id]"
+                :input="input"
+                :variable="getVariable(input.variable_id)!"
+                :context="context"
+              />
+            </div>
+          </div>
+        </Fluid>
+      </div>
+
+      <!-- Plywood table (special type) -->
+      <PlywoodTable
+        v-else-if="section.type === 'plywood_table'"
+        v-model:plywood-data="plywoodData"
+        :available-components="availableComponents"
+      />
+    </Panel>
+
+    <!-- 3D Visualization -->
+    <Panel header="3D Visualization" class="mb-3">
+      <CabinetViewer
+        :active-panels="activePanels"
+        :context="context"
+        :variables="variablesConfig.variables"
+      />
+    </Panel>
+
+    <!-- Bill of Materials -->
+    <Panel header="Bill of Materials" class="mb-3">
+      <BOMTable :bom="bom" />
+    </Panel>
+
+    <!-- Plywood Area Summary -->
+    <Panel header="📊 Plywood Area Summary" class="mb-3">
+      <PlywoodSummary :bom="bom" />
+    </Panel>
+
+    <!-- Calculated Dimensions -->
+    <Panel header="Calculated Dimensions" class="mb-3">
+      <div class="grid">
+        <div
+          v-for="calc in calculatedDimensions"
+          :key="calc.key"
+          class="col-12 md:col-6 lg:col-4"
+        >
+          <Card>
+            <template #title>{{ calc.label }}</template>
+            <template #content>
               <div class="dimension-value">
                 {{ calc.widthValue.toFixed(2) }}" × {{ calc.heightValue.toFixed(2) }}" ×
                 {{ calc.depthValue.toFixed(2) }}"
               </div>
-            </div>
-          </div>
-        </section>
+              <div class="dimension-equation">
+                <div>W: {{ calc.width }}</div>
+                <div>H: {{ calc.height }}</div>
+                <div>D: {{ calc.depth }}</div>
+              </div>
+            </template>
+          </Card>
+        </div>
+      </div>
+    </Panel>
 
-        <!-- Debug Info -->
-        <details class="section">
-          <summary>Debug Info</summary>
-          <div class="debug-section">
-            <h3>Context</h3>
-            <pre>{{ JSON.stringify(context, null, 2) }}</pre>
-          </div>
-        </details>
-      </main>
-    </div>
+    <!-- Debug Info -->
+    <Panel header="Debug Info" toggleable collapsed class="mb-3">
+      <pre>{{ JSON.stringify(context, null, 2) }}</pre>
+    </Panel>
   </div>
 </template>
 
 <style scoped>
 .container {
-  max-width: 1800px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 1.5rem;
 }
 
 h1 {
   text-align: center;
-  margin-bottom: 10px;
-  color: #2c3e50;
-  font-size: 2.5rem;
-}
-
-.subtitle {
-  text-align: center;
-  color: #7f8c8d;
-  margin-bottom: 30px;
-  font-size: 1rem;
-}
-
-.layout {
-  display: grid;
-  grid-template-columns: 340px 1fr;
-  gap: 20px;
-}
-
-.sidebar {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  height: fit-content;
-  max-height: calc(100vh - 120px);
-  overflow-y: auto;
-  position: sticky;
-  top: 20px;
-}
-
-.sidebar h2 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  color: #2c3e50;
-  font-size: 1.3rem;
-}
-
-.input-section {
-  margin-bottom: 25px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #ecf0f1;
-}
-
-.input-section:last-child {
-  border-bottom: none;
-}
-
-.input-section h3 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  color: #34495e;
-  font-size: 1.1rem;
-}
-
-.input-group {
-  margin-bottom: 12px;
-}
-
-.input-group label {
-  display: block;
-  margin-bottom: 5px;
-  color: #555;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.input-group input[type='number'],
-.input-group input[type='text'],
-.input-group select {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-  transition: border-color 0.2s;
-}
-
-.input-group input[type='number']:focus,
-.input-group input[type='text']:focus,
-.input-group select:focus {
-  outline: none;
-  border-color: #3498db;
-}
-
-.input-group input[type='checkbox'] {
-  margin-right: 8px;
-}
-
-.drawer-heights {
-  margin-top: 15px;
+  margin-bottom: 2rem;
+  font-size: 2rem;
 }
 
 .drawer-heights-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 1rem;
   font-weight: 600;
-  color: #555;
-  font-size: 0.9rem;
 }
 
-.btn-small {
-  padding: 4px 12px;
-  background: #3498db;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.btn-small:hover {
-  background: #2980b9;
-}
-
-.drawer-height-input {
-  margin-bottom: 8px;
-}
-
-.drawer-height-input label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-}
-
-.drawer-height-input input {
-  flex: 1;
-  max-width: 120px;
-}
-
-.warning {
-  margin-top: 10px;
-  padding: 8px 12px;
-  background: #fff3cd;
-  border: 1px solid #ffc107;
-  border-radius: 4px;
-  color: #856404;
-  font-size: 0.85rem;
-}
-
-.main-content {
+.drawer-height-summary {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--surface-border);
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 0.75rem;
 }
 
-.section {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.height-summary-text {
+  font-weight: 500;
 }
 
-.section h2 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  color: #2c3e50;
-  font-size: 1.3rem;
-}
+@media (min-width: 768px) {
+  .drawer-height-summary {
+    flex-direction: row;
+    align-items: center;
+  }
 
-.dimensions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 15px;
-}
-
-.dimension-card {
-  padding: 15px;
-  background: #f8f9fa;
-  border-radius: 6px;
-  border: 1px solid #e9ecef;
-}
-
-.dimension-label {
-  font-size: 0.85rem;
-  color: #6c757d;
-  margin-bottom: 5px;
+  .drawer-height-summary :deep(.p-message),
+  .height-summary-text {
+    flex: 1;
+  }
 }
 
 .dimension-value {
-  font-size: 1.1rem;
   font-weight: 600;
-  color: #212529;
   font-family: 'Courier New', monospace;
+  margin-bottom: 0.5rem;
 }
 
-.debug-section {
-  margin-top: 15px;
+.dimension-equation {
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  opacity: 0.7;
+  line-height: 1.4;
 }
 
-.debug-section h3 {
-  margin-top: 0;
-  margin-bottom: 10px;
-  color: #555;
-  font-size: 1rem;
-}
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
 
-.debug-section pre {
-  background: #f8f9fa;
-  padding: 15px;
-  border-radius: 4px;
-  overflow-x: auto;
-  font-size: 0.85rem;
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-details summary {
-  cursor: pointer;
-  font-weight: 600;
-  color: #555;
-  padding: 10px 0;
-}
-
-details summary:hover {
-  color: #3498db;
+  h1 {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
 }
 </style>

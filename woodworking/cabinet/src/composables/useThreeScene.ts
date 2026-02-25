@@ -1,6 +1,6 @@
-import { ref, shallowRef, onMounted, onUnmounted, type Ref } from 'vue'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { onMounted, onUnmounted, ref, shallowRef, type Ref } from 'vue'
 
 export function useThreeScene(containerRef: Ref<HTMLElement | null>) {
   // Use shallowRef for Three.js objects to avoid reactivity issues
@@ -21,10 +21,10 @@ export function useThreeScene(containerRef: Ref<HTMLElement | null>) {
     const width = containerRef.value.clientWidth
     const height = containerRef.value.clientHeight
     camera.value = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000)
-    // Position camera from top-right, zoomed out and looking higher
-    // Cabinet is at origin (0,0,0) with Z+ going towards back
-    camera.value.position.set(60, 60, -50)
-    camera.value.lookAt(12, 20, 10) // Look at upper-center of cabinet
+    // Position camera from front-left so X+ (red) goes right on screen
+    // Cabinet center is around (12, 20, 10)
+    // Camera at negative X (left of cabinet) looking right, focusing on cabinet
+    camera.value.position.set(-18, 45, -40)
 
     // Create renderer
     renderer.value = new THREE.WebGLRenderer({ antialias: true })
@@ -39,6 +39,17 @@ export function useThreeScene(containerRef: Ref<HTMLElement | null>) {
     controls.value.screenSpacePanning = false
     controls.value.minDistance = 10
     controls.value.maxDistance = 200
+    // Set the orbit target to cabinet center - this is what controls.lookAt uses
+    controls.value.target.set(12, 18, 10)
+    controls.value.update()
+
+    // Log camera position on change for debugging
+    /*
+    controls.value.addEventListener('change', () => {
+      console.log('Camera position:', camera.value?.position.toArray())
+      console.log('Controls target:', controls.value?.target.toArray())
+    })
+    */
 
     // Add lights (matching old app)
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6)
@@ -52,12 +63,13 @@ export function useThreeScene(containerRef: Ref<HTMLElement | null>) {
     directionalLight2.position.set(-10, -10, -10)
     scene.value.add(directionalLight2)
 
-    // Add grid
+    // Add grid (on XZ plane, Y=0)
     const gridHelper = new THREE.GridHelper(100, 100, 0xcccccc, 0xeeeeee)
     scene.value.add(gridHelper)
 
-    // Add axes helper
-    const axesHelper = new THREE.AxesHelper(20)
+    // Add axes helper (Red=X, Green=Y, Blue=Z)
+    // Size 50 to make it more visible
+    const axesHelper = new THREE.AxesHelper(50)
     scene.value.add(axesHelper)
 
     // Start animation loop

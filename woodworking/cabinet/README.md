@@ -5,21 +5,25 @@ A data-driven cabinet design and visualization tool with automated bill of mater
 ## Quick Start
 
 ```bash
-make serve
+# Install dependencies (first time only)
+make install
+
+# Start development server
+make dev
 ```
 
-Then open **http://localhost:8000** in your browser.
+Then open **http://localhost:5173** in your browser.
 
 ## Features
 
 - **Parametric Design**: Define cabinet dimensions and automatically calculate all component sizes
 - **Unequal Drawer Heights**: Per-drawer height inputs with total/available tracking and equalize button
-- **Style-Driven Architecture**: Cabinet styles define which panels are used and their material assignments
+- **Style-Driven Architecture**: Cabinet styles define which panels are used and their thickness assignments
 - **Data-Driven Configuration**: All data in JSON files - clean separation of concerns
 - **3D Visualization**: Real-time Three.js rendering with proper component orientations
 - **Bill of Materials**: Automatic BOM generation with detailed dimensions
 - **Cut Optimization**: Smart sheet optimization for plywood cuts
-- **Drag & Drop Plywood Assignment**: Assign components to different plywood thicknesses and materials
+- **Drag & Drop Plywood Assignment**: Assign components to different plywood thicknesses
 - **Mobile Responsive**: Fully optimized for desktop, tablet, and mobile devices
 
 ## Data Model Architecture
@@ -29,7 +33,7 @@ Cabinet Maker Pro uses a **separation of concerns** architecture with 4 core dat
 ```
 User Input (backing_style)
     ↓
-cabinet_styles.json → Defines active panels and material defaults
+cabinet_styles.json → Defines active panels and thickness defaults
     ↓
 panels.json → Panel metadata (dimensions, viz3d)
     ↓
@@ -102,7 +106,7 @@ Defines all physical panels with dimensions, quantities, and 3D visualization pr
 
 ### 2. `cabinet_styles.json` - Style Definitions
 
-Defines cabinet styles with panel lists and material assignments:
+Defines cabinet styles with panel lists and thickness assignments:
 
 ```json
 {
@@ -138,7 +142,7 @@ Defines cabinet styles with panel lists and material assignments:
 - `label` - Display name
 - `description` - User-friendly explanation
 - `panels` - Array of panel keys (strings) or panel overrides (objects)
-- `material_defaults` - Default plywood assignments per thickness
+- `material_defaults` - Default thickness assignments per component
 
 **Panel Override Example:**
 ```json
@@ -185,7 +189,7 @@ Defines all variables: inputs, plywood thicknesses, and calculated values:
 
 **Variable Types:**
 - `input` - User-editable values (dimensions, counts)
-- `plywood` - Thickness values from material assignments
+- `plywood` - Thickness values from plywood table
 - `calculated` - Computed from expressions
 - `array` - Per-element values (e.g., per-drawer heights)
 
@@ -328,7 +332,44 @@ Then add option to `js/inputs.json`:
 
 ## Testing
 
-### Python 3D Visualization Tests
+### Unit Tests
+
+```bash
+# Run all tests
+make test
+
+# Run tests in watch mode (auto-rerun on file changes)
+make test-watch
+
+# Run tests with coverage report
+make test-coverage
+```
+
+Tests cover:
+- Expression evaluation and variable resolution
+- Panel service and cabinet style loading
+- BOM generation and grouping logic
+- Data loader functionality
+
+### Code Quality
+
+```bash
+# Run type checking
+make type-check
+
+# Run linter
+make lint
+
+# Format code
+make format
+
+# Run all quality checks (type-check + lint + test)
+make check
+```
+
+**Run `make check` before committing to ensure code quality.**
+
+### Python 3D Visualization Tests (Legacy)
 
 ```bash
 # Run visualization test with defaults (auto-setup)
@@ -336,76 +377,89 @@ make test-viz
 
 # Run with specific test scenario
 make test-viz CONFIG=test_configs.json
-
-# Clean up
-make clean
 ```
 
-**Manual execution:**
-
-```bash
-# Setup (one time)
-python3 -m venv venv
-source venv/bin/activate
-pip install matplotlib numpy
-
-# Run test (uses test_configs.json)
-python test_3d_positions.py
-
-# View output
-open 3d_comparison.png
-```
-
-### Configuration Validation
-
-```bash
-make test
-```
-
-Validates all JSON files and checks for:
-- JSON syntax errors
-- Required structures and fields
-- Circular dependencies in variables
-
-**Run this after editing any JSON configuration files.**
+This creates a visual comparison of 3D panel positions using matplotlib.
 
 ## File Structure
 
-### Core Application
-- `index.html` - Main application (HTML + CSS + JavaScript)
+### Source Code (`src/` folder)
+- `main.ts` - Application entry point
+- `App.vue` - Root component
+- `components/` - Vue components (InputSection, BOMTable, PlywoodTable, etc.)
+- `composables/` - Vue composables (useCabinetCalculation, useThreeScene)
+- `services/` - Business logic (BOMService, PanelService, ExpressionEvaluator, etc.)
+- `types/` - TypeScript type definitions
+- `data/` - JSON configuration files
 
-### Data Model (`js/` folder)
+### Data Configuration (`src/data/` folder)
 - `panels.json` - Panel metadata (dimensions, quantities, 3D properties)
-- `cabinet_styles.json` - Style definitions (panel lists, material defaults)
+- `cabinet_styles.json` - Style definitions (panel lists, thickness defaults)
 - `variables.json` - All variables (inputs, plywood, calculated)
 - `inputs.json` - UI configuration (sections, layouts, conditional visibility)
-- `equations.json` - Calculated dimensions array (legacy)
-- `test_configs.json` - Test scenarios (default, large, compact)
-- `tests.js` - Test suite placeholder
+- `equations.json` - Calculated dimensions array
 
 ### Tests (`tests/` folder)
-- `test_3d_positions.py` - Python 3D visualization test script
-- `validate_config.py` - JSON validator with circular dependency check
+- `unit/` - Vitest unit tests
+  - `expressionEvaluator.test.ts` - Expression evaluation tests
+  - `panelService.test.ts` - Panel service tests
+  - `bomService.test.ts` - BOM generation tests
+  - `dataLoader.test.ts` - Data loader tests
+- `test_3d_positions.py` - Python 3D visualization (legacy)
 
-### Build & Utilities
-- `serve.sh` - HTTP server startup script
-- `Makefile` - Test automation (uses tests/ folder)
+### Build & Configuration
+- `package.json` - npm dependencies and scripts
+- `tsconfig.json` - TypeScript configuration
+- `vite.config.ts` - Vite build configuration
+- `vitest.config.ts` - Test configuration
+- `.eslintrc.cjs` - ESLint rules
+- `.prettierrc.json` - Prettier formatting
+- `Makefile` - Development shortcuts
+- `.github/workflows/ci.yml` - CI/CD pipeline
+
+### Documentation
 - `CLAUDE.md` - Comprehensive developer documentation
 - `README.md` - This file
+- `PHASE1-COMPLETE.md` - Phase 1 migration notes
+- `PHASE2-STATUS.md` - Phase 2 migration notes
 
 ## Troubleshooting
 
-### "Failed to load configuration files" error
-
-- Make sure you're accessing via HTTP (`http://localhost:8000`)
-- Check that the `js/` folder exists with all JSON files
-- Check browser console (F12) for specific error details
-- Verify file paths in browser network tab
-
-### Port already in use
+### Development server won't start
 
 ```bash
-./serve.sh 8001  # Use different port
+# Kill any process using port 5173
+lsof -ti:5173 | xargs kill -9
+
+# Or use a different port
+npm run dev -- --port 3000
+```
+
+### Build errors
+
+```bash
+# Clean and reinstall dependencies
+make clean
+make install
+
+# Run type check to see specific errors
+make type-check
+```
+
+### Module not found errors
+
+- Make sure all dependencies are installed: `make install`
+- Check import paths use `@/` for src directory
+- Verify the file exists at the expected path
+
+### Test failures
+
+```bash
+# Run tests in watch mode to see detailed output
+make test-watch
+
+# Check for type errors that might cause test failures
+make type-check
 ```
 
 ### Components not updating in plywood table

@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { computed, type PropType } from 'vue'
 import type { PlywoodAssignment } from '@/types'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import Chip from 'primevue/chip'
+import Button from 'primevue/button'
+import InputNumber from 'primevue/inputnumber'
 
 const props = defineProps({
   plywoodData: {
@@ -79,15 +84,26 @@ function handleDropToUnassigned() {
   draggedFromRow = -1
 }
 
-function updateRowThickness(rowIndex: number, thickness: number) {
+function updateRowThickness(rowIndex: number, thickness: number | null) {
   const newData = [...props.plywoodData]
-  newData[rowIndex] = { ...newData[rowIndex], thickness }
+  newData[rowIndex] = { ...newData[rowIndex], thickness: thickness || 0 }
   emit('update:plywoodData', newData)
 }
 
-function updateRowMaterial(rowIndex: number, material: string) {
-  const newData = [...props.plywoodData]
-  newData[rowIndex] = { ...newData[rowIndex], material }
+function addRow() {
+  const newData = [
+    ...props.plywoodData,
+    {
+      thickness: 0.75,
+      material: 'birch',
+      components: [],
+    },
+  ]
+  emit('update:plywoodData', newData)
+}
+
+function removeRow(rowIndex: number) {
+  const newData = props.plywoodData.filter((_, index) => index !== rowIndex)
   emit('update:plywoodData', newData)
 }
 
@@ -100,199 +116,90 @@ function formatComponentName(component: string): string {
 </script>
 
 <template>
-  <div class="plywood-table">
-    <div class="table-header">
-      <div class="col-thickness">Thickness</div>
-      <div class="col-material">Material</div>
-      <div class="col-components">Components</div>
-    </div>
+  <div class="plywood-table-wrapper">
+    <DataTable :value="plywoodData" show-gridlines>
+      <Column header="Thickness" style="width: 150px">
+        <template #body="{ data, index }">
+          <InputNumber
+            :model-value="data.thickness"
+            :step="0.125"
+            :min="0"
+            :max="2"
+            :min-fraction-digits="0"
+            :max-fraction-digits="3"
+            suffix=" in"
+            show-buttons
+            @update:model-value="updateRowThickness(index, $event)"
+          />
+        </template>
+      </Column>
 
-    <div
-      v-for="(row, index) in plywoodData"
-      :key="index"
-      class="plywood-row"
-      @dragover="handleDragOver"
-      @drop="handleDropToRow(index)"
-    >
-      <div class="col-thickness">
-        <input
-          :value="row.thickness"
-          type="number"
-          step="0.125"
-          min="0"
-          max="2"
-          @input="updateRowThickness(index, parseFloat(($event.target as HTMLInputElement).value))"
-        />
-      </div>
-
-      <div class="col-material">
-        <select
-          :value="row.material"
-          @change="updateRowMaterial(index, ($event.target as HTMLSelectElement).value)"
-        >
-          <option value="birch">Birch</option>
-          <option value="maple">Maple</option>
-          <option value="oak">Oak</option>
-          <option value="plywood">Plywood</option>
-          <option value="none">None</option>
-        </select>
-      </div>
-
-      <div class="col-components">
-        <div class="component-pills">
+      <Column header="Components">
+        <template #body="{ data, index }">
           <div
-            v-for="component in row.components"
-            :key="component"
-            class="component-pill"
-            draggable="true"
-            @dragstart="handleDragStart(component, index)"
+            class="flex flex-wrap gap-2 align-items-center p-2"
+            @dragover="handleDragOver"
+            @drop="handleDropToRow(index)"
           >
-            {{ formatComponentName(component) }}
+            <Chip
+              v-for="component in data.components"
+              :key="component"
+              :label="formatComponentName(component)"
+              draggable="true"
+              class="cursor-move"
+              @dragstart="handleDragStart(component, index)"
+            />
+            <span v-if="data.components.length === 0" class="text-color-secondary text-sm">
+              Drop components here
+            </span>
           </div>
-          <div v-if="row.components.length === 0" class="empty-hint">Drop components here</div>
-        </div>
-      </div>
-    </div>
+        </template>
+      </Column>
 
-    <!-- Unassigned components -->
+      <Column style="width: 80px">
+        <template #body="{ index }">
+          <Button
+            icon="pi pi-times"
+            severity="danger"
+            text
+            rounded
+            size="small"
+            @click="removeRow(index)"
+          />
+        </template>
+      </Column>
+    </DataTable>
+
+    <!-- Unassigned components (always show as drop zone) -->
     <div
-      v-if="unassignedComponents.length > 0"
-      class="unassigned-row"
+      class="mt-3 p-3 surface-section border-round"
       @dragover="handleDragOver"
       @drop="handleDropToUnassigned"
     >
-      <div class="unassigned-label">Unassigned:</div>
-      <div class="component-pills">
-        <div
+      <div class="font-semibold mb-2">Unassigned:</div>
+      <div class="flex flex-wrap gap-2">
+        <Chip
           v-for="component in unassignedComponents"
           :key="component"
-          class="component-pill unassigned"
+          :label="formatComponentName(component)"
           draggable="true"
+          class="cursor-move"
           @dragstart="handleDragStart(component, -1)"
-        >
-          {{ formatComponentName(component) }}
-        </div>
+        />
+        <span v-if="unassignedComponents.length === 0" class="text-color-secondary text-sm">
+          Drag components here to unassign
+        </span>
       </div>
+    </div>
+
+    <div class="text-center mt-3">
+      <Button label="Add Row" icon="pi pi-plus" @click="addRow" />
     </div>
   </div>
 </template>
 
 <style scoped>
-.plywood-table {
-  width: 100%;
-  font-size: 0.9rem;
-}
-
-.table-header {
-  display: grid;
-  grid-template-columns: 100px 120px 1fr;
-  gap: 10px;
-  padding: 10px;
-  background: #f8f9fa;
-  border-radius: 4px 4px 0 0;
-  font-weight: 600;
-  color: #495057;
-  border: 1px solid #dee2e6;
-  border-bottom: none;
-}
-
-.plywood-row {
-  display: grid;
-  grid-template-columns: 100px 120px 1fr;
-  gap: 10px;
-  padding: 10px;
-  border: 1px solid #dee2e6;
-  border-bottom: none;
-  background: white;
-  transition: background 0.2s;
-}
-
-.plywood-row:last-child {
-  border-bottom: 1px solid #dee2e6;
-  border-radius: 0 0 4px 4px;
-}
-
-.plywood-row:hover {
-  background: #f8f9fa;
-}
-
-.col-thickness input,
-.col-material select {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-  font-size: 0.9rem;
-}
-
-.col-thickness input:focus,
-.col-material select:focus {
-  outline: none;
-  border-color: #3498db;
-}
-
-.col-components {
-  min-height: 36px;
-}
-
-.component-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-  min-height: 36px;
-}
-
-.component-pill {
-  display: inline-block;
-  padding: 5px 10px;
-  background: #3498db;
-  color: white;
-  border-radius: 16px;
-  font-size: 0.85rem;
+.cursor-move {
   cursor: move;
-  user-select: none;
-  transition: all 0.2s;
-}
-
-.component-pill:hover {
-  background: #2980b9;
-  transform: translateY(-2px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.component-pill.unassigned {
-  background: #95a5a6;
-}
-
-.component-pill.unassigned:hover {
-  background: #7f8c8d;
-}
-
-.empty-hint {
-  color: #adb5bd;
-  font-style: italic;
-  font-size: 0.85rem;
-}
-
-.unassigned-row {
-  display: flex;
-  gap: 10px;
-  padding: 15px;
-  margin-top: 15px;
-  background: #fff3cd;
-  border: 1px dashed #ffc107;
-  border-radius: 4px;
-  align-items: center;
-}
-
-.unassigned-label {
-  font-weight: 600;
-  color: #856404;
-  white-space: nowrap;
-}
-
-.unassigned-row .component-pills {
-  flex: 1;
 }
 </style>

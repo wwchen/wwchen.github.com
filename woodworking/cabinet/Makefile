@@ -1,62 +1,129 @@
-.PHONY: setup test test-viz clean force-setup serve
+.PHONY: install dev build preview test test-viz lint type-check format clean help
 
-# Python virtual environment directory
-VENV_DIR = venv
-PORT ?= 8000
+# Install npm dependencies
+install:
+	@echo "Installing npm dependencies..."
+	@npm install
+	@echo "Installation complete! ✅"
 
-# Setup virtual environment and install dependencies (only if needed)
-setup:
-	@if [ ! -d "$(VENV_DIR)" ]; then \
-		echo "Setting up Python virtual environment..."; \
-		python3 -m venv $(VENV_DIR); \
-		echo "Installing dependencies..."; \
-		$(VENV_DIR)/bin/pip install --upgrade pip; \
-		$(VENV_DIR)/bin/pip install matplotlib numpy; \
-		echo "Setup complete!"; \
-	else \
-		echo "Virtual environment already exists. Use 'make force-setup' to recreate."; \
-	fi
+# Start development server with HMR
+dev:
+	@echo "Starting Cabinet Maker Pro development server..."
+	@echo "Open http://localhost:5173 in your browser"
+	@echo "Press Ctrl+C to stop"
+	@npm run dev
 
-# Force recreation of virtual environment
-force-setup: clean setup
+# Build for production
+build:
+	@echo "Building for production..."
+	@npm run build
+	@echo "Build complete! Output in dist/ directory ✅"
 
-# Run all tests (validation + 3D visualization)
+# Preview production build
+preview:
+	@echo "Starting production preview server..."
+	@npm run preview
+
+# Run all tests
 test:
-	@echo "Running configuration validation..."
-	@./tests/validate_config.py
-	@echo ""
-	@echo "Validation passed! ✅"
+	@echo "Running tests..."
+	@npm test -- --run
+	@echo "Tests complete! ✅"
 
-# Run the 3D position test visualization
-test-viz: setup
+# Run tests in watch mode
+test-watch:
+	@echo "Running tests in watch mode..."
+	@npm test
+
+# Run tests with coverage
+test-coverage:
+	@echo "Running tests with coverage..."
+	@npm run test:coverage
+
+# Run linter
+lint:
+	@echo "Running ESLint..."
+	@npm run lint
+	@echo "Linting complete! ✅"
+
+# Run TypeScript type checking
+type-check:
+	@echo "Running TypeScript type checking..."
+	@npm run type-check
+	@echo "Type checking complete! ✅"
+
+# Format code with Prettier
+format:
+	@echo "Formatting code..."
+	@npm run format
+	@echo "Formatting complete! ✅"
+
+# Run all quality checks (type-check, lint, test)
+check: type-check lint test
+	@echo "All quality checks passed! ✅"
+
+# Run 3D position visualization test (Python-based)
+test-viz:
 	@echo "Running 3D position visualization test..."
-	@$(VENV_DIR)/bin/python tests/test_3d_positions.py $(CONFIG)
+	@if [ ! -d "venv" ]; then \
+		echo "Creating Python virtual environment..."; \
+		python3 -m venv venv; \
+		venv/bin/pip install --upgrade pip; \
+		venv/bin/pip install matplotlib numpy; \
+	fi
+	@venv/bin/python tests/test_3d_positions.py $(CONFIG)
 	@echo "Visualization saved to 3d_comparison.png"
 
-# Clean up virtual environment
+# Clean build artifacts and dependencies
 clean:
-	@echo "Removing virtual environment..."
-	rm -rf $(VENV_DIR)
-	@echo "Clean complete!"
+	@echo "Cleaning build artifacts..."
+	@rm -rf dist/
+	@rm -rf node_modules/
+	@rm -rf venv/
+	@rm -rf .vite/
+	@echo "Clean complete! ✅"
 
-# Serve the application
-serve:
-	@echo "Starting Cabinet Maker Pro on http://localhost:$(PORT)"
-	@echo "Press Ctrl+C to stop"
-	@python3 -m http.server $(PORT)
+# Clean only build artifacts (keep dependencies)
+clean-build:
+	@echo "Cleaning build artifacts..."
+	@rm -rf dist/
+	@rm -rf .vite/
+	@echo "Build artifacts cleaned! ✅"
 
 # Help target
 help:
 	@echo "Available targets:"
-	@echo "  make serve                     - Start HTTP server (default port 8000)"
-	@echo "  make serve PORT=3000           - Start HTTP server on custom port"
-	@echo "  make test                      - Validate all JSON configuration files"
-	@echo "  make test-viz                  - Run 3D position visualization test"
-	@echo "  make test-viz CONFIG=file.json - Run visualization with specific config"
-	@echo "  make setup                     - Create virtual environment and install dependencies (if needed)"
-	@echo "  make force-setup               - Force recreate virtual environment"
-	@echo "  make clean                     - Remove virtual environment"
-	@echo "  make help                      - Show this help message"
+	@echo ""
+	@echo "Development:"
+	@echo "  make install              - Install npm dependencies"
+	@echo "  make dev                  - Start development server (http://localhost:5173)"
+	@echo "  make build                - Build for production"
+	@echo "  make preview              - Preview production build locally"
+	@echo ""
+	@echo "Testing:"
+	@echo "  make test                 - Run all tests once"
+	@echo "  make test-watch           - Run tests in watch mode"
+	@echo "  make test-coverage        - Run tests with coverage report"
+	@echo "  make test-viz             - Run 3D position visualization (Python)"
+	@echo "  make test-viz CONFIG=file - Run visualization with specific config"
+	@echo ""
+	@echo "Code Quality:"
+	@echo "  make lint                 - Run ESLint"
+	@echo "  make type-check           - Run TypeScript type checking"
+	@echo "  make format               - Format code with Prettier"
+	@echo "  make check                - Run all quality checks (type-check + lint + test)"
+	@echo ""
+	@echo "Cleanup:"
+	@echo "  make clean                - Remove all build artifacts and dependencies"
+	@echo "  make clean-build          - Remove only build artifacts (keep node_modules)"
 	@echo ""
 	@echo "Quick start:"
-	@echo "  make serve    # Then open http://localhost:8000"
+	@echo "  make install              # Install dependencies (first time only)"
+	@echo "  make dev                  # Start development server"
+	@echo ""
+	@echo "Before committing:"
+	@echo "  make check                # Run all quality checks"
+	@echo ""
+
+# Default target
+.DEFAULT_GOAL := help

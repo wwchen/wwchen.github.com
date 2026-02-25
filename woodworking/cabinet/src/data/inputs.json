@@ -19,39 +19,44 @@
           "layout": "row3"
         },
         {
+          "variable_id": "dim_back_stretcher",
+          "step": 0.125,
+          "layout": "row2",
+          "condition": "backing_style === 'stretcher'"
+        }
+      ]
+    },
+    {
+      "title": "Drawer Dimensions",
+      "inputs": [
+        {
+          "variable_id": "num_drawers",
+          "min": 1,
+          "max": 10,
+          "step": 1
+        }
+      ],
+      "drawer_heights_config": {
+        "step": 0.125,
+        "min": 1.0
+      },
+      "additional_inputs": [
+        {
+          "variable_id": "drawer_clearance",
+          "step": 0.0625,
+          "layout": "row2"
+        },
+        {
           "variable_id": "dim_drawer_divider",
           "step": 0.125,
           "layout": "row2"
         },
         {
-          "variable_id": "dim_back_stretcher",
-          "step": 0.125,
-          "layout": "row2",
-          "condition": "backing_style === 'stretcher'"
-        },
-        {
           "variable_id": "dim_slides_w",
-          "step": 0.125
-        },
-        {
-          "variable_id": "num_drawers",
-          "min": 1,
-          "max": 10,
-          "step": 1,
-          "layout": "row2"
-        },
-        {
-          "variable_id": "drawer_clearance",
-          "step": 0.0625,
+          "step": 0.125,
           "layout": "row2"
         }
       ]
-    },
-    {
-      "title": "Drawer Heights",
-      "type": "drawer_heights",
-      "step": 0.125,
-      "min": 1.0
     },
     {
       "title": "Cabinet Style",

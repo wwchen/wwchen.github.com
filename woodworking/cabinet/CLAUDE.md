@@ -42,7 +42,7 @@ Updates: BOM → Cut Optimizer → 3D Viz → Calculated Dimensions → Debug
 
 **Data Model (`js/` folder):**
 - `js/panels.json` - Panel metadata: dimensions (expressions), 3D viz config, quantities
-- `js/cabinet_styles.json` - Cabinet styles: panel lists, material assignments per style
+- `js/cabinet_styles.json` - Cabinet styles: panel lists, thickness assignments per style
 - `js/variables.json` - All variables: inputs, plywood thicknesses, calculated values
 - `js/inputs.json` - UI configuration: input sections, layouts, conditional visibility
 - `js/equations.json` - (Legacy) Still contains calculated dimensions array
@@ -66,7 +66,7 @@ The application uses **4 primary data models** with clean separation of concerns
 | File | Purpose | Contains |
 |------|---------|----------|
 | `panels.json` | **Panel Metadata** | What panels exist, their dimensions, 3D properties |
-| `cabinet_styles.json` | **Style Definitions** | When panels are used, material assignments |
+| `cabinet_styles.json` | **Style Definitions** | When panels are used, thickness assignments |
 | `variables.json` | **Variables** | How dimensions are calculated (inputs, plywood, calculated) |
 | `inputs.json` | **UI Configuration** | How inputs are displayed (sections, layouts, conditions) |
 
@@ -153,7 +153,6 @@ interface PanelOverride {
 
 interface MaterialDefault {
   thickness: number;        // 0.75, 0.5, 0.25, 0
-  material?: string;        // Optional: "birch", "maple" (future use)
   components: string[];     // Panel keys: ["carcass_sides", "carcass_top"]
 }
 ```
@@ -219,7 +218,7 @@ interface Variable {
 | Type | Description | Example |
 |------|-------------|---------|
 | `input` | User-editable values | `dim_w`, `num_drawers`, `backing_style` |
-| `plywood` | Thickness values from material table | `ply_carcass`, `ply_drawer` |
+| `plywood` | Thickness values from plywood table | `ply_carcass`, `ply_drawer` |
 | `calculated` | Computed from expressions | `drawer_width`, `drawer_height_equal` |
 | `array` | Per-element values (e.g., per-drawer) | `drawer_heights` |
 
@@ -336,7 +335,7 @@ interface Option {
 
 ### 1. Cabinet Styles and Panel Selection
 
-**Cabinet styles** define which panels are used and their default material assignments:
+**Cabinet styles** define which panels are used and their default thickness assignments:
 
 - **Full Plywood** (`full`) - Solid plywood back panel
 - **Routed Inlay** (`inlay`) - Thin back panel in routed groove (smaller dimensions)
@@ -445,7 +444,6 @@ Drawers can have different heights via the `drawer_heights` array variable (type
 plywoodData = [
   {
     thickness: 0.75,
-    material: 'birch',
     components: ['carcass_sides', 'carcass_top', 'drawer_stretcher']
   }
 ]
@@ -641,7 +639,7 @@ Any change to inputs or plywood data must call `calculate()` to update everythin
 Already wired up for:
 - ✅ Input changes (input/change event listeners)
 - ✅ Plywood drag/drop (`handleDrop`, `handleDropToAvailable`)
-- ✅ Plywood thickness/material changes (`updatePlywoodRow`)
+- ✅ Plywood thickness changes (`updateRowThickness`)
 - ✅ Backing style changes (triggers plywood table update)
 - ✅ Drawer height changes (per-drawer inputs in `renderDrawerHeightInputs`)
 
@@ -764,7 +762,7 @@ buildEquationString("dim_w - 2", {dim_w: 25})
 **`getPlywoodForComponent(component)`** - Finds plywood row for component
 ```javascript
 getPlywoodForComponent('drawer_stretcher')
-// → {thickness: 0.75, material: 'birch'}
+// → {thickness: 0.75}
 ```
 
 ## Testing

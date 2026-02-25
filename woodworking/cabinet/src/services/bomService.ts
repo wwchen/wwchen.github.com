@@ -27,6 +27,7 @@ export class BOMService {
         const loopVar = panel.viz3d.loop
         const loopCount = context[loopVar] as number
         if (typeof loopCount === 'number' && loopCount > 0) {
+          const beforeLength = bom.length
           this.generateLoopedBOMItems(
             panel,
             key,
@@ -36,7 +37,7 @@ export class BOMService {
             bom,
             itemId
           )
-          itemId += bom.length
+          itemId += bom.length - beforeLength
         }
       } else {
         // Non-looped panel
@@ -55,7 +56,7 @@ export class BOMService {
           height: Math.round(height * 1000) / 1000,
           thickness: Math.round(thickness * 1000) / 1000,
           quantity,
-          equation: `${panel.dimensions.width} × ${panel.dimensions.height}`,
+          equation: `W: ${panel.dimensions.width}\nH: ${panel.dimensions.height}`,
         })
       }
     })
@@ -146,7 +147,7 @@ export class BOMService {
         height,
         thickness,
         quantity: drawerNums.length,
-        equation: `${panel.dimensions.width} × ${panel.dimensions.height}`,
+        equation: `W: ${panel.dimensions.width}\nH: ${panel.dimensions.height}`,
         drawerIndices: drawerNums,
       })
     })

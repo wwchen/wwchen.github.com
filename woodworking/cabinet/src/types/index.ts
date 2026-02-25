@@ -41,10 +41,9 @@ export interface PanelOverride {
   viz3d?: Partial<Viz3D>
 }
 
-// Material default assignment
+// Thickness default assignment
 export interface MaterialDefault {
   thickness: number
-  material?: string
   components: string[]
 }
 
@@ -98,10 +97,13 @@ export interface InputField {
 // Input section
 export interface InputSection {
   title: string
-  type?: 'plywood_table' | 'drawer_heights'
-  step?: number
-  min?: number
+  type?: 'plywood_table'
   inputs?: InputField[]
+  drawer_heights_config?: {
+    step?: number
+    min?: number
+  }
+  additional_inputs?: InputField[]
 }
 
 // Inputs config
@@ -138,7 +140,6 @@ export interface BOMItem {
 // Plywood assignment
 export interface PlywoodAssignment {
   thickness: number
-  material: string
   components: string[]
 }
 

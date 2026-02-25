@@ -59,4 +59,17 @@ watch(
   overflow: hidden;
   background: #f0f0f0;
 }
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .three-container {
+    height: 400px;
+  }
+}
+
+@media (max-width: 480px) {
+  .three-container {
+    height: 300px;
+  }
+}
 </style>

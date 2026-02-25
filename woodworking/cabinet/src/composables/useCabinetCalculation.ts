@@ -27,7 +27,6 @@ export function useCabinetCalculation() {
   const initialPlywoodData: PlywoodAssignment[] = fullStyle
     ? fullStyle.material_defaults.map((md) => ({
         thickness: md.thickness,
-        material: md.material || 'birch',
         components: [...md.components],
       }))
     : []
@@ -189,13 +188,21 @@ export function useCabinetCalculation() {
     return plywoodData.value.find((ply) => ply.components.includes(component))
   }
 
+  // Computed total of all drawer heights
+  const totalDrawerHeight = computed(() => {
+    return drawerHeights.value.reduce((sum, h) => sum + h, 0)
+  })
+
+  // Computed available height for drawers
+  const availableDrawerHeight = computed(() => {
+    const equalHeight = context.value.drawer_height_equal as number
+    const numDrawers = userInputs.value.num_drawers as number
+    return equalHeight * numDrawers
+  })
+
   // Function to check if drawer heights match available space
   const drawerHeightMismatch = computed(() => {
-    const totalDrawerHeight = drawerHeights.value.reduce((sum, h) => sum + h, 0)
-    const availableHeight = context.value.drawer_height_equal as number
-    const numDrawers = userInputs.value.num_drawers as number
-    const expectedTotal = availableHeight * numDrawers
-    return Math.abs(totalDrawerHeight - expectedTotal) > 0.01 // 0.01" tolerance
+    return Math.abs(totalDrawerHeight.value - availableDrawerHeight.value) > 0.01 // 0.01" tolerance
   })
 
   return {
@@ -211,6 +218,8 @@ export function useCabinetCalculation() {
     bom,
     calculatedDimensions,
     drawerHeightMismatch,
+    totalDrawerHeight,
+    availableDrawerHeight,
 
     // Functions
     equalizeDrawerHeights,
