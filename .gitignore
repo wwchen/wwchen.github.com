@@ -1,2 +1,21 @@
+# macOS
 .DS_Store
+
+# Editor
 *.swp
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Build outputs
+dist/
+
+# Vite
+.vite/
+
+# TypeScript
+*.tsbuildinfo
+
+# Test coverage
+coverage/

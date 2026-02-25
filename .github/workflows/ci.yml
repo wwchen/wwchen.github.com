@@ -1,27 +1,24 @@
-name: Cabinet CI Pipeline
+name: Cabinet CI/CD Pipeline
 
 on:
   push:
     branches: [main, master]
     paths:
-      - 'woodworking/cabinet/**'
+      - 'src/**'
+      - 'tests/**'
+      - 'package.json'
+      - 'vite.config.ts'
       - '.github/workflows/ci.yml'
   pull_request:
     branches: [main, master]
-    paths:
-      - 'woodworking/cabinet/**'
-      - '.github/workflows/ci.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   test:
     name: Test & Lint
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: woodworking/cabinet
     steps:
       - uses: actions/checkout@v4
 
@@ -30,7 +27,6 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: 'woodworking/cabinet/package-lock.json'
 
       - name: Install dependencies
         run: npm ci
@@ -44,13 +40,11 @@ jobs:
       - name: Run tests
         run: npm test -- --run
 
-  build:
-    name: Build
+  deploy:
+    name: Build & Deploy
     needs: test
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: woodworking/cabinet
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     steps:
       - uses: actions/checkout@v4
 
@@ -59,7 +53,6 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: 'woodworking/cabinet/package-lock.json'
 
       - name: Install dependencies
         run: npm ci
@@ -67,9 +60,9 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          name: cabinet-dist
-          path: woodworking/cabinet/dist/
-          retention-days: 30
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          keep_files: true
