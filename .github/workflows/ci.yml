@@ -65,13 +65,12 @@ jobs:
           mkdir -p deploy/woodworking/cabinet
           # Copy static site files to deploy root
           cp index-static.html deploy/index.html
-          cp *.html deploy/ 2>/dev/null || true
+          cp cutting-board-designer.html cutting-board-tests.html prime.html deploy/ 2>/dev/null || true
           cp *.pdf deploy/ 2>/dev/null || true
           cp -r css deploy/ 2>/dev/null || true
           cp -r img deploy/ 2>/dev/null || true
           cp -r js deploy/ 2>/dev/null || true
-          # Don't copy the Vite index.html to root
-          rm -f deploy/index-static.html
+          cp CNAME deploy/ 2>/dev/null || true
           # Copy Vite build to subdirectory
           cp -r dist/* deploy/woodworking/cabinet/
 
