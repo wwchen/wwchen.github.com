@@ -199,6 +199,16 @@ function getVariable(variableId: string) {
   padding: 1.5rem;
 }
 
+@media (max-width: 768px) {
+  .container {
+    padding: 0.75rem;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+}
+
 h1 {
   text-align: center;
   margin-bottom: 2rem;

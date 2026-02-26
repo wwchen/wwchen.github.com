@@ -117,7 +117,7 @@ function formatComponentName(component: string): string {
 
 <template>
   <div class="plywood-table-wrapper">
-    <DataTable :value="plywoodData" show-gridlines>
+    <DataTable :value="plywoodData" show-gridlines responsive-layout="scroll">
       <Column header="Thickness" style="width: 150px">
         <template #body="{ data, index }">
           <InputNumber
@@ -156,13 +156,12 @@ function formatComponentName(component: string): string {
         </template>
       </Column>
 
-      <Column style="width: 80px">
+      <Column header="Remove" style="width: 100px">
         <template #body="{ index }">
           <Button
             icon="pi pi-times"
+            label="Remove"
             severity="danger"
-            text
-            rounded
             size="small"
             @click="removeRow(index)"
           />

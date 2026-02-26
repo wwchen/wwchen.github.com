@@ -108,7 +108,7 @@ function formatArea(sqIn: number): string {
 </script>
 
 <template>
-  <DataTable :value="summaries" striped-rows show-gridlines>
+  <DataTable :value="summaries" striped-rows show-gridlines responsive-layout="scroll">
     <Column field="thickness" header="Thickness" style="width: 8rem">
       <template #body="{ data }">{{ data.thickness.toFixed(2) }}"</template>
     </Column>
@@ -120,10 +120,20 @@ function formatArea(sqIn: number): string {
         {{ data.sheetsNeeded }} ({{ data.utilization.toFixed(1) }}% utilization)
       </template>
     </Column>
-    <Column header="Export to Cutlist" style="width: 10rem">
+    <Column style="width: 14rem">
+      <template #header>
+        <a
+          href="https://www.opticutter.com/cut-list-optimizer/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-primary hover:underline"
+        >
+          Export to Cutlist
+        </a>
+      </template>
       <template #body="{ data }">
         <Button
-          label="CSV"
+          label="Export as Cutlist CSV"
           icon="pi pi-download"
           size="small"
           @click="exportThicknessToCSV(data)"

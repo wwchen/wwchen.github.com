@@ -27,18 +27,19 @@ function test(name: string, fn: () => void) {
     fn()
     results.value.push({ suite: currentSuite.value, name, passed: true })
     console.log(`✓ ${name}`)
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
     results.value.push({
       suite: currentSuite.value,
       name,
       passed: false,
-      error: error.message,
+      error: errorMessage,
     })
-    console.error(`✗ ${name}:`, error.message)
+    console.error(`✗ ${name}:`, errorMessage)
   }
 }
 
-function assertEqual(actual: any, expected: any, message = '') {
+function assertEqual(actual: unknown, expected: unknown, message = '') {
   if (actual !== expected) {
     throw new Error(`${message}\nExpected: ${expected}\nActual: ${actual}`)
   }

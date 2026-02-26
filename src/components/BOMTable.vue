@@ -18,8 +18,7 @@ defineProps({
     sort-mode="multiple"
     striped-rows
     show-gridlines
-    scrollable
-    scroll-height="flex"
+    responsive-layout="scroll"
   >
     <Column field="id" header="ID" sortable style="width: 4rem"></Column>
     <Column field="item" header="Item" sortable></Column>
